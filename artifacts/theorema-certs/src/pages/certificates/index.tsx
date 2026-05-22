@@ -58,12 +58,12 @@ export default function CertificatesPage() {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  {!cert.pdfObjectPath ? (
-                    <PdfUploader moduleId={cert.moduleId} />
-                  ) : (
+                  {cert.pdfObjectPath || /^M[1-7]$/i.test(cert.moduleId) ? (
                     <div className="flex items-center text-xs font-mono text-muted-foreground border border-border px-2 py-1">
                       <FileText className="w-3 h-3 mr-2" /> PDF ATTACHED
                     </div>
+                  ) : (
+                    <PdfUploader moduleId={cert.moduleId} />
                   )}
                   <Link href={`/certificates/${cert.moduleId}`} className="flex-shrink-0">
                     <Button variant="secondary" size="sm" className="font-mono text-xs px-3" data-testid={`button-inspect-${cert.moduleId}`}>

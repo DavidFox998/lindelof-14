@@ -8,6 +8,12 @@ import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { format } from "date-fns";
 
+function getStaticPdfPath(moduleId: string): string | null {
+  const match = moduleId.match(/^M([1-7])$/i);
+  if (!match) return null;
+  return `${import.meta.env.BASE_URL}pdfs/m${match[1]}.pdf`;
+}
+
 export default function CertificateDetailPage() {
   const params = useParams();
   const moduleId = params.moduleId!;
@@ -27,6 +33,12 @@ export default function CertificateDetailPage() {
     return <div className="text-destructive font-mono text-sm">CERTIFICATE NOT FOUND</div>;
   }
 
+  const staticPdf = getStaticPdfPath(cert.moduleId);
+  const pdfSrc = cert.pdfObjectPath
+    ? `/api/storage/objects/${encodeURIComponent(cert.pdfObjectPath)}`
+    : staticPdf;
+  const hasAnyPdf = !!pdfSrc;
+
   return (
     <div className="space-y-6">
       <Link href="/certificates" className="inline-flex items-center text-xs font-mono text-muted-foreground hover:text-foreground transition-colors mb-4">
@@ -42,7 +54,7 @@ export default function CertificateDetailPage() {
           <h1 className="text-xl font-sans text-foreground/90">{cert.title}</h1>
         </div>
         <div className="flex items-center gap-2">
-          {!cert.pdfObjectPath && <PdfUploader moduleId={cert.moduleId} />}
+          {!hasAnyPdf && <PdfUploader moduleId={cert.moduleId} />}
         </div>
       </header>
 
@@ -62,9 +74,9 @@ export default function CertificateDetailPage() {
               </h3>
             </div>
             <div className="bg-background min-h-[400px] lg:min-h-[600px] flex-1 relative">
-              {cert.pdfObjectPath ? (
-                <iframe 
-                  src={`/api/storage/objects/${encodeURIComponent(cert.pdfObjectPath)}`}
+              {pdfSrc ? (
+                <iframe
+                  src={pdfSrc}
                   className="absolute inset-0 w-full h-full border-0"
                   title={`Proof Document for ${cert.moduleId}`}
                 />
