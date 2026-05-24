@@ -574,6 +574,87 @@ export const useRebuildLeanVerification = <TError = ErrorType<unknown>,
       return useMutation(getRebuildLeanVerificationMutationOptions(options));
     }
 
+export const getRebuildLeanVerificationStreamUrl = () => {
+
+
+
+
+  return `/api/lean/verify/rebuild/stream`
+}
+
+/**
+ * Same auth and semantics as `/lean/verify/rebuild`, but streams the
+script's stdout/stderr line-by-line as Server-Sent Events so the UI can
+show progress instead of a frozen spinner.
+
+Events emitted (each `data:` line is a JSON object):
+- `event: line`    — `{ "stream": "stdout"|"stderr", "line": "..." }`
+- `event: result`  — final `LeanRebuildResult` payload
+- `event: error`   — `{ "error": "..." }` if the stream aborts early
+
+The stream ends after the `result` (or `error`) event.
+
+ * @summary Stream a Lean rebuild's stdout/stderr live (SSE)
+ */
+export const rebuildLeanVerificationStream = async ( options?: RequestInit): Promise<string> => {
+
+  return customFetch<string>(getRebuildLeanVerificationStreamUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRebuildLeanVerificationStreamMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rebuildLeanVerificationStream>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rebuildLeanVerificationStream>>, TError,void, TContext> => {
+
+const mutationKey = ['rebuildLeanVerificationStream'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rebuildLeanVerificationStream>>, void> = () => {
+
+
+          return  rebuildLeanVerificationStream(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RebuildLeanVerificationStreamMutationResult = NonNullable<Awaited<ReturnType<typeof rebuildLeanVerificationStream>>>
+
+    export type RebuildLeanVerificationStreamMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Stream a Lean rebuild's stdout/stderr live (SSE)
+ */
+export const useRebuildLeanVerificationStream = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rebuildLeanVerificationStream>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rebuildLeanVerificationStream>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRebuildLeanVerificationStreamMutationOptions(options));
+    }
+
 export const getRequestUploadUrlUrl = () => {
 
 

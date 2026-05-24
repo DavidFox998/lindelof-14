@@ -135,6 +135,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/LeanRebuildResult"
 
+  /lean/verify/rebuild/stream:
+    post:
+      operationId: rebuildLeanVerificationStream
+      tags: [lean]
+      summary: Stream a Lean rebuild's stdout/stderr live (SSE)
+      description: |
+        Same auth and semantics as `/lean/verify/rebuild`, but streams the
+        script's stdout/stderr line-by-line as Server-Sent Events so the UI can
+        show progress instead of a frozen spinner.
+
+        Events emitted (each `data:` line is a JSON object):
+        - `event: line`    — `{ "stream": "stdout"|"stderr", "line": "..." }`
+        - `event: result`  — final `LeanRebuildResult` payload
+        - `event: error`   — `{ "error": "..." }` if the stream aborts early
+
+        The stream ends after the `result` (or `error`) event.
+      responses:
+        "200":
+          description: Server-Sent Events stream of rebuild progress
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
   /storage/uploads/request-url:
     post:
       operationId: requestUploadUrl

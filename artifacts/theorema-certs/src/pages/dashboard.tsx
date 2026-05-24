@@ -2,7 +2,6 @@ import {
   useGetCertificateSummary,
   useListCertificates,
   useGetLeanVerification,
-  useRebuildLeanVerification,
   getGetLeanVerificationQueryKey,
 } from "@workspace/api-client-react";
 import { ShaChip } from "@/components/sha-chip";
@@ -21,7 +20,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const REBUILD_TOKEN_STORAGE_KEY = "lean-rebuild-token";
 
@@ -54,6 +53,112 @@ interface RebuildOutcome {
   exitCode: number;
 }
 
+interface RebuildLogLine {
+  stream: "stdout" | "stderr";
+  line: string;
+}
+
+interface RebuildResultPayload {
+  ok: boolean;
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  durationMs: number;
+  error: string | null;
+  verification: unknown;
+}
+
+const REBUILD_STREAM_URL = `${import.meta.env.BASE_URL}api/lean/verify/rebuild/stream`.replace(
+  /\/{2,}/g,
+  "/",
+);
+
+async function streamRebuild(
+  token: string,
+  onLine: (line: RebuildLogLine) => void,
+  signal: AbortSignal,
+): Promise<{ kind: "result"; payload: RebuildResultPayload } | { kind: "error"; error: string; status?: number }> {
+  let response: Response;
+  try {
+    response = await fetch(REBUILD_STREAM_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      signal,
+    });
+  } catch (err) {
+    return { kind: "error", error: err instanceof Error ? err.message : String(err) };
+  }
+
+  if (!response.ok) {
+    let detail = `HTTP ${response.status}`;
+    try {
+      const body = await response.json();
+      if (body && typeof body === "object" && typeof (body as { error?: unknown }).error === "string") {
+        detail = (body as { error: string }).error;
+      }
+    } catch {
+      // ignore
+    }
+    return { kind: "error", error: detail, status: response.status };
+  }
+
+  if (!response.body) {
+    return { kind: "error", error: "Streaming not supported by this browser." };
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalResult: RebuildResultPayload | null = null;
+  let streamError: string | null = null;
+
+  const handleEvent = (eventName: string, dataStr: string) => {
+    let data: unknown;
+    try {
+      data = JSON.parse(dataStr);
+    } catch {
+      return;
+    }
+    if (eventName === "line" && data && typeof data === "object") {
+      const obj = data as Partial<RebuildLogLine>;
+      if ((obj.stream === "stdout" || obj.stream === "stderr") && typeof obj.line === "string") {
+        onLine({ stream: obj.stream, line: obj.line });
+      }
+    } else if (eventName === "result") {
+      finalResult = data as RebuildResultPayload;
+    } else if (eventName === "error" && data && typeof data === "object") {
+      const obj = data as { error?: unknown };
+      if (typeof obj.error === "string") streamError = obj.error;
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let sep: number;
+    while ((sep = buffer.indexOf("\n\n")) !== -1) {
+      const raw = buffer.slice(0, sep);
+      buffer = buffer.slice(sep + 2);
+      let eventName = "message";
+      const dataLines: string[] = [];
+      for (const rawLine of raw.split("\n")) {
+        if (rawLine.startsWith(":") || rawLine.length === 0) continue;
+        if (rawLine.startsWith("event:")) {
+          eventName = rawLine.slice(6).trim();
+        } else if (rawLine.startsWith("data:")) {
+          dataLines.push(rawLine.slice(5).replace(/^ /, ""));
+        }
+      }
+      if (dataLines.length > 0) handleEvent(eventName, dataLines.join("\n"));
+    }
+  }
+
+  if (finalResult) return { kind: "result", payload: finalResult };
+  if (streamError) return { kind: "error", error: streamError };
+  return { kind: "error", error: "Stream ended without a result frame." };
+}
+
 export default function DashboardPage() {
   const { data: summary, isLoading: isSummaryLoading } = useGetCertificateSummary();
   const { data: certificates, isLoading: isCertsLoading } = useListCertificates();
@@ -62,6 +167,76 @@ export default function DashboardPage() {
   const [rebuildOutcome, setRebuildOutcome] = useState<RebuildOutcome | null>(null);
   const [rebuildToken, setRebuildToken] = useState<string>("");
   const [showTokenInput, setShowTokenInput] = useState(false);
+  const [isRebuilding, setIsRebuilding] = useState(false);
+  const [rebuildLogLines, setRebuildLogLines] = useState<RebuildLogLine[]>([]);
+  const logPanelRef = useRef<HTMLPreElement | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (logPanelRef.current) {
+      logPanelRef.current.scrollTop = logPanelRef.current.scrollHeight;
+    }
+  }, [rebuildLogLines]);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  const startRebuild = async () => {
+    if (!rebuildToken) {
+      setShowTokenInput(true);
+      setRebuildOutcome({
+        ok: false,
+        message: "A referee rebuild token is required. Enter it below and try again.",
+        stdout: "",
+        stderr: "",
+        durationMs: 0,
+        exitCode: -1,
+      });
+      return;
+    }
+    setRebuildOutcome(null);
+    setRebuildLogLines([]);
+    setIsRebuilding(true);
+    const controller = new AbortController();
+    abortRef.current = controller;
+    try {
+      const outcome = await streamRebuild(
+        rebuildToken,
+        (line) => setRebuildLogLines((prev) => [...prev, line]),
+        controller.signal,
+      );
+      if (outcome.kind === "result") {
+        const r = outcome.payload;
+        const message = r.ok
+          ? `Rebuild succeeded in ${(r.durationMs / 1000).toFixed(1)}s. VERIFY.txt refreshed.`
+          : r.error ?? `Rebuild failed (exit code ${r.exitCode}).`;
+        setRebuildOutcome({
+          ok: r.ok,
+          message,
+          stdout: r.stdout,
+          stderr: r.stderr,
+          durationMs: r.durationMs,
+          exitCode: r.exitCode,
+        });
+        await queryClient.invalidateQueries({ queryKey: getGetLeanVerificationQueryKey() });
+      } else {
+        setRebuildOutcome({
+          ok: false,
+          message: outcome.error,
+          stdout: "",
+          stderr: "",
+          durationMs: 0,
+          exitCode: -1,
+        });
+      }
+    } finally {
+      setIsRebuilding(false);
+      abortRef.current = null;
+    }
+  };
 
   useEffect(() => {
     try {
@@ -71,52 +246,6 @@ export default function DashboardPage() {
       // ignore (private mode, etc.)
     }
   }, []);
-
-  const rebuildMutation = useRebuildLeanVerification({
-    request: rebuildToken
-      ? { headers: { Authorization: `Bearer ${rebuildToken}` } }
-      : undefined,
-    mutation: {
-      onSuccess: async (result) => {
-        const message = result.ok
-          ? `Rebuild succeeded in ${(result.durationMs / 1000).toFixed(1)}s. VERIFY.txt refreshed.`
-          : result.error ?? `Rebuild failed (exit code ${result.exitCode}).`;
-        setRebuildOutcome({
-          ok: result.ok,
-          message,
-          stdout: result.stdout,
-          stderr: result.stderr,
-          durationMs: result.durationMs,
-          exitCode: result.exitCode,
-        });
-        await queryClient.invalidateQueries({ queryKey: getGetLeanVerificationQueryKey() });
-      },
-      onError: (err: unknown) => {
-        let message = "Rebuild request failed";
-        if (err && typeof err === "object") {
-          const data = (err as { data?: unknown }).data;
-          if (data && typeof data === "object") {
-            const errField = (data as { error?: unknown }).error;
-            if (typeof errField === "string" && errField.length > 0) {
-              message = errField;
-            }
-          }
-          if (message === "Rebuild request failed" && err instanceof Error) {
-            message = err.message;
-          }
-        }
-        setRebuildOutcome({
-          ok: false,
-          message,
-          stdout: "",
-          stderr: "",
-          durationMs: 0,
-          exitCode: -1,
-        });
-      },
-    },
-  });
-  const isRebuilding = rebuildMutation.isPending;
 
   const isLoading = isSummaryLoading || isCertsLoading;
 
@@ -301,21 +430,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (!rebuildToken) {
-                      setShowTokenInput(true);
-                      setRebuildOutcome({
-                        ok: false,
-                        message:
-                          "A referee rebuild token is required. Enter it below and try again.",
-                        stdout: "",
-                        stderr: "",
-                        durationMs: 0,
-                        exitCode: -1,
-                      });
-                      return;
-                    }
-                    setRebuildOutcome(null);
-                    rebuildMutation.mutate();
+                    void startRebuild();
                   }}
                   disabled={isRebuilding}
                   className="inline-flex items-center gap-2 px-3 py-1.5 border border-green-500/50 bg-green-500/10 font-mono text-xs uppercase tracking-wider text-green-700 dark:text-green-400 hover:bg-green-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
@@ -339,10 +454,42 @@ export default function DashboardPage() {
                     className="font-mono text-xs text-muted-foreground"
                     data-testid="text-rebuild-progress"
                   >
-                    Running lean-proof/regenerate.sh — this may take a few minutes.
+                    Streaming lean-proof/regenerate.sh — {rebuildLogLines.length} line
+                    {rebuildLogLines.length === 1 ? "" : "s"} so far.
                   </span>
                 ) : null}
               </div>
+
+              {(isRebuilding || rebuildLogLines.length > 0) ? (
+                <div
+                  className="border border-border bg-black/90 dark:bg-black/70"
+                  data-testid="panel-rebuild-live-log"
+                >
+                  <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/30">
+                    <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                      Live rebuild output
+                    </span>
+                    <span
+                      className="font-mono text-[11px] text-muted-foreground"
+                      data-testid="text-rebuild-line-count"
+                    >
+                      {rebuildLogLines.length} line{rebuildLogLines.length === 1 ? "" : "s"}
+                      {isRebuilding ? " · streaming…" : ""}
+                    </span>
+                  </div>
+                  <pre
+                    ref={logPanelRef}
+                    className="max-h-72 overflow-auto px-3 py-2 font-mono text-[11px] leading-relaxed text-green-300 whitespace-pre-wrap"
+                    data-testid="text-rebuild-live-log"
+                  >
+                    {rebuildLogLines.length === 0
+                      ? "Waiting for output…"
+                      : rebuildLogLines
+                          .map((l) => (l.stream === "stderr" ? `! ${l.line}` : l.line))
+                          .join("\n")}
+                  </pre>
+                </div>
+              ) : null}
 
               {showTokenInput ? (
                 <div
