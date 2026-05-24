@@ -104,6 +104,13 @@ export interface LeanRebuildResult {
   verification?: LeanVerification | null;
 }
 
+export interface LeanRebuildCancelResult {
+  /** True when a cancellation signal was successfully sent. */
+  ok: boolean;
+  message?: string;
+  error?: string;
+}
+
 export interface UploadUrlRequest {
   name: string;
   size: number;

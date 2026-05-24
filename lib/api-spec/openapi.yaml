@@ -135,6 +135,32 @@ paths:
               schema:
                 $ref: "#/components/schemas/LeanRebuildResult"
 
+  /lean/verify/rebuild/cancel:
+    post:
+      operationId: cancelLeanVerificationRebuild
+      tags: [lean]
+      summary: Cancel the currently in-flight Lean rebuild
+      description: |
+        Sends SIGTERM to the in-flight `regenerate.sh` child process so a
+        referee can abort a rebuild without waiting for the 5-minute timeout.
+        Requires the same `Authorization: Bearer <token>` header as the
+        rebuild endpoints. Returns 409 if no rebuild is currently in flight.
+        The active streaming rebuild will emit a final `result` frame
+        reporting the cancellation.
+      responses:
+        "200":
+          description: Cancellation signal accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeanRebuildCancelResult"
+        "401":
+          description: Missing or invalid referee rebuild token
+        "409":
+          description: No Lean rebuild is currently in flight
+        "503":
+          description: Rebuilds are disabled (LEAN_REBUILD_TOKEN not configured)
+
   /lean/verify/rebuild/stream:
     post:
       operationId: rebuildLeanVerificationStream
@@ -337,6 +363,18 @@ components:
             - $ref: "#/components/schemas/LeanVerification"
             - type: "null"
           description: Re-parsed verification log after a successful rebuild
+
+    LeanRebuildCancelResult:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+          description: True when a cancellation signal was successfully sent.
+        message:
+          type: string
+        error:
+          type: string
 
     UploadUrlRequest:
       type: object

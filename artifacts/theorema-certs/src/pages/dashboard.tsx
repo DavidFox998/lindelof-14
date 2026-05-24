@@ -72,6 +72,10 @@ const REBUILD_STREAM_URL = `${import.meta.env.BASE_URL}api/lean/verify/rebuild/s
   /\/{2,}/g,
   "/",
 );
+const REBUILD_CANCEL_URL = `${import.meta.env.BASE_URL}api/lean/verify/rebuild/cancel`.replace(
+  /\/{2,}/g,
+  "/",
+);
 
 async function streamRebuild(
   token: string,
@@ -168,6 +172,7 @@ export default function DashboardPage() {
   const [rebuildToken, setRebuildToken] = useState<string>("");
   const [showTokenInput, setShowTokenInput] = useState(false);
   const [isRebuilding, setIsRebuilding] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [rebuildLogLines, setRebuildLogLines] = useState<RebuildLogLine[]>([]);
   const logPanelRef = useRef<HTMLPreElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -234,7 +239,51 @@ export default function DashboardPage() {
       }
     } finally {
       setIsRebuilding(false);
+      setIsCancelling(false);
       abortRef.current = null;
+    }
+  };
+
+  const cancelRebuild = async () => {
+    if (!isRebuilding || !rebuildToken) return;
+    setIsCancelling(true);
+    try {
+      const res = await fetch(REBUILD_CANCEL_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${rebuildToken}` },
+      });
+      if (!res.ok) {
+        let detail = `HTTP ${res.status}`;
+        try {
+          const body = await res.json();
+          if (body && typeof body === "object" && typeof (body as { error?: unknown }).error === "string") {
+            detail = (body as { error: string }).error;
+          }
+        } catch {
+          // ignore
+        }
+        setRebuildOutcome({
+          ok: false,
+          message: `Cancel failed: ${detail}`,
+          stdout: "",
+          stderr: "",
+          durationMs: 0,
+          exitCode: -1,
+        });
+        setIsCancelling(false);
+      }
+      // On success, leave isCancelling true until the stream finishes with
+      // the cancellation result frame; the finally{} in startRebuild clears it.
+    } catch (err) {
+      setRebuildOutcome({
+        ok: false,
+        message: `Cancel failed: ${err instanceof Error ? err.message : String(err)}`,
+        stdout: "",
+        stderr: "",
+        durationMs: 0,
+        exitCode: -1,
+      });
+      setIsCancelling(false);
     }
   };
 
@@ -446,6 +495,20 @@ export default function DashboardPage() {
                   />
                   {isRebuilding ? "Rebuilding…" : "Rebuild Lean log"}
                 </button>
+                {isRebuilding ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void cancelRebuild();
+                    }}
+                    disabled={isCancelling || !rebuildToken}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 border border-red-500/50 bg-red-500/10 font-mono text-xs uppercase tracking-wider text-red-700 dark:text-red-400 hover:bg-red-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                    data-testid="button-cancel-lean-rebuild"
+                  >
+                    <XCircle className="w-3 h-3" />
+                    {isCancelling ? "Cancelling…" : "Cancel"}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => setShowTokenInput((v) => !v)}

@@ -147,6 +147,23 @@ export const RebuildLeanVerificationResponse = zod.object({
 
 
 /**
+ * Sends SIGTERM to the in-flight `regenerate.sh` child process so a
+referee can abort a rebuild without waiting for the 5-minute timeout.
+Requires the same `Authorization: Bearer <token>` header as the
+rebuild endpoints. Returns 409 if no rebuild is currently in flight.
+The active streaming rebuild will emit a final `result` frame
+reporting the cancellation.
+
+ * @summary Cancel the currently in-flight Lean rebuild
+ */
+export const CancelLeanVerificationRebuildResponse = zod.object({
+  "ok": zod.boolean().describe('True when a cancellation signal was successfully sent.'),
+  "message": zod.string().optional(),
+  "error": zod.string().optional()
+})
+
+
+/**
  * @summary Request a presigned upload URL for a PDF
  */
 export const RequestUploadUrlBody = zod.object({

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import path from "node:path";
 
 const router: IRouter = Router();
@@ -104,6 +104,8 @@ router.get("/lean/verify", (req, res) => {
 });
 
 let rebuildInFlight = false;
+let currentChild: ChildProcessWithoutNullStreams | null = null;
+let cancelRequested = false;
 
 function extractBearerToken(header: string | undefined): string | null {
   if (!header) return null;
@@ -195,14 +197,17 @@ router.post("/lean/verify/rebuild/stream", (req, res) => {
   };
 
   rebuildInFlight = true;
-  let child;
+  cancelRequested = false;
+  let child: ChildProcessWithoutNullStreams;
   try {
     child = spawn("bash", [REGENERATE_SCRIPT], {
       cwd: REPO_ROOT,
       env: process.env,
     });
+    currentChild = child;
   } catch (err) {
     rebuildInFlight = false;
+    currentChild = null;
     const message = err instanceof Error ? err.message : String(err);
     req.log.error({ err: message }, "Failed to spawn regenerate.sh");
     sendEvent("result", {
@@ -267,6 +272,7 @@ router.post("/lean/verify/rebuild/stream", (req, res) => {
     clearTimeout(timer);
     clearInterval(heartbeat);
     rebuildInFlight = false;
+    currentChild = null;
     lastRebuildFinishedAt = Date.now();
 
     // Flush trailing partial lines
@@ -320,6 +326,14 @@ router.post("/lean/verify/rebuild/stream", (req, res) => {
   });
 
   child.on("close", (code, signal) => {
+    if (cancelRequested) {
+      finish({
+        ok: false,
+        exitCode: code ?? -1,
+        error: `Rebuild cancelled by referee (${signal ?? "SIGTERM"}). VERIFY.txt was NOT overwritten.`,
+      });
+      return;
+    }
     if (timedOut) {
       finish({
         ok: false,
@@ -343,6 +357,32 @@ router.post("/lean/verify/rebuild/stream", (req, res) => {
     }
     finish({ ok: false, exitCode, error });
   });
+});
+
+router.post("/lean/verify/rebuild/cancel", (req, res) => {
+  const auth = checkRebuildAuth(req);
+  if (!auth.ok) {
+    res.status(auth.status).json({ ok: false, error: auth.error });
+    return;
+  }
+  if (!rebuildInFlight || !currentChild) {
+    res.status(409).json({
+      ok: false,
+      error: "No Lean rebuild is currently in flight.",
+    });
+    return;
+  }
+  cancelRequested = true;
+  try {
+    currentChild.kill("SIGTERM");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    req.log.error({ err: message }, "Failed to signal in-flight rebuild");
+    res.status(500).json({ ok: false, error: `Failed to signal rebuild: ${message}` });
+    return;
+  }
+  req.log.info("Lean rebuild cancellation requested");
+  res.status(200).json({ ok: true, message: "Cancellation signal sent to in-flight rebuild." });
 });
 
 router.post("/lean/verify/rebuild", (req, res) => {
@@ -406,14 +446,17 @@ router.post("/lean/verify/rebuild", (req, res) => {
   }
 
   rebuildInFlight = true;
-  let child;
+  cancelRequested = false;
+  let child: ChildProcessWithoutNullStreams;
   try {
     child = spawn("bash", [REGENERATE_SCRIPT], {
       cwd: REPO_ROOT,
       env: process.env,
     });
+    currentChild = child;
   } catch (err) {
     rebuildInFlight = false;
+    currentChild = null;
     const message = err instanceof Error ? err.message : String(err);
     req.log.error({ err: message }, "Failed to spawn regenerate.sh");
     res.status(200).json({
@@ -456,6 +499,7 @@ router.post("/lean/verify/rebuild", (req, res) => {
     responded = true;
     clearTimeout(timer);
     rebuildInFlight = false;
+    currentChild = null;
     lastRebuildFinishedAt = Date.now();
     const durationMs = Date.now() - start;
 
@@ -497,6 +541,14 @@ router.post("/lean/verify/rebuild", (req, res) => {
   });
 
   child.on("close", (code, signal) => {
+    if (cancelRequested) {
+      finish({
+        ok: false,
+        exitCode: code ?? -1,
+        error: `Rebuild cancelled by referee (${signal ?? "SIGTERM"}). VERIFY.txt was NOT overwritten.`,
+      });
+      return;
+    }
     if (timedOut) {
       finish({
         ok: false,

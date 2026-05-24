@@ -24,6 +24,7 @@ import type {
   CertificateSummary,
   CertificateUpdate,
   HealthStatus,
+  LeanRebuildCancelResult,
   LeanRebuildResult,
   LeanVerification,
   UploadUrlRequest,
@@ -572,6 +573,83 @@ export const useRebuildLeanVerification = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getRebuildLeanVerificationMutationOptions(options));
+    }
+
+export const getCancelLeanVerificationRebuildUrl = () => {
+
+
+
+
+  return `/api/lean/verify/rebuild/cancel`
+}
+
+/**
+ * Sends SIGTERM to the in-flight `regenerate.sh` child process so a
+referee can abort a rebuild without waiting for the 5-minute timeout.
+Requires the same `Authorization: Bearer <token>` header as the
+rebuild endpoints. Returns 409 if no rebuild is currently in flight.
+The active streaming rebuild will emit a final `result` frame
+reporting the cancellation.
+
+ * @summary Cancel the currently in-flight Lean rebuild
+ */
+export const cancelLeanVerificationRebuild = async ( options?: RequestInit): Promise<LeanRebuildCancelResult> => {
+
+  return customFetch<LeanRebuildCancelResult>(getCancelLeanVerificationRebuildUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCancelLeanVerificationRebuildMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelLeanVerificationRebuild>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelLeanVerificationRebuild>>, TError,void, TContext> => {
+
+const mutationKey = ['cancelLeanVerificationRebuild'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelLeanVerificationRebuild>>, void> = () => {
+
+
+          return  cancelLeanVerificationRebuild(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelLeanVerificationRebuildMutationResult = NonNullable<Awaited<ReturnType<typeof cancelLeanVerificationRebuild>>>
+
+    export type CancelLeanVerificationRebuildMutationError = ErrorType<void>
+
+    /**
+ * @summary Cancel the currently in-flight Lean rebuild
+ */
+export const useCancelLeanVerificationRebuild = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelLeanVerificationRebuild>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelLeanVerificationRebuild>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCancelLeanVerificationRebuildMutationOptions(options));
     }
 
 export const getRebuildLeanVerificationStreamUrl = () => {
