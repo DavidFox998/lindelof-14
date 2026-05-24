@@ -13,6 +13,27 @@ interface VerifyTxtDialogProps {
   highlightBinding?: string;
 }
 
+const HASH_PREFIX = "#verify";
+
+function readHashBinding(): string | null {
+  if (typeof window === "undefined") return null;
+  const hash = window.location.hash;
+  if (hash === HASH_PREFIX) return "";
+  if (hash.startsWith(`${HASH_PREFIX}=`)) {
+    const raw = hash.slice(HASH_PREFIX.length + 1);
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
+  }
+  return null;
+}
+
+function buildHash(binding: string): string {
+  return binding ? `${HASH_PREFIX}=${encodeURIComponent(binding)}` : HASH_PREFIX;
+}
+
 function findHighlightLineIndex(
   content: string,
   binding: string | undefined,
@@ -34,6 +55,35 @@ export function VerifyTxtDialog({
   const { data } = useGetLeanVerification();
   const [open, setOpen] = useState(false);
   const highlightRef = useRef<HTMLSpanElement | null>(null);
+  const ownHashBinding = highlightBinding ?? "";
+
+  useEffect(() => {
+    const sync = () => {
+      const h = readHashBinding();
+      if (h !== null && h === ownHashBinding) {
+        setOpen(true);
+      }
+    };
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, [ownHashBinding]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const { pathname, search } = window.location;
+    if (open) {
+      const desired = buildHash(ownHashBinding);
+      if (window.location.hash !== desired) {
+        window.history.replaceState(null, "", `${pathname}${search}${desired}`);
+      }
+    } else {
+      const current = readHashBinding();
+      if (current !== null && current === ownHashBinding) {
+        window.history.replaceState(null, "", `${pathname}${search}`);
+      }
+    }
+  }, [open, ownHashBinding]);
 
   const content: string = data?.content ?? "";
   const lines: string[] = content.split("\n");
