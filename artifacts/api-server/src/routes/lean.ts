@@ -2,6 +2,8 @@ import { Router, type IRouter } from "express";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import path from "node:path";
+import { desc, lt } from "drizzle-orm";
+import { db, leanRebuildHistoryTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -36,13 +38,52 @@ interface RebuildHistoryEntry {
 }
 
 const REBUILD_HISTORY_CAPACITY = 20;
-const rebuildHistory: RebuildHistoryEntry[] = [];
 
-function recordRebuildAttempt(entry: RebuildHistoryEntry): void {
-  rebuildHistory.unshift(entry);
-  if (rebuildHistory.length > REBUILD_HISTORY_CAPACITY) {
-    rebuildHistory.length = REBUILD_HISTORY_CAPACITY;
+async function recordRebuildAttempt(
+  entry: RebuildHistoryEntry,
+  log: import("pino").Logger,
+): Promise<void> {
+  try {
+    await db.insert(leanRebuildHistoryTable).values({
+      timestamp: new Date(entry.timestamp),
+      durationMs: entry.durationMs,
+      exitCode: entry.exitCode,
+      ok: entry.ok,
+      error: entry.error,
+      streamed: entry.streamed,
+    });
+
+    // Trim to capacity: delete rows older than the Nth most recent.
+    const cutoff = await db
+      .select({ id: leanRebuildHistoryTable.id })
+      .from(leanRebuildHistoryTable)
+      .orderBy(desc(leanRebuildHistoryTable.id))
+      .limit(1)
+      .offset(REBUILD_HISTORY_CAPACITY);
+    if (cutoff.length > 0) {
+      await db
+        .delete(leanRebuildHistoryTable)
+        .where(lt(leanRebuildHistoryTable.id, cutoff[0].id + 1));
+    }
+  } catch (err) {
+    log.error({ err }, "Failed to persist rebuild history entry");
   }
+}
+
+async function listRebuildHistory(): Promise<RebuildHistoryEntry[]> {
+  const rows = await db
+    .select()
+    .from(leanRebuildHistoryTable)
+    .orderBy(desc(leanRebuildHistoryTable.id))
+    .limit(REBUILD_HISTORY_CAPACITY);
+  return rows.map((r) => ({
+    timestamp: r.timestamp.toISOString(),
+    durationMs: r.durationMs,
+    exitCode: r.exitCode,
+    ok: r.ok,
+    error: r.error,
+    streamed: r.streamed,
+  }));
 }
 
 function checkRebuildCooldown(): { ok: true } | { ok: false; retryAfterMs: number } {
@@ -110,11 +151,14 @@ function invalidateCache(): void {
   cachedError = null;
 }
 
-router.get("/lean/verify/history", (_req, res) => {
-  res.json({
-    entries: rebuildHistory.slice(),
-    capacity: REBUILD_HISTORY_CAPACITY,
-  });
+router.get("/lean/verify/history", async (req, res) => {
+  try {
+    const entries = await listRebuildHistory();
+    res.json({ entries, capacity: REBUILD_HISTORY_CAPACITY });
+  } catch (err) {
+    req.log.error({ err }, "Failed to read rebuild history");
+    res.status(500).json({ error: "Failed to read rebuild history" });
+  }
 });
 
 router.get("/lean/verify", (req, res) => {
@@ -530,14 +574,17 @@ router.post("/lean/verify/rebuild/stream", (req, res) => {
       "Lean rebuild attempted",
     );
 
-    recordRebuildAttempt({
-      timestamp: new Date().toISOString(),
-      durationMs,
-      exitCode: payload.exitCode,
-      ok: payload.ok,
-      error: payload.error,
-      streamed: true,
-    });
+    void recordRebuildAttempt(
+      {
+        timestamp: new Date().toISOString(),
+        durationMs,
+        exitCode: payload.exitCode,
+        ok: payload.ok,
+        error: payload.error,
+        streamed: true,
+      },
+      req.log,
+    );
 
     sendEvent("result", {
       ok: payload.ok,
@@ -757,14 +804,17 @@ router.post("/lean/verify/rebuild", (req, res) => {
       "Lean rebuild attempted",
     );
 
-    recordRebuildAttempt({
-      timestamp: new Date().toISOString(),
-      durationMs,
-      exitCode: payload.exitCode,
-      ok: payload.ok,
-      error: payload.error,
-      streamed: false,
-    });
+    void recordRebuildAttempt(
+      {
+        timestamp: new Date().toISOString(),
+        durationMs,
+        exitCode: payload.exitCode,
+        ok: payload.ok,
+        error: payload.error,
+        streamed: false,
+      },
+      req.log,
+    );
 
     res.status(200).json({
       ok: payload.ok,
