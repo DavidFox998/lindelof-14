@@ -126,3 +126,4 @@ done
 
 echo
 echo "MorningStar-Lab v1.0 online. 4D stable. W=h Z=N X=Re Y=Im. CERTIFICATE at /data/M13_CERT.txt"
+"$REPO_ROOT/scripts/print-direction.sh"

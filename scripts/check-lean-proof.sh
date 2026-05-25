@@ -67,3 +67,4 @@ fi
 # regenerate.sh is what actually catches a broken proof.
 
 echo "ok: Lean proof verified; VERIFY.txt regenerated." >&2
+"$REPO_ROOT/scripts/print-direction.sh" >&2

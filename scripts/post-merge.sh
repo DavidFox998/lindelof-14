@@ -15,3 +15,5 @@ pnpm --filter db push
 # tamper detection covered by tests/test_morningstar.py.
 echo ">> running tests/test_morningstar.py (Genesis-seal tamper-evidence)" >&2
 python -m pytest tests/test_morningstar.py -q
+
+./scripts/print-direction.sh >&2

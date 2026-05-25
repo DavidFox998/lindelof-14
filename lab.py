@@ -50,7 +50,10 @@ BANNER = (
     "  Gun 2 (Dirichlet radar): dirichlet_probe\n"
     "  Gun 3 (Elliptic stub):   elliptic_probe\n"
     "  Legacy:                  probe | zero | hunt_zeros | bracket_zero | "
-    "scan_critical_line | scan_line | scan_plane"
+    "scan_critical_line | scan_line | scan_plane\n"
+    "\n"
+    "  Direction: bash scripts/print-direction.sh   "
+    "(manifest, seal, dashboard URL, reproduce recipe)"
 )
 
 
