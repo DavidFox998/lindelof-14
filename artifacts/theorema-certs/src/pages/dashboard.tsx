@@ -30,7 +30,7 @@ import {
   Activity,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const REBUILD_TOKEN_STORAGE_KEY = "lean-rebuild-token";
 const REBUILD_REFEREE_NAME_STORAGE_KEY = "lean-rebuild-referee-name";
@@ -228,8 +228,53 @@ export default function DashboardPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelConfirmElapsedMs, setCancelConfirmElapsedMs] = useState(0);
   const [rebuildLogLines, setRebuildLogLines] = useState<RebuildLogLine[]>([]);
+  const [historyRefereeFilter, setHistoryRefereeFilter] = useState<string>("");
   const logPanelRef = useRef<HTMLPreElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const ANONYMOUS_KEY = "__anonymous__";
+  const refereeKey = (name: string | null | undefined): string =>
+    name && name.length > 0 ? name : ANONYMOUS_KEY;
+  const refereeLabel = (key: string): string =>
+    key === ANONYMOUS_KEY ? "anonymous" : key;
+
+  const refereeSummaries = useMemo(() => {
+    const map = new Map<
+      string,
+      { total: number; ok: number; fail: number; lastOk: string | null; lastFail: string | null }
+    >();
+    const entries = rebuildHistory?.entries ?? [];
+    for (const entry of entries) {
+      const key = refereeKey(entry.refereeName);
+      const existing = map.get(key) ?? {
+        total: 0,
+        ok: 0,
+        fail: 0,
+        lastOk: null as string | null,
+        lastFail: null as string | null,
+      };
+      existing.total += 1;
+      if (entry.ok) {
+        existing.ok += 1;
+        if (!existing.lastOk) existing.lastOk = entry.timestamp;
+      } else {
+        existing.fail += 1;
+        if (!existing.lastFail) existing.lastFail = entry.timestamp;
+      }
+      map.set(key, existing);
+    }
+    return Array.from(map.entries())
+      .map(([key, v]) => ({ key, ...v }))
+      .sort((a, b) => b.total - a.total);
+  }, [rebuildHistory]);
+
+  const filteredHistoryEntries = useMemo(() => {
+    const entries = rebuildHistory?.entries ?? [];
+    if (!historyRefereeFilter) return entries;
+    return entries.filter(
+      (e) => refereeKey(e.refereeName) === historyRefereeFilter,
+    );
+  }, [rebuildHistory, historyRefereeFilter]);
 
   useEffect(() => {
     if (logPanelRef.current) {
@@ -816,19 +861,117 @@ export default function DashboardPage() {
                   className="border border-border bg-muted/20"
                   data-testid="panel-rebuild-history"
                 >
-                  <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/30">
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 border-b border-border bg-muted/30">
                     <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
                       Recent rebuild attempts
                     </span>
-                    <span
-                      className="font-mono text-[11px] text-muted-foreground"
-                      data-testid="text-rebuild-history-count"
-                    >
-                      {rebuildHistory.entries.length} of last {rebuildHistory.capacity}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <label
+                        htmlFor="rebuild-history-referee-filter"
+                        className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground"
+                      >
+                        Referee
+                      </label>
+                      <select
+                        id="rebuild-history-referee-filter"
+                        value={historyRefereeFilter}
+                        onChange={(e) => setHistoryRefereeFilter(e.target.value)}
+                        className="font-mono text-[11px] bg-background border border-border px-1.5 py-0.5"
+                        data-testid="select-rebuild-history-referee-filter"
+                      >
+                        <option value="">all</option>
+                        {refereeSummaries.map((s) => (
+                          <option key={s.key} value={s.key}>
+                            {refereeLabel(s.key)} ({s.total})
+                          </option>
+                        ))}
+                      </select>
+                      {historyRefereeFilter ? (
+                        <button
+                          type="button"
+                          onClick={() => setHistoryRefereeFilter("")}
+                          className="font-mono text-[11px] underline text-muted-foreground hover:text-foreground"
+                          data-testid="button-rebuild-history-clear-filter"
+                        >
+                          clear
+                        </button>
+                      ) : null}
+                      <span
+                        className="font-mono text-[11px] text-muted-foreground"
+                        data-testid="text-rebuild-history-count"
+                      >
+                        {historyRefereeFilter
+                          ? `${filteredHistoryEntries.length} of ${rebuildHistory.entries.length}`
+                          : `${rebuildHistory.entries.length} of last ${rebuildHistory.capacity}`}
+                      </span>
+                    </div>
                   </div>
+                  {refereeSummaries.length > 0 ? (
+                    <ul
+                      className="divide-y divide-border border-b border-border bg-muted/10"
+                      data-testid="list-rebuild-history-referee-summary"
+                    >
+                      {refereeSummaries.map((s) => {
+                        const isActive = historyRefereeFilter === s.key;
+                        return (
+                          <li
+                            key={s.key}
+                            className={`flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 font-mono text-[11px] ${
+                              isActive ? "bg-muted/40" : ""
+                            }`}
+                            data-testid={`row-rebuild-history-summary-${s.key}`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setHistoryRefereeFilter(isActive ? "" : s.key)
+                              }
+                              className={`md:w-40 truncate text-left underline-offset-2 hover:underline ${
+                                s.key === ANONYMOUS_KEY
+                                  ? "text-muted-foreground italic"
+                                  : "text-foreground"
+                              } ${isActive ? "font-bold" : ""}`}
+                              title={
+                                isActive
+                                  ? "Click to clear filter"
+                                  : `Filter to ${refereeLabel(s.key)}`
+                              }
+                              data-testid={`button-rebuild-history-summary-${s.key}`}
+                            >
+                              {refereeLabel(s.key)}
+                            </button>
+                            <span className="text-muted-foreground md:w-16">
+                              {s.total} total
+                            </span>
+                            <span className="text-green-700 dark:text-green-400 md:w-16">
+                              {s.ok} ok
+                            </span>
+                            <span className="text-red-700 dark:text-red-400 md:w-16">
+                              {s.fail} fail
+                            </span>
+                            <span className="text-muted-foreground">
+                              last ok:{" "}
+                              {s.lastOk ? formatTimestamp(s.lastOk) : "—"}
+                            </span>
+                            <span className="text-muted-foreground">
+                              last fail:{" "}
+                              {s.lastFail ? formatTimestamp(s.lastFail) : "—"}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+                  {filteredHistoryEntries.length === 0 ? (
+                    <p
+                      className="px-3 py-2 font-mono text-[11px] text-muted-foreground italic"
+                      data-testid="text-rebuild-history-empty"
+                    >
+                      No rebuild attempts match the current filter.
+                    </p>
+                  ) : null}
                   <ul className="divide-y divide-border">
-                    {rebuildHistory.entries.map((entry, i) => (
+                    {filteredHistoryEntries.map((entry, i) => (
                       <li
                         key={`${entry.timestamp}-${i}`}
                         className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 px-3 py-2 font-mono text-[11px]"
@@ -865,20 +1008,28 @@ export default function DashboardPage() {
                         <span className="text-muted-foreground md:w-16">
                           {entry.streamed ? "stream" : "sync"}
                         </span>
-                        <span
-                          className={`md:w-40 truncate ${
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const key = refereeKey(entry.refereeName);
+                            setHistoryRefereeFilter(
+                              historyRefereeFilter === key ? "" : key,
+                            );
+                          }}
+                          className={`md:w-40 truncate text-left underline-offset-2 hover:underline ${
                             entry.refereeName
                               ? "text-foreground"
                               : "text-muted-foreground italic"
                           }`}
                           title={
-                            entry.refereeName ??
-                            "anonymous (no referee name supplied)"
+                            entry.refereeName
+                              ? `Click to filter to ${entry.refereeName}`
+                              : "anonymous (no referee name supplied) — click to filter"
                           }
                           data-testid={`text-rebuild-history-referee-${i}`}
                         >
                           by {entry.refereeName ?? "anonymous"}
-                        </span>
+                        </button>
                         {entry.error ? (
                           <span
                             className="text-red-700 dark:text-red-400 flex-1 truncate"
