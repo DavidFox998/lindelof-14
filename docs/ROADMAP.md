@@ -56,18 +56,40 @@ Status legend:
 
 ## 2. Yang-Mills mass gap
 
-**Status: Open.**
+**Status: Open — first brick formalized (gauge-action identity in Lean; axiom footprint = subset of mathlib's classical core {propext, Classical.choice, Quot.sound}, no research-grade axioms).**
 
 - Geometric invariant under study in this repo:
   `C(S₄) = 11.4221486889`, an OpenCV-derived symmetry-count
   invariant attached to the M0 cube observations (`cube_M0_v*.jpg`,
   Appendix A of the architecture write-up).
+- First honest formal brick: `lean-proof-towers/Towers/YM/Gauge.lean`
+  defines a single-field `TrivialConfiguration G` structure, equips
+  it with a `MulAction G` instance (gauge action by left
+  multiplication on the carried value), and proves the trivial
+  identity-acts-trivially brick `gauge_action_one_smul` by
+  delegating to mathlib's `one_smul`. Axiom footprint contained in
+  mathlib's classical core `{propext, Classical.choice, Quot.sound}`
+  (no `sorryAx`, no user-declared axioms in the brick). Alongside,
+  it pins `YangMillsMassGap_statement : Prop` as a *statement
+  schema* (with four explicitly named placeholder axioms
+  `PhysicalStateOfYangMillsHamiltonian`, `IsAboveVacuum`, `normSq`,
+  and `expectedEnergy` — honest stand-ins because mathlib v4.12.0
+  lacks the Wightman/Osterwalder-Schrader axiomatic QFT framework
+  and a constructive 4D Yang-Mills Hamiltonian). Statement-only, no
+  `True.intro`. Built by `scripts/check-towers.sh` / the
+  `towers-build` workflow. **The single-point trivial bundle used
+  by this brick is a scaffold for future work, not a physically
+  meaningful Yang-Mills configuration** — a real connection is a
+  Lie-algebra-valued 1-form on a principal bundle over (at least)
+  a 4-manifold.
 - Honest note: `C(S₄) > 2√32` is an arithmetic fact about a
   cube-counting invariant. It is **not** a mass-gap lower bound on
   any Yang-Mills Hamiltonian, and no derivation in this repo
   connects it to the Jaffe-Witten Clay problem. Treat it as
   conjectural scaffolding for a future link, not as evidence for
-  the mass gap.
+  the mass gap. The gauge-action-identity brick above does not
+  advance the mass gap past `Open` — it is the first elementary
+  group-theoretic brick on the way there.
 
 ## 3. Navier-Stokes global regularity
 

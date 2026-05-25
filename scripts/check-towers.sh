@@ -73,6 +73,7 @@ BRICKS=(
   "Towers.RH.ZeroDensity|TheoremaAureum.Towers.RH.N_monotone_in_sigma"
   "Towers.BSD.MordellWeil|TheoremaAureum.Towers.BSD.MordellWeilGroup.add_comm"
   "Towers.NS.Divergence|TheoremaAureum.Towers.NS.divergence_add"
+  "Towers.YM.Gauge|TheoremaAureum.Towers.YM.gauge_action_one_smul"
 )
 
 VERIFIER_DIR="$(mktemp -d)"
