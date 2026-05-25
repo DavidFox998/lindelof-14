@@ -139,8 +139,18 @@ compile inside the existing `lean-proof/` Lake project with axiom debt `[]`.
   Line 10+ are probe outputs; existing lines are never rewritten.
 - `data/M13_CERT.txt` — human-readable M13 certificate header.
 - `kernel.py` — Layer 4. `probe(h, N, re_s, im_s)`. Verifies the Genesis
-  seal before every append. Honest-scope stub: `L_nonvanish=True` always,
-  every ledger line tagged `NEEDS_SAGE` (no SageMath installed).
+  seal before every append. L-function backend is **mpmath**
+  (arbitrary-precision, `workdps=50`):
+  - `h=1, N=1` → Riemann ζ(s); ledger tag `MPMATH_ZETA`, `L_nonvanish`
+    reflects `|ζ(s)| > 1e-10`.
+  - `h=1, N>1` → principal Dirichlet character χ₀ mod N, computed as
+    `ζ(s)·∏_{p|N}(1 - p^{-s})`; ledger tag `MPMATH_DIRICHLET_TRIVIAL`.
+  - `h>=2` → out of scope for mpmath; ledger tag stays `NEEDS_SAGE`
+    with `reason=h>=2_out_of_scope_for_mpmath_backend` and
+    `L_nonvanish` is the deterministic stub (True).
+  - Any backend exception also falls back to `NEEDS_SAGE` with a
+    `reason=` field. The ledger never silently lies about a backend
+    result.
 - `lab.py` — Layer 7. Banner + REPL + `-c "probe(...)"` one-shot.
 - `lean_bridge.py` — Layer 2. Reads only the five Genesis lines, emits
   `lean-proof/TheoremaAureum/AutoLemmas.lean` (`theorem hit_<n> : True := trivial`),

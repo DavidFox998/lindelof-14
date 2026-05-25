@@ -12,3 +12,7 @@ probe ts=1779666790907612083 h=1 N=19 re=0.5 im=0.0 L_nonvanish=True RH_ok=True 
 probe ts=1779667209212741345 h=1 N=19 re=0.5 im=0.0 L_nonvanish=True RH_ok=True NEEDS_SAGE sha=2e532d2942b79aa35aeb013bddc16578c4faf028297b43fbb7ad6bc3ab43fd77
 probe ts=1779667391262097333 h=2 N=547 re=0.0 im=0.0 L_nonvanish=True RH_ok=False NEEDS_SAGE sha=4998e84dc3ce45257d51eadb770d0a423eaabc70edff480e933fd5054e9aeebb
 probe ts=1779667648035159703 h=1 N=37 re=1.0 im=0.0 L_nonvanish=True RH_ok=False NEEDS_SAGE sha=0665f9e03d837108b34f9363d93e21c92c347083a2358dbab0bacdd11ea0266f
+probe ts=1779667704873775072 h=1 N=1 re=0.5 im=14.134725 L_nonvanish=True RH_ok=True MPMATH_ZETA L_abs=1.1241835020461372577e-7 sha=7debc97b73b93a8a0a0a5fa9c90eb0c943c09fb9735fea31f8607e319b4cc2ca
+probe ts=1779667705294478266 h=1 N=19 re=0.5 im=0.0 L_nonvanish=True RH_ok=True MPMATH_DIRICHLET_TRIVIAL L_abs=1.1253262074598516967 sha=ee34fe074be9b7ca7647f6f13bba5b05eef8e31cc00f03d77bf2dd9585be1038
+probe ts=1779667705709486862 h=2 N=547 re=0.0 im=0.0 L_nonvanish=True RH_ok=False NEEDS_SAGE L_abs=NA reason=h>=2_out_of_scope_for_mpmath_backend sha=b315caf5f10cf546a2165fcefba844a69bf541edc13b4a057a30a4027431d37a
+probe ts=1779667729134926619 h=1 N=1 re=0.5 im=21.022039 L_nonvanish=True RH_ok=True MPMATH_ZETA L_abs=7.2618050912498297225e-7 sha=36d6afbfeac4c1f658aabba268e0ef33148705a03d745de27870252cf85a5af1

@@ -23,6 +23,16 @@ Honest scope:
   - hit_437 / hit_1094 emitted by lean_bridge.py are `True := trivial`.
     Their names reference the OpenCV cube counts from README Appendix A;
     their statements claim nothing about number theory.
-  - probe() returns L_nonvanish as a deterministic stub (True) and tags
-    every ledger line with NEEDS_SAGE so the value cannot be mistaken
-    for a real L-function computation.
+
+L-function backend (kernel.probe):
+  - Backend: mpmath (pure-Python arbitrary precision), workdps=50.
+  - h=1, N=1: Riemann zeta ζ(s). Ledger tag MPMATH_ZETA. L_nonvanish
+    reflects |ζ(s)| > 1e-10 against a real evaluation.
+  - h=1, N>1: principal Dirichlet character χ₀ mod N, computed as
+    ζ(s) · ∏_{p|N}(1 - p^{-s}). Ledger tag MPMATH_DIRICHLET_TRIVIAL.
+  - h>=2: out of scope for mpmath; ledger line keeps NEEDS_SAGE and
+    L_nonvanish stays a stub (True). The tag is the contract that says
+    "do not trust this number".
+  - Backend failures (overflow, mpmath exception) also fall back to
+    NEEDS_SAGE with a `reason=` field. The ledger never silently lies
+    about a backend result.
