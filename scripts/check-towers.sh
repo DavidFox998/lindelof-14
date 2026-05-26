@@ -273,6 +273,23 @@ BRICKS=(
   # solution; this is closure of the *placeholder* predicate under
   # spatial shift.
   "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.HasFiniteEnergy_translate"
+  # Task #89 (2026-05-26): rotational invariance of the placeholder
+  # finite-energy predicate. Continues the Task #78 PDE-symmetry wave
+  # on `HasFiniteEnergy`: if `u₀` has finite placeholder energy with
+  # witness `M`, then for any linear isometry
+  # `R : EuclideanSpace ℝ (Fin 3) →ₗᵢ[ℝ] EuclideanSpace ℝ (Fin 3)` the
+  # rotated field `fun t x => u₀ t (R x)` also has finite placeholder
+  # energy with the *same* witness `M`. Pushes the schema toward the
+  # full Euclidean symmetry group on ℝ³ (translations + SO(3))
+  # without leaving the placeholder regime. The isometry hypothesis
+  # is currently not load-bearing in the proof (bounded-amplitude
+  # only cares about reindexing) but is in the signature for
+  # honesty — it WILL become load-bearing once `HasFiniteEnergy` is
+  # upgraded to the real L² bound. NS tower status unchanged: Open
+  # (`docs/ROADMAP.md` § 3). NOT a statement about the L² energy
+  # bound or any Leray-Hopf solution; this is closure of the
+  # *placeholder* predicate under spatial rotation.
+  "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.HasFiniteEnergy_rotate"
   # Task #70 (2026-05-26): name the "energy never grows" predicate
   # inside the NS schema. `EnergyMonotone u u₀ : Prop` is the
   # explicit `∀ t, H1Norm u t ≤ H1Norm u₀ 0` shape named by the

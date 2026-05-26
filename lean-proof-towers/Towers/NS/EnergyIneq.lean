@@ -453,6 +453,67 @@ theorem HasFiniteEnergy_translate (u₀ : VelocityField)
   obtain ⟨M, hM⟩ := hu
   exact ⟨M, fun x => hM (x + a)⟩
 
+/-
+  ## Task #89 (2026-05-26) — rotational invariance of the placeholder
+  finite-energy predicate.
+
+  Continues the Task #78 PDE-symmetry wave on `HasFiniteEnergy`. Where
+  Task #78 proved closure under rigid spatial translation
+  (`HasFiniteEnergy_translate`), this brick proves closure under
+  **rigid spatial rotation**: composing the velocity field with any
+  linear isometry `R : EuclideanSpace ℝ (Fin 3) →ₗᵢ[ℝ]
+  EuclideanSpace ℝ (Fin 3)` on the spatial argument preserves the
+  placeholder finite-energy witness with the *same* `M`. Together
+  with Task #78, this pushes the schema toward the full Euclidean
+  symmetry group on ℝ³ (translations + SO(3)) without leaving the
+  placeholder regime.
+
+  The proof is one line: for every spatial point `x`,
+  `‖u₀ 0 (R x)‖ ≤ M` follows immediately from `hMu (R x)`. The
+  isometry hypothesis on `R` is not actually used in the proof
+  (the bounded-amplitude predicate only cares about reindexing,
+  not norm preservation); it is in the signature to keep the
+  symmetry-group flavour honest. Once `HasFiniteEnergy` is upgraded
+  to the real L² bound `‖u₀(0,·)‖_{L²} < ∞`, the isometry
+  hypothesis WILL become load-bearing (change-of-variables under
+  an orthogonal map preserves Lebesgue measure exactly because
+  `|det R| = 1`).
+
+  **Honest scoping reminder.** This does NOT advance the NS tower
+  past `Status: Open` (see `docs/ROADMAP.md` § 3). `HasFiniteEnergy`
+  is still the Task #51 placeholder (bounded amplitude at `t = 0`),
+  not the L² energy bound. Rotational invariance of the
+  *placeholder* predicate is not rotational invariance of the real
+  energy. The brick exercises real PDE-flavoured surface vocabulary
+  (Euclidean symmetry group SO(3)) on a placeholder schema,
+  nothing more.
+
+  Axiom-footprint contract (per `scripts/check-towers.sh`): the
+  theorem must be either axiom-free or use only the classical trio
+  `{propext, Classical.choice, Quot.sound}`.
+-/
+
+/-- **Rotational invariance of placeholder finite-energy.**
+    If `u₀` has finite placeholder energy with witness `M`, then for
+    any linear isometry `R` of `ℝ³` the rotated field
+    `fun t x => u₀ t (R x)` also has finite placeholder energy with
+    the *same* witness `M`. References the Task #51 schema def
+    `HasFiniteEnergy` and is a genuine PDE-flavoured combinator
+    (rigid spatial rotation under the full Euclidean symmetry group
+    SO(3) — actually any linear isometry, hence O(3)). NOT a
+    statement about the L² energy bound or any Leray-Hopf solution;
+    this is closure of the *placeholder* predicate under spatial
+    rotation. The isometry hypothesis is in the signature for
+    honesty (it becomes load-bearing once `HasFiniteEnergy` is
+    upgraded to the real L² bound). -/
+theorem HasFiniteEnergy_rotate (u₀ : VelocityField)
+    (R : EuclideanSpace ℝ (Fin 3) →ₗᵢ[ℝ] EuclideanSpace ℝ (Fin 3))
+    (hu : HasFiniteEnergy u₀) :
+    HasFiniteEnergy (fun (t : ℝ) (x : EuclideanSpace ℝ (Fin 3)) =>
+      u₀ t (R x)) := by
+  obtain ⟨M, hM⟩ := hu
+  exact ⟨M, fun x => hM (R x)⟩
+
 end NS
 end Towers
 end TheoremaAureum
