@@ -473,6 +473,43 @@ BRICKS=(
   "Towers.YM.Spectrum|TheoremaAureum.Towers.YM.Spectrum.MassGap_v2_zero_iff"
   "Towers.YM.Spectrum|TheoremaAureum.Towers.YM.Spectrum.MassGap_v2_monotone"
   "Towers.YM.Spectrum|TheoremaAureum.Towers.YM.Spectrum.spectrum_gap_schema"
+
+  # ---- Batch 10 (2026-05-26) — +15 bricks across 3 same files, zero
+  # cross-imports. Track 1 (OperatorV2): toy → real-operator schema
+  # bridges — `Hamiltonian_compact_resolvent_schema` + `essential_
+  # spectrum_empty_schema` as NAMED Prop predicates (the directive's
+  # tripwire — if a caller cannot supply the compact-resolvent
+  # schema for their H, `MassGap_from_discrete_spectrum` is
+  # unreachable); `first_excitation_lower_bound` / `minimax_
+  # characterization_μ` as pure projections of `MassGap H μ`.
+  # Track 2 (EnergyV2): global-regularity scaffolds — `Enstrophy`
+  # placeholder + `EnstrophyBalance` / `BealeKatoMajda_criterion_
+  # schema` / `SmallDataGlobal_schema` / `EnergyEnstrophy_
+  # interpolation` as NAMED Prop predicates. Batch 8 `Dissipation = 0`
+  # tripwire untouched. Track 3 (Spectrum): infrared-bound / OS-
+  # reconstruction setup — `YMHamiltonian_coercive` (real lower
+  # bound `-12` via Task #61) + `YMHamiltonian_essentially_
+  # selfadjoint_schema` / `vacuum_gap_positive_schema` / `cluster_
+  # decomposition_schema` / `infrared_regularization` as NAMED Prop
+  # / schema defs. `vacuum_gap_positive_schema := ∃ Δ, MassGapV2 Δ`
+  # honestly names the Clay target without supplying a witness; YM
+  # mass gap stays Open. None promote any tower; YM / NS / Spectral
+  # stay Status: Open (`docs/ROADMAP.md` § 2 / § 3).
+  "Towers.Spectral.OperatorV2|TheoremaAureum.Towers.Spectral.OperatorV2.Hamiltonian_compact_resolvent_schema"
+  "Towers.Spectral.OperatorV2|TheoremaAureum.Towers.Spectral.OperatorV2.essential_spectrum_empty_schema"
+  "Towers.Spectral.OperatorV2|TheoremaAureum.Towers.Spectral.OperatorV2.MassGap_from_discrete_spectrum"
+  "Towers.Spectral.OperatorV2|TheoremaAureum.Towers.Spectral.OperatorV2.first_excitation_lower_bound"
+  "Towers.Spectral.OperatorV2|TheoremaAureum.Towers.Spectral.OperatorV2.minimax_characterization_μ"
+  "Towers.NS.EnergyV2|TheoremaAureum.Towers.NS.EnergyV2.Enstrophy"
+  "Towers.NS.EnergyV2|TheoremaAureum.Towers.NS.EnergyV2.EnstrophyBalance"
+  "Towers.NS.EnergyV2|TheoremaAureum.Towers.NS.EnergyV2.BealeKatoMajda_criterion_schema"
+  "Towers.NS.EnergyV2|TheoremaAureum.Towers.NS.EnergyV2.SmallDataGlobal_schema"
+  "Towers.NS.EnergyV2|TheoremaAureum.Towers.NS.EnergyV2.EnergyEnstrophy_interpolation"
+  "Towers.YM.Spectrum|TheoremaAureum.Towers.YM.Spectrum.YMHamiltonian_coercive"
+  "Towers.YM.Spectrum|TheoremaAureum.Towers.YM.Spectrum.YMHamiltonian_essentially_selfadjoint_schema"
+  "Towers.YM.Spectrum|TheoremaAureum.Towers.YM.Spectrum.vacuum_gap_positive_schema"
+  "Towers.YM.Spectrum|TheoremaAureum.Towers.YM.Spectrum.cluster_decomposition_schema"
+  "Towers.YM.Spectrum|TheoremaAureum.Towers.YM.Spectrum.infrared_regularization"
   # Task #56 Path B batch 2 v2 (2026-05-26): the explicit
   # `↥su3_submodule ≃ₗ[ℝ] (Fin 8 → ℝ)` equiv, the Gell-Mann basis
   # packaging via `Basis.ofEquivFun`, plus the linear-independence

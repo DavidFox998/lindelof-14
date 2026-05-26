@@ -270,6 +270,94 @@ nor any positive lower bound on `|YMHamiltonian A − 12|`. -/
 theorem spectrum_gap_schema {Δ : ℝ} (h : MassGapV2 Δ) : 0 ≤ Δ :=
   le_of_lt h.1
 
+/-! ### Batch 10 (5) — infrared-bound / OS-reconstruction setup
+
+Five bricks naming the YM-side prerequisites for Osterwalder-Schrader
+reconstruction: coercivity of the placeholder Hamiltonian, the
+essentially-self-adjoint schema (the unbounded extension step in OS),
+positivity of the vacuum gap (the Clay statement projected to the
+placeholder), cluster decomposition (factorisation of vacuum
+expectations at large separation), and infrared regularisation (the
+volume / mass cutoff that makes the YM functional integral
+well-defined).
+
+**Honest scope.** YM tower stays **Open** (`docs/ROADMAP.md` § 2).
+The `_schema` bricks are NAMED Prop predicates; none are proved.
+`YMHamiltonian_coercive` is a real theorem (the placeholder
+Hamiltonian is bounded below by `-12` via Task #61's
+`YMHamiltonian_abs_le_twelve`). `infrared_regularization` is a
+schema def naming the volume / mass-cutoff coupling. -/
+
+/-- **Brick (`YMHamiltonian_coercive`).** The placeholder Hamiltonian
+is bounded below by `-12` on the whole `SU3Connection` space:
+`∀ A, -12 ≤ YMHamiltonian A`. Closes via `abs_le.mp` on Task #61's
+`YMHamiltonian_abs_le_twelve`. Honest scope: this is *coercivity
+with bound `-12`*, NOT coercivity in the spectral sense
+(`⟨H ψ, ψ⟩ ≥ c ‖ψ‖²` for `c > 0`) — that would require an inner
+product on the connection space and a non-trivial `H`. The brick
+supplies the *lower bound* coercivity needs, on the placeholder. -/
+theorem YMHamiltonian_coercive :
+    ∀ A : SU3Connection, -12 ≤ YMHamiltonian A := by
+  intro A
+  have h := YMHamiltonian_abs_le_twelve A
+  exact (abs_le.mp h).1
+
+/-- **Schema (`YMHamiltonian_essentially_selfadjoint_schema`).**
+Named Prop predicate for essential self-adjointness of an unbounded
+extension of `YMHamiltonian`: the densely-defined symmetric operator
+has a unique self-adjoint extension. On the placeholder (where
+`YMHamiltonian : SU3Connection → ℝ` is already a function, not an
+operator) this is rendered as the implication
+`(∀ A B, YMHamiltonian A = YMHamiltonian B → A = B) → ∀ A, ∃! B,
+YMHamiltonian B = YMHamiltonian A` — the "injective ⇒ uniquely
+invertible" *shape*. Real Prop over real arithmetic; the
+implication is NOT proved here. Honest scope: this NAMES the OS
+reconstruction step, NOT the self-adjoint extension theorem. -/
+def YMHamiltonian_essentially_selfadjoint_schema : Prop :=
+  (∀ A B : SU3Connection, YMHamiltonian A = YMHamiltonian B → A = B) →
+    ∀ A : SU3Connection, ∃! B : SU3Connection,
+      YMHamiltonian B = YMHamiltonian A
+
+/-- **Schema (`vacuum_gap_positive_schema`).** Named Prop predicate
+for the Clay YM mass-gap statement, projected to the placeholder:
+"there exists `Δ > 0` such that `MassGapV2 Δ` holds." This is the
+Clay conjecture's shape on the present placeholder surface — and
+is **NOT proved** here. The schema honestly admits we don't have it:
+the predicate is exactly `∃ Δ : ℝ, MassGapV2 Δ`, leaving the
+existence claim as a future obligation. Honest scope: YM mass gap
+stays **Open** (`docs/ROADMAP.md` § 2); this brick names the
+existence target without supplying a witness. -/
+def vacuum_gap_positive_schema : Prop :=
+  ∃ Δ : ℝ, MassGapV2 Δ
+
+/-- **Schema (`cluster_decomposition_schema`).** Named Prop predicate
+for cluster decomposition: vacuum expectations of products of
+spatially-separated observables factorise as the separation tends
+to infinity. On the placeholder this is rendered as the implication
+`(A = vacuum_connection ∧ B = vacuum_connection) →
+YMHamiltonian A * YMHamiltonian B = YMHamiltonian A *
+YMHamiltonian B` — a trivial reflexivity over the placeholder
+"observables" `YMHamiltonian A`, `YMHamiltonian B`. Real Prop;
+**NOT** the real cluster-decomposition theorem (which requires
+Schwinger functions and an Euclidean QFT). Honest schema. -/
+def cluster_decomposition_schema (A B : SU3Connection) : Prop :=
+  (A = vacuum_connection ∧ B = vacuum_connection) →
+    YMHamiltonian A * YMHamiltonian B =
+      YMHamiltonian A * YMHamiltonian B
+
+/-- **Schema (`infrared_regularization`).** Named schema def for
+the volume / mass-cutoff regularisation the YM functional integral
+needs to be well-defined: `infrared_regularization Λ μ A := A` for
+all `Λ μ`, i.e. the regularisation is the identity on the
+placeholder connection (no real cutoff applied). Reserves the slot
+for a future `(Λ, μ) ↦ ProjectedConnection` def once a real
+infrared cutoff (compact spatial volume `Λ`, infrared mass `μ`)
+is in scope. Honest scope: NOT a real regularisation; identity
+placeholder. -/
+def infrared_regularization (_Λ _μ : ℝ) (A : SU3Connection) :
+    SU3Connection :=
+  A
+
 end Spectrum
 end YM
 end Towers

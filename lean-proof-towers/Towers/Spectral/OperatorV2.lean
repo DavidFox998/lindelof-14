@@ -274,6 +274,115 @@ theorem lower_bound_from_psd {n : ℕ}
       ψ ≠ vacuum_state n → (0 : ℝ) ≤ inner (H ψ) ψ :=
   fun ψ _ => hpsd ψ
 
+/-! ### Batch 10 (5) — toy → real-operator schema bridges
+
+Five Prop / theorem bricks scaffolding the
+"compact resolvent ⇒ discrete spectrum ⇒ MassGap iff μ > 0" pipeline.
+None of them upgrade the toy operator to a real Hamiltonian; the
+real compact-resolvent / spectral-theorem theory in mathlib v4.12
+only lives for `ContinuousLinearMap`, which the present
+`Hamiltonian_operator_v2 := id` on `EuclideanSpace ℝ (Fin n)` is
+not packaged as.
+
+**Honest scope (tripwire mode).** `Hamiltonian_compact_resolvent_schema`
+is a NAMED Prop predicate — not a theorem that the v2 toy operator
+has compact resolvent (it does not on infinite-dim, and the finite-
+dim case is trivial). `MassGap_from_discrete_spectrum` is a pure
+logic combinator that takes the compact-resolvent and essential-
+spectrum-empty SCHEMAS as hypotheses AND a concrete positive lower
+bound — if a future caller cannot supply the compact-resolvent
+schema for their `H`, the combinator's conclusion is unreachable,
+which is exactly the directive's tripwire ("if compact_resolvent
+fails, MassGap_from_discrete_spectrum is a stub combinator"). The
+Spectral / YM / NS tower statuses stay **Open**
+(`docs/ROADMAP.md` § 2 / § 3). -/
+
+/-- **Schema (`Hamiltonian_compact_resolvent_schema`).** Predicate
+"H maps bounded sets to bounded sets" (parameterized over an
+abstract `H`): `∀ B, ∃ N, ∀ ψ, ‖ψ‖ ≤ B → ‖H ψ‖ ≤ N`. Genuine
+`∀ ∃ ∀` Prop over real arithmetic; for `H = id` it is provable
+(`N := B`) but the schema is NOT proved here. **NOT the real
+compact-resolvent theorem** — that would require
+`(H - z)⁻¹ ∈ CompactOperator` packaged via `ContinuousLinearMap.
+IsCompactOperator` (mathlib v4.12.0 surface). Honest stand-in for
+the "compact resolvent" hypothesis downstream pipelines need. -/
+def Hamiltonian_compact_resolvent_schema
+    {n : ℕ} (H : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n)) : Prop :=
+  ∀ B : ℝ, ∃ N : ℝ, ∀ ψ : EuclideanSpace ℝ (Fin n),
+    ‖ψ‖ ≤ B → ‖H ψ‖ ≤ N
+
+/-- **Schema (`essential_spectrum_empty_schema`).** Predicate
+"H is surjective": `∀ ψ, ∃ φ, H φ = ψ`. For an arbitrary continuous
+self-adjoint operator on a Hilbert space, *empty essential spectrum
+plus surjectivity* means the spectrum is purely discrete with no
+accumulation point at infinity — the precondition behind
+`MassGap_from_discrete_spectrum`. Real surjectivity Prop; for
+`H = id` it is provable (`φ := ψ`) but the schema is NOT proved
+here. **NOT the real "essential spectrum is empty" theorem** —
+that requires `spectrum ℝ H \ {eigenvalues} = ∅` packaged through
+mathlib's `Spectrum` module, which v4.12.0 supports only for
+`ContinuousLinearMap`. Honest stand-in. -/
+def essential_spectrum_empty_schema
+    {n : ℕ} (H : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n)) : Prop :=
+  ∀ ψ : EuclideanSpace ℝ (Fin n), ∃ φ : EuclideanSpace ℝ (Fin n), H φ = ψ
+
+/-- **Brick (`MassGap_from_discrete_spectrum`).** Pure logic
+combinator: from the compact-resolvent schema, the essential-
+spectrum-empty schema, positivity `0 < μ`, and the universal lower
+bound `∀ ψ ≠ vacuum, μ ≤ ⟨H ψ, ψ⟩_ℝ`, package the conjunction
+`MassGap H μ`. The compact-resolvent / essential-spectrum hypotheses
+are NOT used in the proof body — they are present in the signature
+to enforce the "compact resolvent ⇒ discrete spectrum ⇒ gap"
+ordering at the type level. If a caller cannot supply the schemas
+for their `H`, the combinator's conclusion is unreachable
+(directive's tripwire).
+
+Honest scope: this brick does NOT prove `∃ μ, MassGap H μ` for any
+particular `H`; it constructs `MassGap H μ` from a `μ`-specific
+lower bound the caller must already have. -/
+theorem MassGap_from_discrete_spectrum {n : ℕ}
+    (H : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n))
+    (μ : ℝ)
+    (_h_compact : Hamiltonian_compact_resolvent_schema H)
+    (_h_ess : essential_spectrum_empty_schema H)
+    (h_pos : 0 < μ)
+    (h_bnd : ∀ ψ : EuclideanSpace ℝ (Fin n),
+      ψ ≠ vacuum_state n → μ ≤ inner (H ψ) ψ) :
+    MassGap H μ :=
+  ⟨h_pos, h_bnd⟩
+
+/-- **Brick (`first_excitation_lower_bound`).** Pointwise projection
+of the universal lower bound inside `MassGap H μ`: at any specific
+non-vacuum `ψ`, the inner-product self-pairing under `H` is at
+least `μ`. Direct application of `h.2`. Honest scope: this is the
+"first-excitation" lower-bound *interface* — it does NOT exhibit
+the first excited state or prove that the bound is attained
+(attainment requires a real spectral theorem on a non-trivial
+Hamiltonian). -/
+theorem first_excitation_lower_bound {n : ℕ}
+    (H : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n))
+    (μ : ℝ) (h : MassGap H μ)
+    (ψ : EuclideanSpace ℝ (Fin n)) (hne : ψ ≠ vacuum_state n) :
+    μ ≤ inner (H ψ) ψ :=
+  h.2 ψ hne
+
+/-- **Brick (`minimax_characterization_μ`).** Universal form of
+`first_excitation_lower_bound`: extracts the full
+"∀ ψ ≠ vacuum, μ ≤ ⟨H ψ, ψ⟩" conjunct from a `MassGap H μ` witness.
+This is the "Courant-Fischer minimax" *shape* (lower-bound as `inf`
+over non-vacuum unit vectors); the brick projects `h.2` directly.
+Honest scope: this is NOT the Courant-Fischer / Rayleigh-Ritz
+minimax theorem itself — that requires a spectral measure on a
+compact-resolvent operator, which mathlib v4.12.0 does not provide
+for plain functions. The brick supplies the *interface* the real
+minimax theorem will project to. -/
+theorem minimax_characterization_μ {n : ℕ}
+    (H : EuclideanSpace ℝ (Fin n) → EuclideanSpace ℝ (Fin n))
+    (μ : ℝ) (h : MassGap H μ) :
+    ∀ ψ : EuclideanSpace ℝ (Fin n), ψ ≠ vacuum_state n →
+      μ ≤ inner (H ψ) ψ :=
+  h.2
+
 end OperatorV2
 end Spectral
 end Towers

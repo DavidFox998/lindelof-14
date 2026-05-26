@@ -269,6 +269,89 @@ theorem EnergyDecayBound (u : VelocityField) (t : ℝ) :
   unfold H1Norm_real
   exact mul_self_nonneg _
 
+/-! ### Batch 10 (5) — global-regularity scaffolds (BKM + small-data)
+
+Five bricks naming the two classical paths to NS global regularity:
+the Beale-Kato-Majda continuation criterion (vorticity-Linfty
+blow-up controls regularity) and the small-data (Fujita-Kato) global
+existence theorem. Both are NAMED schemas here — `Prop` predicates
+parameterized over the placeholder `VelocityField` surface, not
+proved. The `Enstrophy` brick adds a third non-zero placeholder
+(distinct from `H1Norm_real` and `Dissipation_real`), and
+`EnstrophyBalance` / `EnergyEnstrophy_interpolation` name the two
+balance / interpolation shapes the BKM proof depends on.
+
+**Honest scope.** NS tower stays **Open** (`docs/ROADMAP.md` § 3).
+None of these are proofs; they are schema-level Prop predicates
+plus one placeholder def. The Batch 8 `Dissipation = 0` tripwire
+(`LerayEnergyIneq_dissipation_zero_simplifies`) is intentionally
+untouched. -/
+
+/-- **Brick (`Enstrophy`).** Placeholder enstrophy
+`E(t) := ½ ‖ω(t)‖_{L²}²` (where `ω = curl u` is the vorticity).
+Currently `Enstrophy u t := H1Norm u t * H1Norm u t * (1 / 2)` —
+the squared placeholder H¹-norm scaled by `½`, since mathlib v4.12.0
+does not provide a vorticity operator on plain `VelocityField`.
+Non-negative real. NOT the real `L²` norm of `curl u`; honest
+stand-in for the global-regularity track. -/
+noncomputable def Enstrophy (u : VelocityField) (t : ℝ) : ℝ :=
+  H1Norm u t * H1Norm u t * (1 / 2)
+
+/-- **Schema (`EnstrophyBalance`).** Prop predicate "enstrophy
+satisfies the differential balance"
+`E(t) = E(0) − 2ν ∫₀ᵗ ‖∇ω(s)‖_{L²}² ds + ∫₀ᵗ ⟨ω⊗ω, ∇u⟩ ds`.
+Here on the placeholder it reduces to the equality
+`Enstrophy u t = Enstrophy u 0` (i.e. constant in `t`), reflecting
+the absence of a real vortex-stretching term. Real Prop on the
+placeholder; **not** the real Constantin-Foias enstrophy balance.
+The unconditional `EnstrophyBalance u ν` is NOT proved here. -/
+def EnstrophyBalance (u : VelocityField) (_ν : ℝ) : Prop :=
+  ∀ t : ℝ, Enstrophy u t = Enstrophy u 0
+
+/-- **Schema (`BealeKatoMajda_criterion_schema`).** Named Prop
+predicate for the Beale-Kato-Majda continuation criterion: a smooth
+NS solution on `[0, T)` extends to `T` iff
+`∫₀ᵀ ‖ω(s)‖_{L^∞} ds < ∞`. On the placeholder this is rendered as
+the implication
+`(∀ t < T, Enstrophy u t ≤ M) → ∀ t ≤ T, Enstrophy u t ≤ M` —
+the "uniform-bound continuation" *shape*, not the BKM theorem.
+Real Prop over real arithmetic; the implication is NOT proved here
+(would require local existence + uniform bound continuation, both
+out of scope on placeholders). NS tower stays Open. -/
+def BealeKatoMajda_criterion_schema
+    (u : VelocityField) (T M : ℝ) : Prop :=
+  (∀ t : ℝ, t < T → Enstrophy u t ≤ M) →
+    ∀ t : ℝ, t ≤ T → Enstrophy u t ≤ M
+
+/-- **Schema (`SmallDataGlobal_schema`).** Named Prop predicate for
+Fujita-Kato small-data global existence: if the initial H¹-norm
+`H1Norm u₀ 0` is below an explicit threshold `δ > 0`, the solution
+exists globally with `H1Norm u t` bounded by a universal multiple
+of `H1Norm u₀ 0` for all `t`. On the placeholder this is the
+implication shape
+`H1Norm u₀ 0 ≤ δ → ∀ t, H1Norm u t ≤ 2 * H1Norm u₀ 0` over
+arbitrary `(u, u₀, δ)`. Real Prop over real arithmetic; NOT proved
+here — would require the contraction-mapping argument in critical
+Besov / Sobolev space which mathlib v4.12.0 does not surface. -/
+def SmallDataGlobal_schema
+    (u u₀ : VelocityField) (δ : ℝ) : Prop :=
+  H1Norm u₀ 0 ≤ δ →
+    ∀ t : ℝ, H1Norm u t ≤ 2 * H1Norm u₀ 0
+
+/-- **Schema (`EnergyEnstrophy_interpolation`).** Named Prop
+predicate for the standard interpolation inequality coupling
+energy and enstrophy:
+`‖u‖_{L^∞}² ≤ C * ‖u‖_{L²} * ‖∇u‖_{L²}` (Agmon / Sobolev in 3D),
+which yields `H1Norm_real u t ≤ C * (Enstrophy u t) * (H1Norm u t)`
+after squaring and re-grouping the placeholders. Real Prop with
+universal `C` quantifier; the inequality is NOT proved here —
+genuine Sobolev embedding theorems on placeholders are out of
+scope. Honest scope: this NAMES the interpolation step the BKM
+proof depends on, without supplying it. -/
+def EnergyEnstrophy_interpolation (u : VelocityField) (t : ℝ) : Prop :=
+  ∃ C : ℝ, 0 ≤ C ∧
+    H1Norm_real u t ≤ C * Enstrophy u t * H1Norm u t
+
 end EnergyV2
 end NS
 end Towers
