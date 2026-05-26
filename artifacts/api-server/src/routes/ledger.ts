@@ -3,8 +3,6 @@ import { createHash } from "node:crypto";
 import { existsSync, openSync, readSync, closeSync, statSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-const router: IRouter = Router();
-
 type FailureMode =
   | "hits_missing"
   | "checkpoint_missing"
@@ -29,8 +27,6 @@ interface LedgerIntegrityStatus {
   lastOkAt: string | null;
 }
 
-let lastOkAt: string | null = null;
-
 function resolveRepoRoot(): string {
   const candidates = [
     process.cwd(),
@@ -43,10 +39,6 @@ function resolveRepoRoot(): string {
   }
   return candidates[0];
 }
-
-const REPO_ROOT = resolveRepoRoot();
-const HITS = path.join(REPO_ROOT, "data", "hits.txt");
-const CHECKPOINT = path.join(REPO_ROOT, "data", "hits.txt.checkpoint");
 
 function readPrefixSha(filePath: string, size: number): string {
   const fd = openSync(filePath, "r");
@@ -64,175 +56,193 @@ function readPrefixSha(filePath: string, size: number): string {
   }
 }
 
-function buildStatus(): LedgerIntegrityStatus {
-  const checkedAt = new Date().toISOString();
-  const base: LedgerIntegrityStatus = {
-    status: "ok",
-    failureMode: null,
-    reason: null,
-    checkpointSize: null,
-    checkpointSha: null,
-    liveSize: null,
-    livePrefixSha: null,
-    growthBytes: null,
-    checkedAt,
-    ledgerLastModified: null,
-    ledgerPath: HITS,
-    checkpointPath: CHECKPOINT,
-    lastOkAt,
-  };
+export interface LedgerRouterOptions {
+  hitsPath: string;
+  checkpointPath: string;
+}
 
-  if (!existsSync(HITS)) {
-    return {
-      ...base,
-      status: "missing",
-      failureMode: "hits_missing",
-      reason: `${HITS} missing.`,
+export function createLedgerRouter(opts: LedgerRouterOptions): IRouter {
+  const HITS = opts.hitsPath;
+  const CHECKPOINT = opts.checkpointPath;
+  let lastOkAt: string | null = null;
+
+  function buildStatus(): LedgerIntegrityStatus {
+    const checkedAt = new Date().toISOString();
+    const base: LedgerIntegrityStatus = {
+      status: "ok",
+      failureMode: null,
+      reason: null,
+      checkpointSize: null,
+      checkpointSha: null,
+      liveSize: null,
+      livePrefixSha: null,
+      growthBytes: null,
+      checkedAt,
+      ledgerLastModified: null,
+      ledgerPath: HITS,
+      checkpointPath: CHECKPOINT,
+      lastOkAt,
     };
-  }
 
-  let liveSize: number;
-  let ledgerLastModified: string | null = null;
-  try {
-    const st = statSync(HITS);
-    liveSize = st.size;
-    ledgerLastModified = st.mtime.toISOString();
-  } catch (e) {
+    if (!existsSync(HITS)) {
+      return {
+        ...base,
+        status: "missing",
+        failureMode: "hits_missing",
+        reason: `${HITS} missing.`,
+      };
+    }
+
+    let liveSize: number;
+    let ledgerLastModified: string | null = null;
+    try {
+      const st = statSync(HITS);
+      liveSize = st.size;
+      ledgerLastModified = st.mtime.toISOString();
+    } catch (e) {
+      return {
+        ...base,
+        status: "mismatch",
+        failureMode: "hits_missing",
+        reason: `Cannot stat ${HITS}: ${(e as Error).message}`,
+      };
+    }
+
+    if (!existsSync(CHECKPOINT)) {
+      return {
+        ...base,
+        status: "missing",
+        failureMode: "checkpoint_missing",
+        reason: `${CHECKPOINT} missing — cannot verify at-rest integrity. This file is committed; restore it from git.`,
+        liveSize,
+        ledgerLastModified,
+      };
+    }
+
+    let raw: string;
+    try {
+      raw = readFileSync(CHECKPOINT, "utf-8").trim();
+    } catch (e) {
+      return {
+        ...base,
+        status: "mismatch",
+        failureMode: "checkpoint_unreadable",
+        reason: `Cannot read ${CHECKPOINT}: ${(e as Error).message}`,
+        liveSize,
+        ledgerLastModified,
+      };
+    }
+
+    const parts = raw.split(/\s+/);
+    if (parts.length !== 2) {
+      return {
+        ...base,
+        status: "mismatch",
+        failureMode: "checkpoint_malformed",
+        reason: `${CHECKPOINT} malformed (expected '<size> <sha256>', got ${JSON.stringify(raw)}).`,
+        liveSize,
+        ledgerLastModified,
+      };
+    }
+
+    const expectedSize = Number.parseInt(parts[0], 10);
+    if (!Number.isFinite(expectedSize) || expectedSize < 0 || String(expectedSize) !== parts[0]) {
+      return {
+        ...base,
+        status: "mismatch",
+        failureMode: "checkpoint_malformed",
+        reason: `${CHECKPOINT} size field not a non-negative integer: ${JSON.stringify(parts[0])}.`,
+        liveSize,
+        ledgerLastModified,
+      };
+    }
+
+    const expectedSha = parts[1].toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(expectedSha)) {
+      return {
+        ...base,
+        status: "mismatch",
+        failureMode: "checkpoint_malformed",
+        reason: `${CHECKPOINT} sha256 field malformed: ${JSON.stringify(parts[1])}.`,
+        checkpointSize: expectedSize,
+        liveSize,
+        ledgerLastModified,
+      };
+    }
+
+    if (liveSize < expectedSize) {
+      return {
+        ...base,
+        status: "mismatch",
+        failureMode: "hits_truncated",
+        reason:
+          `${HITS} SHRUNK — expected at least ${expectedSize} bytes, got ${liveSize}. ` +
+          `TRUNCATION or in-place rewrite suspected. See docs/REPRODUCE.md for recovery.`,
+        checkpointSize: expectedSize,
+        checkpointSha: expectedSha,
+        liveSize,
+        ledgerLastModified,
+      };
+    }
+
+    let prefixSha: string;
+    try {
+      prefixSha = readPrefixSha(HITS, expectedSize);
+    } catch (e) {
+      return {
+        ...base,
+        status: "mismatch",
+        failureMode: "checkpoint_unreadable",
+        reason: `Cannot hash ${HITS} prefix: ${(e as Error).message}`,
+        checkpointSize: expectedSize,
+        checkpointSha: expectedSha,
+        liveSize,
+        ledgerLastModified,
+      };
+    }
+
+    if (prefixSha !== expectedSha) {
+      return {
+        ...base,
+        status: "mismatch",
+        failureMode: "hits_rewritten_in_place",
+        reason:
+          `${HITS} first ${expectedSize} bytes have been rewritten in place. ` +
+          `expected sha256: ${expectedSha} got sha256: ${prefixSha}. ` +
+          `The ledger is append-only; in-place edits are not permitted.`,
+        checkpointSize: expectedSize,
+        checkpointSha: expectedSha,
+        liveSize,
+        livePrefixSha: prefixSha,
+        ledgerLastModified,
+      };
+    }
+
+    lastOkAt = checkedAt;
     return {
       ...base,
-      status: "mismatch",
-      failureMode: "hits_missing",
-      reason: `Cannot stat ${HITS}: ${(e as Error).message}`,
-    };
-  }
-
-  if (!existsSync(CHECKPOINT)) {
-    return {
-      ...base,
-      status: "missing",
-      failureMode: "checkpoint_missing",
-      reason: `${CHECKPOINT} missing — cannot verify at-rest integrity. This file is committed; restore it from git.`,
-      liveSize,
-      ledgerLastModified,
-    };
-  }
-
-  let raw: string;
-  try {
-    raw = readFileSync(CHECKPOINT, "utf-8").trim();
-  } catch (e) {
-    return {
-      ...base,
-      status: "mismatch",
-      failureMode: "checkpoint_unreadable",
-      reason: `Cannot read ${CHECKPOINT}: ${(e as Error).message}`,
-      liveSize,
-      ledgerLastModified,
-    };
-  }
-
-  const parts = raw.split(/\s+/);
-  if (parts.length !== 2) {
-    return {
-      ...base,
-      status: "mismatch",
-      failureMode: "checkpoint_malformed",
-      reason: `${CHECKPOINT} malformed (expected '<size> <sha256>', got ${JSON.stringify(raw)}).`,
-      liveSize,
-      ledgerLastModified,
-    };
-  }
-
-  const expectedSize = Number.parseInt(parts[0], 10);
-  if (!Number.isFinite(expectedSize) || expectedSize < 0 || String(expectedSize) !== parts[0]) {
-    return {
-      ...base,
-      status: "mismatch",
-      failureMode: "checkpoint_malformed",
-      reason: `${CHECKPOINT} size field not a non-negative integer: ${JSON.stringify(parts[0])}.`,
-      liveSize,
-      ledgerLastModified,
-    };
-  }
-
-  const expectedSha = parts[1].toLowerCase();
-  if (!/^[0-9a-f]{64}$/.test(expectedSha)) {
-    return {
-      ...base,
-      status: "mismatch",
-      failureMode: "checkpoint_malformed",
-      reason: `${CHECKPOINT} sha256 field malformed: ${JSON.stringify(parts[1])}.`,
-      checkpointSize: expectedSize,
-      liveSize,
-      ledgerLastModified,
-    };
-  }
-
-  if (liveSize < expectedSize) {
-    return {
-      ...base,
-      status: "mismatch",
-      failureMode: "hits_truncated",
-      reason:
-        `${HITS} SHRUNK — expected at least ${expectedSize} bytes, got ${liveSize}. ` +
-        `TRUNCATION or in-place rewrite suspected. See docs/REPRODUCE.md for recovery.`,
-      checkpointSize: expectedSize,
-      checkpointSha: expectedSha,
-      liveSize,
-      ledgerLastModified,
-    };
-  }
-
-  let prefixSha: string;
-  try {
-    prefixSha = readPrefixSha(HITS, expectedSize);
-  } catch (e) {
-    return {
-      ...base,
-      status: "mismatch",
-      failureMode: "checkpoint_unreadable",
-      reason: `Cannot hash ${HITS} prefix: ${(e as Error).message}`,
-      checkpointSize: expectedSize,
-      checkpointSha: expectedSha,
-      liveSize,
-      ledgerLastModified,
-    };
-  }
-
-  if (prefixSha !== expectedSha) {
-    return {
-      ...base,
-      status: "mismatch",
-      failureMode: "hits_rewritten_in_place",
-      reason:
-        `${HITS} first ${expectedSize} bytes have been rewritten in place. ` +
-        `expected sha256: ${expectedSha} got sha256: ${prefixSha}. ` +
-        `The ledger is append-only; in-place edits are not permitted.`,
+      status: "ok",
       checkpointSize: expectedSize,
       checkpointSha: expectedSha,
       liveSize,
       livePrefixSha: prefixSha,
+      growthBytes: liveSize - expectedSize,
       ledgerLastModified,
+      lastOkAt,
     };
   }
 
-  lastOkAt = checkedAt;
-  return {
-    ...base,
-    status: "ok",
-    checkpointSize: expectedSize,
-    checkpointSha: expectedSha,
-    liveSize,
-    livePrefixSha: prefixSha,
-    growthBytes: liveSize - expectedSize,
-    ledgerLastModified,
-    lastOkAt,
-  };
+  const router: IRouter = Router();
+  router.get("/ledger/integrity", (_req, res) => {
+    res.status(200).json(buildStatus());
+  });
+  return router;
 }
 
-router.get("/ledger/integrity", (_req, res) => {
-  const body = buildStatus();
-  res.status(200).json(body);
+const REPO_ROOT = resolveRepoRoot();
+const defaultRouter = createLedgerRouter({
+  hitsPath: path.join(REPO_ROOT, "data", "hits.txt"),
+  checkpointPath: path.join(REPO_ROOT, "data", "hits.txt.checkpoint"),
 });
 
-export default router;
+export default defaultRouter;
