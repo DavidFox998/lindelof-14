@@ -203,26 +203,40 @@ the box.
   the YM Hamiltonian, the SU(3) Lie algebra structure constants
   `f^{abc}`, or the mass-gap conjecture. YM tower status unchanged:
   **Open** (`docs/ROADMAP.md` § 2).
-- **Path B batch 2 deferred (Task #56 follow-up).** A full prototype
-  of `gellMannSub`, `su3_coords`, `su3_reconstruct`,
-  `su3_equiv_fin8_def`, `su3_basis_def`, `su3_basis_linearIndependent`,
-  `su3_basis_spans` was drafted in `Towers/YM/SU3Basis.lean` but
-  the `simp + linarith` finisher on the 9-case `funext p q;
-  fin_cases p <;> fin_cases q` left-inverse proof over the 8-term
-  `∑ cᵢ • gellMannᵢ` reconstruction exceeded mathlib v4.12.0's
-  default 200000-heartbeat budget — `whnf` / `isDefEq` / `simp`
-  all hit the wall. The draft was rolled back; the file now ships
-  Batch 1 only (the 8 `gellMann_k_mem` membership bricks) plus a
-  `Path B batch 2/3 — deferred` docstring documenting the retreat.
-  No bricks were lost; total tower brick wall is **52** classical-
-  trio clean (51 from the Task #56 Batch 1 checkpoint above plus
-  `YMHamiltonian_abs_le_twelve` landed later; the `lake build Towers`
-  axiom-footprint check passes for all of them). The Batch 2/3 work
-  needs either
-  (a) a per-entry `LinearMap.smulRight` unfolding lemma instead
-  of `simp` over the whole sum, (b) `set_option maxHeartbeats` on
-  the equiv def, or (c) splitting the 9 entry-cases into 9 separate
-  intermediate lemmas. YM tower status unchanged: **Open**.
+- **Path B batch 2 v2 landed (2026-05-26, Task #56 follow-up).** The
+  earlier deferral is resolved. `Towers/YM/SU3Basis.lean` now ships
+  four new bricks: `su3_equiv_fin8_def` (the explicit
+  `↥su3_submodule ≃ₗ[ℝ] (Fin 8 → ℝ)` equiv), `su3_basis_def` (the
+  Gell-Mann basis via `Basis.ofEquivFun`), `su3_basis_linearIndependent`,
+  and `su3_basis_spans`. Strategy that worked: (i) replace the
+  `LinearMap.smulRight` combinator chain with a direct 8-term
+  `c 0 • gellMann₁ + … + c 7 • gellMann₈` sum (membership via nested
+  `Submodule.add_mem`/`smul_mem`); (ii) `set_option maxHeartbeats
+  4000000` on the equiv def to cover the 9-entry × 2-component
+  matrix-equality elaboration in `left_inv`; (iii) extract the
+  anti-Hermitian re/im pair `hAH_re`/`hAH_im` *with `star`* (not
+  `conj`) — simp-on-`conj` triggered a `sorryAx ℂ true` corruption
+  in v4.12.0 for some index pairs (h21 specifically); the `star`
+  formulation rewrites cleanly via `Matrix.star_apply` and matches
+  the field's `star = conj` instance via the trivial `simpa`. All
+  four bricks pass the axiom-footprint check with `{propext,
+  Classical.choice, Quot.sound}`. Total tower brick wall: **59**
+  classical-trio clean (was 55: 8 from Task #56 Batch 1, plus the
+  pre-existing 47 from earlier tasks; the new 4 push the count to
+  59). Bricks 5+6 from the user's batch 2 v2 spec
+  (`instance_normedSpace_su3_euclidean`,
+  `instance_inner_product_space_su3_euclidean`) are deferred to
+  **Path B batch 3** — `InnerProductSpace.induced` does not exist
+  in mathlib v4.12.0, only `InnerProductSpace.ofCore`, so batch 3
+  must build the structure explicitly via `InnerProductSpace.Core`
+  pulled back through `su3_equiv_fin8_def`. These four bricks claim
+  ONLY: there is an ℝ-linear bijection between the 8-dimensional
+  real vector space `↥su3_submodule` and `Fin 8 → ℝ`, and the 8
+  Gell-Mann generators form a basis. No statement about the YM
+  Hamiltonian, the SU(3) Lie algebra structure constants `f^{abc}`,
+  the Killing form, the inner product structure on `su(3)`, or the
+  mass-gap conjecture. YM tower status unchanged: **Open**
+  (`docs/ROADMAP.md` § 2).
 - **Trivial-bundle Gauge bricks retired (2026-05-26, Task #50, Option A).** The six `gauge_action_*` lemmas (`one_smul`, `mul_smul`, `inv_smul`, `smul_inv`, `inv_inv`, `pow_zero`) that lived on `TrivialConfiguration G` in `Towers/YM/Gauge.lean` were removed: the action was `· • A := A`, so every lemma reduced definitionally on both sides to `A`, exercising neither group multiplication nor the action — hollow even by trivial-brick standards. The YM wall is now **18 bricks**, not 24, and YM bricks live exclusively in `Towers.YM.MassGap` against `Matrix.specialUnitaryGroup`. Rule going forward: no `gauge_action_*` on `TrivialConfiguration` — only real SU(3). See `docs/ROADMAP.md` for the retirement note and `scripts/check-towers.sh` for the comment block.
 
 ## User preferences

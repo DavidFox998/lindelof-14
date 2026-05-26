@@ -269,6 +269,22 @@ BRICKS=(
   # (`docs/ROADMAP.md` § 2). Still a bound on the placeholder
   # sum-of-traces schema, NOT the YM field energy.
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.YMHamiltonian_abs_le_twelve"
+  # Task #56 Path B batch 2 v2 (2026-05-26): the explicit
+  # `↥su3_submodule ≃ₗ[ℝ] (Fin 8 → ℝ)` equiv, the Gell-Mann basis
+  # packaging via `Basis.ofEquivFun`, plus the linear-independence
+  # and span_eq theorems. Concrete `toFun`/`invFun` pair avoids the
+  # `LinearMap.smulRight` combinator chain that exceeded mathlib's
+  # heartbeat budget in v1; `set_option maxHeartbeats 4000000` covers
+  # the 9-entry × 2-component matrix-equality elaboration in
+  # `left_inv`. Bricks 5+6 (NormedSpace/InnerProductSpace instances)
+  # deferred to Path B batch 3 — `InnerProductSpace.induced` does not
+  # exist in mathlib v4.12.0, so batch 3 must build the structure via
+  # `InnerProductSpace.Core` pulled back through the equiv.
+  # YM tower status unchanged: Open (`docs/ROADMAP.md` § 2).
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.su3_equiv_fin8_def"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.su3_basis_def"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.su3_basis_linearIndependent"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.su3_basis_spans"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

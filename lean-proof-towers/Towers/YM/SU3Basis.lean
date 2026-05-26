@@ -190,18 +190,208 @@ theorem gellMann₈_mem : gellMann₈ ∈ su3_submodule := by
   · gellMann_antiHermitian_tac gellMann₈
   · gellMann_traceless_tac gellMann₈
 
-/-! ## Path B batch 2/3 — deferred
+/-! ### Path B batch 2 v2 — the explicit `↥su3_submodule ≃ₗ[ℝ] (Fin 8 → ℝ)` equiv
 
-The downstream bricks `su3_basis_def`, `su3_basis_linearIndependent`,
-`su3_basis_spans` (basis via `Basis.ofEquivFun`), and
-`instance_inner_product_space_su3_euclidean` (InnerProductSpace.Core)
-were prototyped in this session but exceeded mathlib v4.12.0's
-default 200000-heartbeat budget on the `simp + linarith` finisher
-over the 8-term `∑ cᵢ • gellMannᵢ` reconstruction. They are deferred
-to a follow-up task. The 8 `gellMann_k_mem` bricks above stand on
-their own — they are the explicit anti-Hermitian + traceless
-witnesses, and they ship classical-trio-clean.
+Where v1 failed: feeding `simp + linarith` an 8-term
+`∑ cᵢ • LinearMap.smulRight _ gellMannᵢ` sum through
+`LinearEquiv.ofLinear` + `Basis.ofEquivFun` blew past the default
+200 000-heartbeat budget — `whnf` / `isDefEq` on `LinearMap.smulRight`
+combinators expanded into a quadratic tree that mathlib v4.12.0
+cannot fold in time.
+
+v2 strategy:
+
+* Replace the `LinearMap.smulRight` composition with **direct
+  matrix sums**: `invFun c := ⟨c 0 • gellMann₁ + … + c 7 • gellMann₈,
+  membership_proof⟩`, evaluated by `Matrix.add_apply` / `Matrix.smul_apply`
+  alone. No `LinearMap`-combinator unfolding required.
+* Use `set_option maxHeartbeats 1000000 in` as belt-and-braces (the
+  per-entry simp+linarith block has 9 cases × 2 (re/im) = 18
+  simp goals, each modest, but elaboration of the 8-term sum still
+  needs headroom).
+* Extract anti-Hermitian per-entry facts once (`hAH_app`) and the
+  trace-zero fact once (`hTrim`), then `ext p q; fin_cases p; fin_cases q;
+  Complex.ext` and close each leaf with `simp + linarith` over the
+  small hypothesis bag.
+
+### Honest scoping (Path B batch 3 deferred)
+
+This batch lands `su3_equiv_fin8_def`, `su3_basis_def`,
+`su3_basis_linearIndependent`, and `su3_basis_spans`. The two
+remaining bricks from the user's batch 2 v2 spec —
+`instance_normedSpace_su3_euclidean` and
+`instance_inner_product_space_su3_euclidean` — are **deferred to
+Path B batch 3** because `InnerProductSpace.induced` does not
+exist in mathlib v4.12.0 (only `InnerProductSpace.ofCore` does,
+via a 5-field `InnerProductSpace.Core` construction that doubles
+the surface). Batch 3 will build the `Core` explicitly from the
+EuclideanSpace inner product pulled back through this equiv. That
+work is independent of and downstream of this batch.
+
+These bricks claim ONLY: there is an ℝ-linear bijection between
+the 8-dimensional real vector space `↥su3_submodule` of
+anti-Hermitian traceless 3×3 complex matrices and `Fin 8 → ℝ`,
+and the 8 Gell-Mann generators form a basis. They make no claim
+about the YM Hamiltonian, the SU(3) Lie algebra structure constants
+`f^{abc}`, the Killing form, the inner product structure on `su(3)`,
+or the mass-gap conjecture. YM tower status unchanged: **Open**
+(`docs/ROADMAP.md` § 2).
 -/
+
+set_option maxHeartbeats 4000000 in
+/-- **The explicit ℝ-linear equivalence `↥su3_submodule ≃ₗ[ℝ] (Fin 8 → ℝ)`
+    (Path B batch 2 v2 brick 1).**
+
+    Concrete `toFun` / `invFun` pair, no `LinearMap.smulRight`
+    combinator chain — each direction is a direct expression in
+    the underlying matrix entries (`toFun`) and a direct 8-term
+    sum of `cᵢ • gellMannᵢ` (`invFun`). Coordinate convention:
+
+      c₀ = (A 0 1).im      c₁ =  (A 0 1).re
+      c₂ = -(A 1 1).im     c₃ =  (A 0 2).im
+      c₄ = (A 0 2).re      c₅ =  (A 1 2).im
+      c₆ = (A 1 2).re      c₇ = -(A 2 2).im
+
+    The diagonal `c₀₀.im` is reconstructed from `-(c₂ + c₇) = -(-im₁₁ + -im₂₂)
+    = im₁₁ + im₂₂`, which by trace-zero equals `-im₀₀` — hence
+    LHS at (0,0) equals `im₀₀ • I = A 0 0`. The other entries
+    follow by anti-Hermitian (`conj (A j i) = -A i j`) and the
+    diagonal `(A k k).re = 0` corollary.
+
+    Axiom footprint target: subset of mathlib's classical trio
+    `{propext, Classical.choice, Quot.sound}`. No new axioms. -/
+noncomputable def su3_equiv_fin8_def : ↥su3_submodule ≃ₗ[ℝ] (Fin 8 → ℝ) where
+  toFun A i :=
+    match i with
+    | ⟨0, _⟩ => (A.val 0 1).im
+    | ⟨1, _⟩ => (A.val 0 1).re
+    | ⟨2, _⟩ => -(A.val 1 1).im
+    | ⟨3, _⟩ => (A.val 0 2).im
+    | ⟨4, _⟩ => (A.val 0 2).re
+    | ⟨5, _⟩ => (A.val 1 2).im
+    | ⟨6, _⟩ => (A.val 1 2).re
+    | ⟨7, _⟩ => -(A.val 2 2).im
+    | ⟨n + 8, h⟩ => absurd h (by omega)
+  invFun c :=
+    ⟨c 0 • gellMann₁ + c 1 • gellMann₂ + c 2 • gellMann₃ +
+       c 3 • gellMann₄ + c 4 • gellMann₅ + c 5 • gellMann₆ +
+       c 6 • gellMann₇ + c 7 • gellMann₈, by
+        refine Submodule.add_mem _ ?_ (Submodule.smul_mem _ _ gellMann₈_mem)
+        refine Submodule.add_mem _ ?_ (Submodule.smul_mem _ _ gellMann₇_mem)
+        refine Submodule.add_mem _ ?_ (Submodule.smul_mem _ _ gellMann₆_mem)
+        refine Submodule.add_mem _ ?_ (Submodule.smul_mem _ _ gellMann₅_mem)
+        refine Submodule.add_mem _ ?_ (Submodule.smul_mem _ _ gellMann₄_mem)
+        refine Submodule.add_mem _ ?_ (Submodule.smul_mem _ _ gellMann₃_mem)
+        exact Submodule.add_mem _
+                (Submodule.smul_mem _ _ gellMann₁_mem)
+                (Submodule.smul_mem _ _ gellMann₂_mem)⟩
+  map_add' A B := by
+    funext i
+    fin_cases i <;>
+      (simp [Submodule.coe_add, Matrix.add_apply, Complex.add_re, Complex.add_im,
+             neg_add] <;> ring)
+  map_smul' r A := by
+    funext i
+    fin_cases i <;>
+      simp [Submodule.coe_smul, Matrix.smul_apply, Complex.real_smul,
+            Complex.mul_re, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im,
+            mul_zero, zero_mul, sub_zero, add_zero, mul_neg]
+  left_inv A := by
+    apply Subtype.ext
+    obtain ⟨hAH, hTr⟩ := A.property
+    -- Per-entry anti-Hermitian as re/im pair (avoid `conj` in the
+    -- displayed type — simp on `star (A j i)` is reliable, simp on
+    -- `conj (A j i)` triggered a `sorryAx` corruption in v4.12.0).
+    have hAH_re : ∀ i j, (A.val j i).re = -(A.val i j).re := by
+      intro i j
+      have h : (star A.val) i j = (-A.val) i j := congrFun (congrFun hAH i) j
+      rw [Matrix.star_apply, Matrix.neg_apply] at h
+      have h2 := congrArg Complex.re h
+      simpa using h2
+    have hAH_im : ∀ i j, (A.val j i).im = (A.val i j).im := by
+      intro i j
+      have h : (star A.val) i j = (-A.val) i j := congrFun (congrFun hAH i) j
+      rw [Matrix.star_apply, Matrix.neg_apply] at h
+      have h2 := congrArg Complex.im h
+      simpa using h2
+    -- Diagonal real parts are zero.
+    have hd00 : (A.val 0 0).re = 0 := by
+      have h := hAH_re 0 0; linarith
+    have hd11 : (A.val 1 1).re = 0 := by
+      have h := hAH_re 1 1; linarith
+    have hd22 : (A.val 2 2).re = 0 := by
+      have h := hAH_re 2 2; linarith
+    -- Off-diagonal anti-Hermitian relations.
+    have h10re : (A.val 1 0).re = -(A.val 0 1).re := hAH_re 0 1
+    have h10im : (A.val 1 0).im = (A.val 0 1).im := hAH_im 0 1
+    have h20re : (A.val 2 0).re = -(A.val 0 2).re := hAH_re 0 2
+    have h20im : (A.val 2 0).im = (A.val 0 2).im := hAH_im 0 2
+    have h21re : (A.val 2 1).re = -(A.val 1 2).re := hAH_re 1 2
+    have h21im : (A.val 2 1).im = (A.val 1 2).im := hAH_im 1 2
+    -- Trace-zero on the imaginary part.
+    have hTrim : (A.val 0 0).im + (A.val 1 1).im + (A.val 2 2).im = 0 := by
+      rw [Matrix.trace_fin_three] at hTr
+      have h := congrArg Complex.im hTr
+      simpa [Complex.add_im, Complex.zero_im] using h
+    -- Entry-by-entry matrix equality.
+    ext p q
+    fin_cases p <;> fin_cases q <;>
+      (apply Complex.ext <;>
+        simp [gellMann₁, gellMann₂, gellMann₃, gellMann₄, gellMann₅,
+              gellMann₆, gellMann₇, gellMann₈,
+              Matrix.add_apply, Matrix.smul_apply,
+              Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
+              Matrix.cons_val_one, Matrix.head_cons, Matrix.head_fin_const,
+              Matrix.empty_val', Matrix.cons_val_fin_one,
+              Matrix.vecHead, Matrix.vecTail,
+              Complex.real_smul, Complex.add_re, Complex.add_im,
+              Complex.mul_re, Complex.mul_im, Complex.I_re, Complex.I_im,
+              Complex.ofReal_re, Complex.ofReal_im, Complex.zero_re, Complex.zero_im,
+              Complex.neg_re, Complex.neg_im] <;>
+        linarith [hd00, hd11, hd22, h10re, h10im, h20re, h20im, h21re, h21im, hTrim])
+  right_inv c := by
+    funext i
+    fin_cases i <;>
+      simp [gellMann₁, gellMann₂, gellMann₃, gellMann₄, gellMann₅,
+            gellMann₆, gellMann₇, gellMann₈,
+            Matrix.add_apply, Matrix.smul_apply,
+            Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
+            Matrix.cons_val_one, Matrix.head_cons, Matrix.head_fin_const,
+            Matrix.empty_val', Matrix.cons_val_fin_one,
+            Matrix.vecHead, Matrix.vecTail,
+            Complex.real_smul, Complex.add_re, Complex.add_im,
+            Complex.mul_re, Complex.mul_im, Complex.I_re, Complex.I_im,
+            Complex.ofReal_re, Complex.ofReal_im, Complex.zero_re, Complex.zero_im,
+            Complex.neg_re, Complex.neg_im]
+
+/-- **The Gell-Mann basis of `↥su3_submodule` (Path B batch 2 v2 brick 2).**
+
+    Packages `su3_equiv_fin8_def` as a `Basis (Fin 8) ℝ ↥su3_submodule`
+    via mathlib's `Basis.ofEquivFun`. Concretely the basis vector
+    `b i` is the preimage of the i-th standard basis vector
+    `Pi.single i 1 : Fin 8 → ℝ` — by construction these are
+    `gellMann₁, …, gellMann₈` (as members of `↥su3_submodule`).
+
+    Axiom footprint target: subset of mathlib's classical trio. -/
+noncomputable def su3_basis_def : Basis (Fin 8) ℝ ↥su3_submodule :=
+  Basis.ofEquivFun su3_equiv_fin8_def
+
+/-- **Linear independence of the Gell-Mann basis (Path B batch 2 v2 brick 3).**
+
+    Direct consequence of `Basis.linearIndependent` applied to
+    `su3_basis_def`. -/
+theorem su3_basis_linearIndependent :
+    LinearIndependent ℝ (su3_basis_def : Fin 8 → ↥su3_submodule) :=
+  su3_basis_def.linearIndependent
+
+/-- **The Gell-Mann basis spans `↥su3_submodule` (Path B batch 2 v2 brick 4).**
+
+    Direct consequence of `Basis.span_eq` applied to
+    `su3_basis_def`: the ℝ-span of the 8 basis vectors fills the
+    whole submodule. -/
+theorem su3_basis_spans :
+    Submodule.span ℝ (Set.range (su3_basis_def : Fin 8 → ↥su3_submodule)) = ⊤ :=
+  su3_basis_def.span_eq
 
 end YM
 end Towers
