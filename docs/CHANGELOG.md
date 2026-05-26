@@ -6,6 +6,52 @@ this file is the version history.
 
 ---
 
+## v1.10 task #52 — fix the broken `zeta-burst` probe (concurrent-tamper race)
+
+`zeta-burst-101-10000` had been chronically red even though
+`scripts/check-genesis-seal.py` against the live ledger always
+passed. The mismatch reports (`got: ce8477f6…`) and the downstream
+`'--- GENESIS SEAL ---' is not in list` errors both pointed at a
+"path / stale-file" bug; the actual root cause was a race between
+the `morningstar-tamper` test fixture and any concurrent ledger
+appender (`zeta_burst`, `zeta_sieve`):
+
+- `tests/test_morningstar.py::_tamper_and_run` used
+  `HITS.write_text(...)`, which opens `data/hits.txt` in `'w'` mode
+  and **truncates the file to zero bytes** before the new content
+  is written.
+- A `kernel._verify_seal()` call landing inside that few-millisecond
+  window read an empty file, so `lines.index("--- GENESIS SEAL ---")`
+  raised `ValueError`, which `preamble_bytes` turned into
+  `SystemExit("FATAL: ... missing required marker")`, which the
+  in-process kernel surfaced as
+  `RuntimeError("Genesis seal verification failed (preamble unreadable)")`.
+- Result: every time the tamper-test workflow ran alongside the
+  zeta-burst workflow, the burst aborted on its first probe — and
+  this had been happening every CI cycle.
+
+Fix is two-sided:
+
+1. `tests/test_morningstar.py::_atomic_write_bytes` now writes via a
+   sibling tempfile + `os.replace`. That is POSIX-atomic on the same
+   filesystem, so concurrent readers see either the pristine bytes
+   or the tampered bytes, never a truncated intermediate.
+2. `kernel._verify_seal` retries up to 4 times with a 50 ms-stepped
+   backoff before giving up. A genuine tamper is stable and still
+   fails on every attempt; a transient mid-write read (e.g. any
+   future test or operator using a non-atomic rewrite) recovers on
+   the next try. The tamper-detection contract is preserved — the
+   `test_probe_refuses_to_append_when_seal_fails` and
+   `test_*_fails` cases still all pass.
+
+Regression pinned by
+`tests/test_morningstar.py::test_verify_seal_survives_concurrent_atomic_rewriter`,
+which spawns a background atomic rewriter and asserts that
+`kernel._verify_seal()` succeeds many times in a 1-second window
+with zero failures.
+
+---
+
 ## v1.9 Stage 2A-Prime — `zeta_sieve` (sign-change sieve)
 
 `zeta_sniper`/`zeta_burst` go one zero at a time via `mpmath.zetazero`,

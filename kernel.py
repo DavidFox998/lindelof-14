@@ -119,27 +119,49 @@ def _load_seal_module():
 _SEAL_MOD = _load_seal_module()
 
 
+_SEAL_VERIFY_RETRIES = 4
+_SEAL_VERIFY_BACKOFF_S = 0.05
+
+
 def _verify_seal() -> None:
     """Re-verify data/hits.txt's Genesis preamble against the baked-in
     seal. In-process (no subprocess fork) for speed; the standalone
     scripts/check-genesis-seal.py CLI still works and is used by the
-    post-merge guard and the morningstar-tamper test suite."""
-    try:
-        got = _SEAL_MOD.compute_seal()
-    except SystemExit as e:
-        # compute_seal raises SystemExit when hits.txt is missing or the
-        # marker is gone — treat as a hard tamper signal, same as the CLI
-        # exiting non-zero.
-        raise RuntimeError(
-            f"Genesis seal verification failed (preamble unreadable): {e}"
-        ) from e
+    post-merge guard and the morningstar-tamper test suite.
+
+    Retries up to `_SEAL_VERIFY_RETRIES` times with a short backoff
+    before giving up. A genuine tamper is stable, so it still fails
+    after every retry; a transient mid-write read (e.g. another
+    process rewriting the file with `Path.write_text`, which truncates
+    then writes) recovers on the next attempt. This kept the
+    zeta-burst workflow chronically red when run alongside the
+    morningstar-tamper test fixture, even though the on-disk seal was
+    intact — see docs/CHANGELOG.md (v1.10 task #52)."""
+    last_err: BaseException | None = None
     expected = _SEAL_MOD.EXPECTED_SEAL
-    if got != expected:
-        raise RuntimeError(
-            "Genesis seal verification failed:\n"
-            f"  expected: {expected}\n"
-            f"  got:      {got}"
-        )
+    for attempt in range(_SEAL_VERIFY_RETRIES):
+        try:
+            got = _SEAL_MOD.compute_seal()
+        except SystemExit as e:
+            # compute_seal raises SystemExit when hits.txt is missing
+            # or the marker is gone — usually a transient mid-write
+            # read; we retry, then surface as a hard tamper signal if
+            # it persists.
+            last_err = RuntimeError(
+                f"Genesis seal verification failed (preamble unreadable): {e}"
+            )
+        else:
+            if got == expected:
+                return
+            last_err = RuntimeError(
+                "Genesis seal verification failed:\n"
+                f"  expected: {expected}\n"
+                f"  got:      {got}"
+            )
+        if attempt < _SEAL_VERIFY_RETRIES - 1:
+            time.sleep(_SEAL_VERIFY_BACKOFF_S * (attempt + 1))
+    assert last_err is not None
+    raise last_err
 
 
 def _append_line(line: str) -> None:

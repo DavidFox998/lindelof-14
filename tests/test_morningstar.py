@@ -16,8 +16,11 @@ Run from the repo root: `pytest tests/test_morningstar.py -q`.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -55,6 +58,23 @@ def hits_backup():
         HITS.write_bytes(original)
 
 
+def _atomic_write_bytes(path: Path, data: bytes) -> None:
+    """Replace `path`'s contents atomically via a sibling tempfile + os.replace.
+
+    `Path.write_text` / `Path.write_bytes` open in 'w'/'wb' mode, which
+    truncates the file to zero bytes BEFORE the new content is written.
+    Any concurrent reader (e.g. the live `zeta-burst` workflow calling
+    `kernel._verify_seal`) that opens the file inside that window sees
+    an empty file with no Genesis-seal marker — see
+    `docs/CHANGELOG.md` task #52. `os.replace` is POSIX-atomic on the
+    same filesystem, so concurrent readers see either the old bytes
+    or the new bytes, never a torn intermediate state.
+    """
+    tmp = path.with_name(path.name + ".tamper.tmp")
+    tmp.write_bytes(data)
+    os.replace(tmp, path)
+
+
 def _tamper_and_run(original: bytes, mutate) -> subprocess.CompletedProcess[str]:
     """Apply `mutate` to the file's text, run the seal check, restore.
 
@@ -64,10 +84,10 @@ def _tamper_and_run(original: bytes, mutate) -> subprocess.CompletedProcess[str]
     """
     try:
         text = original.decode("utf-8")
-        HITS.write_text(mutate(text), encoding="utf-8")
+        _atomic_write_bytes(HITS, mutate(text).encode("utf-8"))
         return _run_seal_check()
     finally:
-        HITS.write_bytes(original)
+        _atomic_write_bytes(HITS, original)
 
 
 # ---------- check-genesis-seal.py: positive control ----------
@@ -172,6 +192,67 @@ def test_lean_bridge_skips_non_numeric_genesis_lines(tmp_path, monkeypatch):
     rendered = lean_bridge._render(nums)
     assert "axiom foo" not in rendered
     lean_bridge._guard(rendered)  # must not raise
+
+
+# ---------- regression: concurrent tamper must not break a live probe loop ----------
+
+
+def test_verify_seal_survives_concurrent_atomic_rewriter(hits_backup):
+    """Task #52 regression: while the morningstar-tamper test fixture is
+    rewriting `data/hits.txt` in a loop, a concurrent `kernel._verify_seal`
+    call (the inner loop of `zeta_burst`) must NOT raise.
+
+    Before the fix:
+      - the fixture used `Path.write_text`, which truncates the file
+        before writing — readers saw an empty file with no Genesis
+        marker, so `_verify_seal` raised
+        `'--- GENESIS SEAL ---' is not in list`.
+      - any kernel.probe / zeta_burst running alongside
+        morningstar-tamper failed immediately, even though the on-disk
+        seal was intact.
+
+    After the fix:
+      - the fixture writes via `_atomic_write_bytes` (sibling tempfile
+        + os.replace), so readers see either the old or the new bytes.
+      - `_verify_seal` also retries a few times to absorb any other
+        transient mid-write reader (defence in depth).
+    """
+    import kernel
+
+    original = hits_backup
+    # Mutation preserves the marker — the seal still verifies on the
+    # tampered bytes' content for the *file existence* test; what we
+    # care about is that the kernel never sees a truncated read.
+    tampered = original  # identity mutation is enough: this isolates
+    # the race itself (atomic vs truncate-then-write) from any
+    # hash-mismatch noise.
+
+    stop = threading.Event()
+    errors: list[BaseException] = []
+
+    def rewriter() -> None:
+        try:
+            while not stop.is_set():
+                _atomic_write_bytes(HITS, tampered)
+                _atomic_write_bytes(HITS, original)
+        except BaseException as e:  # noqa: BLE001
+            errors.append(e)
+
+    t = threading.Thread(target=rewriter, daemon=True)
+    t.start()
+    try:
+        deadline = time.monotonic() + 1.0
+        iterations = 0
+        while time.monotonic() < deadline:
+            kernel._verify_seal()
+            iterations += 1
+        assert iterations > 50, (
+            f"sanity: expected many _verify_seal cycles in 1s, got {iterations}"
+        )
+    finally:
+        stop.set()
+        t.join(timeout=2.0)
+    assert not errors, f"rewriter thread crashed: {errors}"
 
 
 # ---------- kernel.probe must abort on tampered Genesis ----------
