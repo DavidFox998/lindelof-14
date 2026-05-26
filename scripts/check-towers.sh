@@ -355,6 +355,84 @@ BRICKS=(
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.MassGap"
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.MassGap_pos"
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.MassGap_le_twelve_of_witness"
+  # ---------------------------------------------------------------
+  # Batch 8 (2026-05-26) — three independent tracks, 5 bricks each
+  # (15 total), zero shared imports across tracks. Each track lives
+  # in a new file and imports only its own pre-existing tower
+  # foundation. Brick names are exactly as specified in the Batch 8
+  # directive.
+  #
+  # Tripwire (active per directive): Batch 8 / Track 2 also carries
+  # an unregistered tripwire theorem `LerayEnergyIneq_dissipation
+  # _zero_simplifies` whose proof closes only because
+  # `Dissipation = 0`. Flipping `Dissipation` to a non-zero body
+  # intentionally breaks the `add_zero` step in the tripwire proof,
+  # signalling that a real dissipation term has landed and the
+  # Leray-Hopf surface needs a real proof of monotonicity against
+  # the dissipation. The tripwire is enforced by compile, not by
+  # `#print axioms`, so it does NOT appear in BRICKS — but the file
+  # is in `Towers` lake roots, so a tripwire failure fails
+  # `lake build Towers` and the whole script.
+  #
+  # Sealed surfaces (`data/hits.txt`, `THEOREMA_AUREUM_143.manifest
+  # .txt`, `scripts/print-direction.sh`, `lean-proof/` Lean spine):
+  # untouched by Batch 8. All work confined to `lean-proof-towers/`.
+  #
+  # Track 1 (Towers/Spectral/OperatorV2.lean) — unblock
+  # `∃ μ, MassGap H μ` by upgrading the placeholder Hamiltonian
+  # from the zero operator to the identity (`Hamiltonian_operator_v2
+  # := id`), proving symmetry / PSD for the identity, and adding
+  # two abstract combinators (`vacuum_unique_of_kernel_one_dim`,
+  # `mass_gap_from_lower_bound`) that downstream `MassGap` proofs
+  # can call once a non-trivial Hamiltonian and a real Rayleigh
+  # bound land. NOT a real mass-gap proof — `H = id` has no
+  # positive Rayleigh-quotient lower bound, so
+  # `∃ μ, MassGap Hamiltonian_operator_v2 μ` is still FALSE on
+  # this batch's witness. Spectral / YM / NS towers all stay Open.
+  "Towers.Spectral.OperatorV2|TheoremaAureum.Towers.Spectral.OperatorV2.Hamiltonian_operator_v2"
+  "Towers.Spectral.OperatorV2|TheoremaAureum.Towers.Spectral.OperatorV2.Hamiltonian_symmetric"
+  "Towers.Spectral.OperatorV2|TheoremaAureum.Towers.Spectral.OperatorV2.Hamiltonian_psd"
+  "Towers.Spectral.OperatorV2|TheoremaAureum.Towers.Spectral.OperatorV2.vacuum_unique_of_kernel_one_dim"
+  "Towers.Spectral.OperatorV2|TheoremaAureum.Towers.Spectral.OperatorV2.mass_gap_from_lower_bound"
+  # Track 2 (Towers/NS/EnergyV2.lean) — unblock real `E(t) ≤ E(0)`
+  # by reserving the placeholder slots a real Leray-Hopf inequality
+  # needs: `H1Norm_v2` (alias of the Task #51 placeholder, name
+  # reserved for the future `L²` replacement), `Dissipation`
+  # (literal zero placeholder for `‖∇u‖_{L²}²`),
+  # `Dissipation_nonneg`, `ViscosityScaling := ν * Dissipation`,
+  # and `EnergyDissipationIntegral := ν * t * Dissipation u 0`
+  # (rectangle-rule stand-in, avoids importing
+  # `MeasureTheory.Integral.IntervalIntegral`). NOT the Leray-Hopf
+  # energy inequality — `H1Norm` is still the Task #51 placeholder,
+  # `Dissipation = 0`, and `EnergyDissipationIntegral = 0` on this
+  # batch's defs. NS tower stays Open. The active tripwire
+  # `LerayEnergyIneq_dissipation_zero_simplifies` (unregistered in
+  # BRICKS, enforced by compile) closes only because
+  # `Dissipation = 0`; flipping breaks it intentionally.
+  "Towers.NS.EnergyV2|TheoremaAureum.Towers.NS.EnergyV2.H1Norm_v2"
+  "Towers.NS.EnergyV2|TheoremaAureum.Towers.NS.EnergyV2.Dissipation"
+  "Towers.NS.EnergyV2|TheoremaAureum.Towers.NS.EnergyV2.Dissipation_nonneg"
+  "Towers.NS.EnergyV2|TheoremaAureum.Towers.NS.EnergyV2.ViscosityScaling"
+  "Towers.NS.EnergyV2|TheoremaAureum.Towers.NS.EnergyV2.EnergyDissipationIntegral"
+  # Track 3 (Towers/YM/Spectrum.lean) — go from "`YMHamiltonian`
+  # non-zero" (`YMHamiltonian_image_nonzero`) to "`YMHamiltonian`
+  # has a gap-above-vacuum schema"
+  # (`YMHamiltonian_gap_above_vacuum_schema`) via uniform bound
+  # (`_image_bounded`), `BddBelow ∧ Nonempty` packaging
+  # (`_image_has_inf`), and a named vacuum
+  # (`_vacuum_def` against `vacuum_connection := fun _ => 1`).
+  # Brick 5 is the positivity projection of a new gap-above-vacuum
+  # `MassGapV2 Δ := 0 < Δ ∧ ∀ A ≠ vacuum, Δ ≤ |H A − H vacuum|`
+  # predicate that fixes the wrong-physics of the Task #68
+  # `MassGap` (which measures `|H A|` instead of `|H A − H vacuum|`).
+  # The unconditional `∃ Δ > 0, MassGapV2 Δ` is NOT proved here —
+  # only the predicate shape and its positivity projection. YM
+  # tower stays Open.
+  "Towers.YM.Spectrum|TheoremaAureum.Towers.YM.Spectrum.YMHamiltonian_image_nonzero"
+  "Towers.YM.Spectrum|TheoremaAureum.Towers.YM.Spectrum.YMHamiltonian_image_bounded"
+  "Towers.YM.Spectrum|TheoremaAureum.Towers.YM.Spectrum.YMHamiltonian_image_has_inf"
+  "Towers.YM.Spectrum|TheoremaAureum.Towers.YM.Spectrum.YMHamiltonian_vacuum_def"
+  "Towers.YM.Spectrum|TheoremaAureum.Towers.YM.Spectrum.YMHamiltonian_gap_above_vacuum_schema"
   # Task #56 Path B batch 2 v2 (2026-05-26): the explicit
   # `↥su3_submodule ≃ₗ[ℝ] (Fin 8 → ℝ)` equiv, the Gell-Mann basis
   # packaging via `Basis.ofEquivFun`, plus the linear-independence
