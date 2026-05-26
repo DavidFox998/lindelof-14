@@ -18,4 +18,4 @@ require mathlib from git
 
 @[default_target]
 lean_lib Towers where
-  roots := #[`Towers.RH.ZeroDensity, `Towers.BSD.MordellWeil, `Towers.NS.Divergence, `Towers.NS.EnergyIneq, `Towers.YM.MassGap, `Towers.YM.SU3]
+  roots := #[`Towers.RH.ZeroDensity, `Towers.BSD.MordellWeil, `Towers.NS.Divergence, `Towers.NS.EnergyIneq, `Towers.YM.MassGap, `Towers.YM.SU3, `Towers.YM.SU3Basis]

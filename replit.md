@@ -181,6 +181,28 @@ the box.
   (ℓ²(ℕ,ℂ), sum-of-traces, scaling-form predicate), NOT the Clay
   surface — the bricks prove the schema is genuinely usable, not
   that the Yang-Mills mass gap has been formalized.
+- **SU(3) Gell-Mann basis bricks landed (2026-05-26, Task #56 Path B
+  batch 1).** Added `Towers/YM/SU3Basis.lean` with the eight
+  anti-Hermitian Gell-Mann generators `gellMann₁ … gellMann₈` as
+  explicit `Matrix (Fin 3) (Fin 3) ℂ` literals via mathlib's `!![…]`
+  notation, each proven to lie in `su3_submodule` (i.e.
+  anti-Hermitian + traceless). The unnormalised choice
+  `gellMann₈ := diag(I, 0, -I)` (no √3) keeps every membership proof
+  inside `ext + fin_cases + simp + rfl` — no `norm_num`, no `ring`,
+  no scary numeric coercion. Two local `macro`s factor the
+  per-generator boilerplate. All 8 bricks pass the axiom-footprint
+  check with `{propext, Classical.choice, Quot.sound}`. Total tower
+  brick wall: **51** (was 43 before this batch: 26 YM from Task #55
+  + 3 YM ℓ²(ℕ,ℂ) Hilbert-canonical-family bricks + 6 NS energy +
+  8 BSD/RH/NS legacy, plus 8 new `gellMann_i_mem` = 51).
+  These are the foundation for Path B batches 2 (`Basis.ofEquivFun`
+  on `↥su3_submodule ≃ₗ[ℝ] (Fin 8 → ℝ)` plus linear-independence /
+  span wrappers) and 3 (`InnerProductSpace.Core` instance on
+  `↥su3_submodule`). The bricks claim ONLY: anti-Hermitian +
+  traceless 3×3 complex matrices. No statement about YM dynamics,
+  the YM Hamiltonian, the SU(3) Lie algebra structure constants
+  `f^{abc}`, or the mass-gap conjecture. YM tower status unchanged:
+  **Open** (`docs/ROADMAP.md` § 2).
 - **Trivial-bundle Gauge bricks retired (2026-05-26, Task #50, Option A).** The six `gauge_action_*` lemmas (`one_smul`, `mul_smul`, `inv_smul`, `smul_inv`, `inv_inv`, `pow_zero`) that lived on `TrivialConfiguration G` in `Towers/YM/Gauge.lean` were removed: the action was `· • A := A`, so every lemma reduced definitionally on both sides to `A`, exercising neither group multiplication nor the action — hollow even by trivial-brick standards. The YM wall is now **18 bricks**, not 24, and YM bricks live exclusively in `Towers.YM.MassGap` against `Matrix.specialUnitaryGroup`. Rule going forward: no `gauge_action_*` on `TrivialConfiguration` — only real SU(3). See `docs/ROADMAP.md` for the retirement note and `scripts/check-towers.sh` for the comment block.
 
 ## User preferences

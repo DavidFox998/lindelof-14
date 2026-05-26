@@ -221,6 +221,30 @@ BRICKS=(
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.hilbertCanonicalFamily"
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.hilbertCanonicalFamily_orthonormal"
   "Towers.YM.MassGap|TheoremaAureum.Towers.YM.HilbertSpace_not_finiteDimensional"
+
+  # ---------------------------------------------------------------
+  # Task #56 Path B batch 1 (2026-05-26): the 8 anti-Hermitian
+  # Gell-Mann generators `iλ₁ … iλ₈` of su(3), each proven to lie in
+  # `su3_submodule`. Unnormalised `iλ₈ = diag(I, 0, -I)` (no √3)
+  # chosen so every membership proof closes via
+  # `ext + fin_cases + simp` on the matrix-literal unfolders +
+  # `Complex.conj_I`. These are the foundation for batch 2
+  # (`su3_basis_def` via `Basis.ofEquivFun`, plus
+  # `su3_basis_linearIndependent` and `su3_basis_spans` as 1-line
+  # `.linearIndependent` / `.span_eq` wrappers) and batch 3
+  # (`instance_inner_product_space_su3_euclidean` via
+  # `InnerProductSpace.Core`). The bricks claim ONLY:
+  # anti-Hermitian + traceless. No statement about YM dynamics, the
+  # YM Hamiltonian, or the mass-gap conjecture. YM tower status
+  # remains **Open** (`docs/ROADMAP.md` § 2).
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.gellMann₁_mem"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.gellMann₂_mem"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.gellMann₃_mem"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.gellMann₄_mem"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.gellMann₅_mem"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.gellMann₆_mem"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.gellMann₇_mem"
+  "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.gellMann₈_mem"
 )
 
 VERIFIER_DIR="$(mktemp -d)"
