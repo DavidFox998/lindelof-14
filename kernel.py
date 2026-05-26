@@ -50,6 +50,7 @@ ELLIPTIC_LABEL_RE = _re.compile(r"^[A-Za-z0-9._-]{1,32}$")
 
 REPO_ROOT = Path(__file__).resolve().parent
 HITS = REPO_ROOT / "data" / "hits.txt"
+CHECKPOINT = REPO_ROOT / "data" / "hits.txt.checkpoint"
 SEAL_CHECK = REPO_ROOT / "scripts" / "check-genesis-seal.py"
 
 BACKEND = "mpmath"
@@ -164,13 +165,37 @@ def _verify_seal() -> None:
     raise last_err
 
 
+def _update_checkpoint() -> None:
+    """Refresh data/hits.txt.checkpoint with the current (size, sha256).
+
+    The checkpoint is the at-rest guard against silent truncation /
+    in-place rewrites of `data/hits.txt`. `scripts/check-ledger-integrity.py`
+    refuses any state where the live file is shorter than the
+    checkpoint's recorded size, or where the SHA-256 of the first
+    `size` bytes of the live file differs from the recorded hash.
+    Because the ledger is append-only, any legitimate growth above
+    the recorded size still validates against the recorded prefix
+    SHA — a stale checkpoint is *safe*, only a shrunken or rewritten
+    file is a tamper. The write is atomic (tmp + os.replace) so a
+    crash mid-update cannot leave the checkpoint truncated.
+    """
+    data = HITS.read_bytes()
+    size = len(data)
+    sha = hashlib.sha256(data).hexdigest()
+    tmp = CHECKPOINT.with_name(CHECKPOINT.name + ".tmp")
+    tmp.write_text(f"{size} {sha}\n", encoding="utf-8")
+    os.replace(tmp, CHECKPOINT)
+
+
 def _append_line(line: str) -> None:
-    """Append exactly one line + newline to hits.txt and fsync."""
+    """Append exactly one line + newline to hits.txt, fsync, then
+    refresh the at-rest checkpoint."""
     HITS.parent.mkdir(parents=True, exist_ok=True)
     with HITS.open("a", encoding="utf-8") as f:
         f.write(line + "\n")
         f.flush()
         os.fsync(f.fileno())
+    _update_checkpoint()
 
 
 def _prime_divisors(n: int) -> list[int]:

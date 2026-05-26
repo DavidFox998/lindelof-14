@@ -81,6 +81,15 @@ def main() -> int:
     with LEDGER.open("ab") as fh:
         fh.write(line.encode("utf-8"))
 
+    # Refresh the at-rest checkpoint so the integrity guard
+    # (scripts/check-ledger-integrity.py) doesn't see this legitimate
+    # append as a stale prefix. Kept in lockstep with kernel._append_line.
+    data = LEDGER.read_bytes()
+    cp_tmp = (REPO / "data" / "hits.txt.checkpoint.tmp")
+    cp_tmp.write_text(f"{len(data)} {hashlib.sha256(data).hexdigest()}\n", encoding="utf-8")
+    import os as _os
+    _os.replace(cp_tmp, REPO / "data" / "hits.txt.checkpoint")
+
     _verify_seal("post-write")
 
     sys.stdout.write(f"birth line appended:\n  {line.rstrip()}\n")

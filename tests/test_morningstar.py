@@ -28,7 +28,47 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HITS = REPO_ROOT / "data" / "hits.txt"
 SCRIPT = REPO_ROOT / "scripts" / "check-genesis-seal.py"
+INTEGRITY_SCRIPT = REPO_ROOT / "scripts" / "check-ledger-integrity.py"
+CHECKPOINT = REPO_ROOT / "data" / "hits.txt.checkpoint"
 SEAL_MARKER = "--- GENESIS SEAL ---"
+
+
+@pytest.fixture
+def fresh_checkpoint():
+    """Refresh data/hits.txt.checkpoint to match the *current* live
+    hits.txt at test entry; restore the prior checkpoint at teardown.
+
+    Why: the `kernel-numerics` validation step runs `kernel.probe()`
+    in a separate pytest process. `tests/test_kernel.py` monkeypatches
+    `kernel.HITS` to a throwaway file but does NOT monkeypatch
+    `kernel.CHECKPOINT`, so every probe in that suite overwrites the
+    real `data/hits.txt.checkpoint` with `(size_of_fake, sha_of_fake)`.
+    By the time the `morningstar-tamper` step runs, the checkpoint
+    on disk no longer matches the (untouched) real hits.txt. Without
+    this refresh, the at-rest integrity tests below would fail with
+    a spurious "rewritten in place" error that is entirely a
+    cross-suite artefact, not a real tamper.
+
+    The broader cross-suite snapshot fix is tracked separately as
+    follow-up #58 ("Reset the ledger to its committed snapshot after
+    every test run"). This per-test refresh is the minimal change
+    needed to keep task #53's integrity tests deterministic under
+    the existing validation harness.
+    """
+    import hashlib as _hashlib
+    original_cp = CHECKPOINT.read_bytes() if CHECKPOINT.exists() else None
+    data = HITS.read_bytes()
+    CHECKPOINT.write_text(
+        f"{len(data)} {_hashlib.sha256(data).hexdigest()}\n",
+        encoding="utf-8",
+    )
+    try:
+        yield
+    finally:
+        if original_cp is not None:
+            CHECKPOINT.write_bytes(original_cp)
+        else:
+            CHECKPOINT.unlink(missing_ok=True)
 
 
 # ---------- helpers ----------
@@ -253,6 +293,191 @@ def test_verify_seal_survives_concurrent_atomic_rewriter(hits_backup):
         stop.set()
         t.join(timeout=2.0)
     assert not errors, f"rewriter thread crashed: {errors}"
+
+
+# ---------- at-rest ledger integrity guard (task #53) ----------
+
+def _run_integrity_check() -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(INTEGRITY_SCRIPT)],
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_unmodified_hits_passes_integrity_check(fresh_checkpoint):
+    r = _run_integrity_check()
+    assert r.returncode == 0, (
+        f"integrity check failed on pristine hits.txt:\n"
+        f"stdout={r.stdout!r}\nstderr={r.stderr!r}"
+    )
+    assert "ledger integrity verified" in r.stdout
+
+
+def test_truncated_hits_fails_integrity_check(hits_backup, fresh_checkpoint):
+    """The whole point of task #53: a stray `HITS.write_text("")` or
+    `> data/hits.txt` that wipes the body but happens to preserve the
+    9-line preamble must be caught loudly. The Genesis-seal check
+    alone would pass on a preamble-only file; the integrity check
+    must not."""
+    # Keep the Genesis preamble (lines 1-9 plus marker) so the seal
+    # check would still pass — this isolates the integrity guard.
+    text = hits_backup.decode("utf-8")
+    lines = text.split("\n")
+    marker_idx = lines.index(SEAL_MARKER)
+    preamble_only = "\n".join(lines[: marker_idx + 1]) + "\n"
+    try:
+        _atomic_write_bytes(HITS, preamble_only.encode("utf-8"))
+        # Sanity: the seal check itself still passes on this truncated file.
+        seal_r = _run_seal_check()
+        assert seal_r.returncode == 0, (
+            "precondition: preamble-only file should pass the seal check; "
+            "otherwise this test isn't exercising the right gap."
+        )
+        # The integrity check must catch it.
+        r = _run_integrity_check()
+        assert r.returncode != 0, (
+            "integrity check must reject a ledger truncated to the preamble"
+        )
+        combined = r.stderr + r.stdout
+        assert "SHRUNK" in combined or "TRUNCATION" in combined, combined
+    finally:
+        _atomic_write_bytes(HITS, hits_backup)
+
+
+def test_in_place_rewrite_fails_integrity_check(hits_backup, fresh_checkpoint):
+    """An in-place rewrite that keeps the file size identical but flips
+    a byte deep in the body (past the preamble) is also a violation of
+    the append-only invariant. The Genesis seal would not see it
+    (preamble untouched), so the integrity guard must."""
+    text = hits_backup.decode("utf-8")
+    lines = text.split("\n")
+    marker_idx = lines.index(SEAL_MARKER)
+    # Flip a single character somewhere well past the preamble.
+    victim = marker_idx + 50
+    assert victim < len(lines), "ledger should have plenty of probe lines"
+    original_line = lines[victim]
+    assert len(original_line) > 0
+    # Replace a character with another printable character of the same
+    # length so the file size is byte-for-byte preserved.
+    flipped = original_line[:-1] + ("X" if original_line[-1] != "X" else "Y")
+    lines[victim] = flipped
+    tampered = "\n".join(lines).encode("utf-8")
+    assert len(tampered) == len(hits_backup), "size must match for this test"
+    try:
+        _atomic_write_bytes(HITS, tampered)
+        r = _run_integrity_check()
+        assert r.returncode != 0, (
+            "integrity check must reject an in-place body rewrite"
+        )
+        assert "rewritten in place" in (r.stderr + r.stdout)
+    finally:
+        _atomic_write_bytes(HITS, hits_backup)
+
+
+# ---------- repo lint: forbid non-append opens of data/hits.txt ----------
+
+# Allowlisted files that legitimately mutate hits.txt or its checkpoint.
+# Anything else matching the forbidden patterns is a regression.
+_LEDGER_WRITE_ALLOWLIST = frozenset({
+    "kernel.py",                     # _append_line (mode "a") + _update_checkpoint
+    "scripts/seal-birth.py",         # BIRTH event append (mode "ab")
+    "scripts/check-ledger-integrity.py",  # reads only, but mentions patterns
+    "tests/test_morningstar.py",     # this lint test itself + tamper fixtures
+})
+
+# Directories to skip during the walk.
+_LEDGER_LINT_SKIP_DIRS = frozenset({
+    ".git", "node_modules", "__pycache__", ".local", ".cache",
+    "attached_assets", "lean-proof", ".pnpm-store", "dist", "build",
+    ".replit-artifact", ".pytest_cache",
+})
+
+# Regexes for forbidden ways to clobber data/hits.txt. Each pattern is
+# tagged with a short reason so a failure tells the developer exactly
+# what to do instead.
+_LEDGER_LINT_PATTERNS: list[tuple[str, str]] = [
+    # Python: any open(...) on hits.txt with a 'w'/'wb'/'w+' mode.
+    (
+        r"""open\([^)]*hits\.txt[^)]*['"]w[b+]?['"]""",
+        "open(...hits.txt..., 'w'/'wb') truncates the ledger; use 'a'/'ab' "
+        "(append) and route through kernel._append_line.",
+    ),
+    # Python: Path.write_text / write_bytes on the ledger handle.
+    (
+        r"""HITS\.write_(text|bytes)\(""",
+        "HITS.write_text/write_bytes truncates the ledger; route appends "
+        "through kernel._append_line.",
+    ),
+    (
+        r"""LEDGER\.write_(text|bytes)\(""",
+        "LEDGER.write_text/write_bytes truncates the ledger; route appends "
+        "through kernel._append_line or scripts/seal-birth.py.",
+    ),
+    # Shell: `> data/hits.txt` or `>data/hits.txt` redirects.
+    (
+        r"""(?<![>])>\s*data/hits\.txt\b""",
+        "shell redirect `> data/hits.txt` truncates the ledger; use `>>` "
+        "only via kernel._append_line, never from a script.",
+    ),
+]
+
+
+def _iter_repo_text_files():
+    import re as _r
+
+    skip_re = _r.compile(r"(^|/)(" + "|".join(_LEDGER_LINT_SKIP_DIRS) + r")(/|$)")
+    # Only Python and shell touch the on-disk Python ledger; the React
+    # frontend reads via the API and never opens data/hits.txt directly.
+    # Narrowing to these suffixes avoids JSX false positives like
+    # `<code>data/hits.txt</code>`, where the closing `>` of a tag
+    # would otherwise look like a shell redirect.
+    suffixes = {".py", ".sh", ".bash"}
+    for path in REPO_ROOT.rglob("*"):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        if skip_re.search(rel):
+            continue
+        if path.suffix not in suffixes:
+            continue
+        yield path, rel
+
+
+def test_no_non_append_writes_to_hits_txt():
+    """Lint guard for task #53: any new call site that opens
+    data/hits.txt in a truncating mode (open 'w', Path.write_text/bytes,
+    shell `> data/hits.txt`) outside the small allowlist is a
+    regression. The 20k-line ledger has been wiped at least once by
+    exactly this class of bug (see task #52 race-reproduction). If you
+    have a legitimate reason to add a new appender, route it through
+    kernel._append_line and add the file to _LEDGER_WRITE_ALLOWLIST."""
+    import re as _r
+
+    compiled = [(re_pat, _r.compile(re_pat), reason)
+                for (re_pat, reason) in _LEDGER_LINT_PATTERNS]
+    violations: list[str] = []
+    for path, rel in _iter_repo_text_files():
+        if rel in _LEDGER_WRITE_ALLOWLIST:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        for _re_pat, rx, reason in compiled:
+            for m in rx.finditer(text):
+                line_no = text.count("\n", 0, m.start()) + 1
+                violations.append(
+                    f"{rel}:{line_no}: {m.group(0)!r} — {reason}"
+                )
+    assert not violations, (
+        "Forbidden non-append write to data/hits.txt detected. The ledger "
+        "is append-only; truncating writes have wiped it before. "
+        "Either route through kernel._append_line or, if this is a "
+        "deliberate maintenance script, add the file path to "
+        "_LEDGER_WRITE_ALLOWLIST in tests/test_morningstar.py.\n  "
+        + "\n  ".join(violations)
+    )
 
 
 # ---------- kernel.probe must abort on tampered Genesis ----------

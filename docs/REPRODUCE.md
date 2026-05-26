@@ -109,6 +109,66 @@ oracle for RH.
 
 ---
 
+## Recovering `data/hits.txt` from a tamper or accidental truncation
+
+The Genesis seal protects the 9-line preamble. The at-rest integrity
+guard (`scripts/check-ledger-integrity.py`, task #53) protects the
+**body**: it compares the live ledger against the
+`data/hits.txt.checkpoint` sidecar (`<size> <sha256>` of the last
+known-good state, updated atomically by `kernel._append_line` and
+`scripts/seal-birth.py` after every legitimate append). If the live
+file shrinks below the checkpoint or the recorded prefix SHA stops
+matching, the guard exits non-zero with `SHRUNK` or `rewritten in
+place`. It runs in `scripts/post-merge.sh` and is exercised by
+`tests/test_morningstar.py::test_truncated_hits_fails_integrity_check`
+and `test_in_place_rewrite_fails_integrity_check`.
+
+If the guard ever fires (or you find `hits.txt` mysteriously short),
+**do not run a probe yet** — `kernel.probe` appends, and appending to
+a truncated file would lose the previous lines permanently.
+
+Recovery, in order of safety:
+
+1. **Git working tree** — `git status data/hits.txt`. If it shows as
+   modified/deleted, `git restore data/hits.txt data/hits.txt.checkpoint`
+   brings both files back to the last committed snapshot. Re-run
+   `python scripts/check-ledger-integrity.py` to confirm.
+
+2. **Local reflog / stash** — if the working tree is clean but the
+   ledger is wrong, you probably checkpointed earlier. Try
+   `git log -- data/hits.txt` to find the most recent good commit
+   and `git checkout <sha> -- data/hits.txt data/hits.txt.checkpoint`.
+
+3. **Refusal to silently rebuild** — there is no "rebuild from
+   scratch" path. The ledger is an append-only DAG with a Genesis
+   seal whose SHA (`eecbcd9a…875f`) is hardcoded; you cannot
+   regenerate it without re-running the seal-birth ritual, which
+   would invalidate every referenced `hit_<n>` lemma in
+   `lean-proof/`. If git can't bring it back, recover from a clone
+   of the published repository (the file is checked in).
+
+After recovery, before any new append, run:
+
+```bash
+python scripts/check-genesis-seal.py
+python scripts/check-ledger-integrity.py
+```
+
+Both must exit 0 before `python lab.py -c "probe(...)"` is safe to
+run again.
+
+The lint rule
+`tests/test_morningstar.py::test_no_non_append_writes_to_hits_txt`
+prevents *new* call sites from opening `data/hits.txt` in a
+truncating mode (`open('w'/'wb')`, `Path.write_text/bytes`, shell
+`> data/hits.txt`) outside the small allowlist (`kernel.py`,
+`scripts/seal-birth.py`, `scripts/check-ledger-integrity.py`, and
+this test file). If you genuinely need a new maintenance script,
+route appends through `kernel._append_line` and add the file path
+to `_LEDGER_WRITE_ALLOWLIST`.
+
+---
+
 ## Honest-scope reminders
 
 - `hit_437` / `hit_1094` are `True := trivial`. Their names point to
