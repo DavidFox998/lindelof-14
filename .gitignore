@@ -48,3 +48,4 @@ Thumbs.db
 .cache/
 .local/
 data/hits.txt.checkpoint
+data/ledger-alerts.jsonl
