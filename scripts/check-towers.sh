@@ -245,6 +245,15 @@ BRICKS=(
   "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.gellMann₆_mem"
   "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.gellMann₇_mem"
   "Towers.YM.SU3Basis|TheoremaAureum.Towers.YM.gellMann₈_mem"
+  # Task #61 (2026-05-26): the first *uniform* `∀ A, _ ≤ _` bound on
+  # the YM Hamiltonian schema. Proves `|YMHamiltonian A| ≤ 12` by
+  # bounding each diagonal entry of an SU(3) matrix by 1 (rows of a
+  # unitary matrix are unit vectors), hence `|trace.re| ≤ 3` per
+  # component, hence `≤ 4 · 3 = 12` summed. Genuine inequality, not
+  # a point value or contradiction. YM tower status unchanged: Open
+  # (`docs/ROADMAP.md` § 2). Still a bound on the placeholder
+  # sum-of-traces schema, NOT the YM field energy.
+  "Towers.YM.MassGap|TheoremaAureum.Towers.YM.YMHamiltonian_abs_le_twelve"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

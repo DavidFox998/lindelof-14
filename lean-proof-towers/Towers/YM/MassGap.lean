@@ -119,6 +119,7 @@
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.Data.Complex.Basic
 import Mathlib.Analysis.InnerProductSpace.l2Space
+import Mathlib.Analysis.RCLike.Basic
 import Mathlib.Data.Fintype.BigOperators
 
 namespace TheoremaAureum
@@ -802,6 +803,86 @@ theorem HilbertSpace_not_finiteDimensional :
     ¬ FiniteDimensional ℂ HilbertSpace := fun _ =>
   Module.Finite.not_linearIndependent_of_infinite hilbertCanonicalFamily
     hilbertCanonicalFamily_orthonormal.linearIndependent
+
+/-! ### Task #61: a real two-sided bound on the YM Hamiltonian schema
+
+    The brick below proves `∀ A, |YMHamiltonian A| ≤ 12`. Each
+    component `(A i).1` is a `3×3` SU(3) matrix, so each diagonal
+    entry has norm ≤ 1 (rows of a unitary matrix are unit vectors),
+    hence `|((A i).1) j j|.re ≤ 1`, hence `|((A i).1).trace.re| ≤ 3`,
+    hence `|YMHamiltonian A| = |∑ i, ((A i).1).trace.re| ≤ 4 · 3 = 12`.
+
+    Unlike the prior point-value bricks (`YMHamiltonian_one_eq_twelve`
+    pins one input; `YMHamiltonian_not_isEigenstate_zero` derives one
+    contradiction), this is a *uniform* inequality that holds across
+    the entire schema's input space — the first genuine
+    `∀ A, _ ≤ _` bound in `MassGap.lean`. It exercises the real SU(3)
+    structure (unitarity → entrywise bound), the trace API, the
+    `Complex.abs_re_le_abs` triangle bound on `Re ↪ ℂ`, and the
+    `Finset.abs_sum_le_sum_abs` / `Finset.single_le_sum` /
+    `Finset.sum_le_sum` toolkit.
+
+    Axiom footprint: subset of mathlib's classical core
+    `{propext, Classical.choice, Quot.sound}`.
+
+    **Honest scoping reminder.** This is still a bound on the
+    placeholder sum-of-traces schema, NOT the Yang-Mills field
+    energy `∫ tr(F ∧ ★F)`. The constant `12 = 4 · 3` is
+    `(spacetime-dim) · (SU(3)-fundamental-rep-dim)`, an artefact of
+    the schema, not a physical energy scale. The brick proves the
+    schema is *bounded* — a real, uniform inequality — which is a
+    step toward stating a meaningful "gap" predicate inside the
+    schema, but does NOT prove the Yang-Mills mass gap. YM tower
+    status unchanged: **Open** (see `docs/ROADMAP.md` § 2). -/
+theorem YMHamiltonian_abs_le_twelve (A : SU3Connection) :
+    |YMHamiltonian A| ≤ 12 := by
+  -- Helper 1: each diagonal entry of a 3×3 unitary matrix has norm ≤ 1.
+  have diag_norm_le_one : ∀ (U : Matrix (Fin 3) (Fin 3) ℂ),
+      U * star U = 1 → ∀ i : Fin 3, ‖U i i‖ ≤ 1 := by
+    intro U hU i
+    have hd : (U * star U) i i = (1 : Matrix (Fin 3) (Fin 3) ℂ) i i := by rw [hU]
+    rw [Matrix.one_apply_eq, Matrix.mul_apply] at hd
+    have step : ∀ k, U i k * (star U : Matrix _ _ ℂ) k i = ((‖U i k‖ ^ 2 : ℝ) : ℂ) := by
+      intro k
+      rw [Matrix.star_apply]
+      have h := RCLike.mul_conj (K := ℂ) (U i k)
+      exact_mod_cast h
+    simp_rw [step] at hd
+    have hd_real : ∑ k, ‖U i k‖ ^ 2 = (1 : ℝ) := by
+      have h := hd
+      rw [← Complex.ofReal_sum] at h
+      exact_mod_cast h
+    have hsum : ‖U i i‖ ^ 2 ≤ ∑ k, ‖U i k‖ ^ 2 :=
+      Finset.single_le_sum (f := fun k : Fin 3 => ‖U i k‖ ^ 2)
+        (fun k _ => sq_nonneg _) (Finset.mem_univ i)
+    rw [hd_real] at hsum
+    nlinarith [norm_nonneg (U i i)]
+  -- Helper 2: each component's trace.re is in [-3, 3].
+  have abs_trace_re_le_three : ∀ (U : Matrix (Fin 3) (Fin 3) ℂ),
+      U * star U = 1 → |U.trace.re| ≤ 3 := by
+    intro U hU
+    have h1 : U.trace.re = ∑ i : Fin 3, (U i i).re := by
+      rw [Matrix.trace, Complex.re_sum]; rfl
+    rw [h1]
+    calc |∑ i : Fin 3, (U i i).re|
+        ≤ ∑ i : Fin 3, |(U i i).re| := Finset.abs_sum_le_sum_abs _ _
+      _ ≤ ∑ _i : Fin 3, (1 : ℝ) := by
+          apply Finset.sum_le_sum
+          intro i _
+          calc |(U i i).re| ≤ ‖U i i‖ := Complex.abs_re_le_abs _
+            _ ≤ 1 := diag_norm_le_one U hU i
+      _ = 3 := by simp
+  -- Main: sum over four components.
+  unfold YMHamiltonian
+  calc |∑ i : Fin 4, ((A i).1).trace.re|
+      ≤ ∑ i : Fin 4, |((A i).1).trace.re| := Finset.abs_sum_le_sum_abs _ _
+    _ ≤ ∑ _i : Fin 4, (3 : ℝ) := by
+        apply Finset.sum_le_sum
+        intro i _
+        exact abs_trace_re_le_three _
+          (Matrix.mem_unitaryGroup_iff.mp
+            (Matrix.mem_specialUnitaryGroup_iff.mp (A i).2).1)
+    _ = 12 := by simp; norm_num
 
 end YM
 end Towers
