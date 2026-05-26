@@ -1,6 +1,15 @@
 import { Router, type IRouter } from "express";
 import { createHash } from "node:crypto";
-import { existsSync, openSync, readSync, closeSync, statSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  openSync,
+  readSync,
+  closeSync,
+  statSync,
+  readFileSync,
+  writeFileSync,
+  renameSync,
+} from "node:fs";
 import path from "node:path";
 
 type FailureMode =
@@ -59,12 +68,44 @@ function readPrefixSha(filePath: string, size: number): string {
 export interface LedgerRouterOptions {
   hitsPath: string;
   checkpointPath: string;
+  lastOkPath?: string;
+}
+
+function readPersistedLastOk(p: string): string | null {
+  try {
+    if (!existsSync(p)) return null;
+    const raw = readFileSync(p, "utf-8");
+    const parsed = JSON.parse(raw) as unknown;
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      "lastOkAt" in parsed &&
+      typeof (parsed as { lastOkAt: unknown }).lastOkAt === "string"
+    ) {
+      const v = (parsed as { lastOkAt: string }).lastOkAt;
+      if (!Number.isNaN(Date.parse(v))) return v;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writePersistedLastOk(p: string, lastOkAt: string): void {
+  try {
+    const tmp = `${p}.tmp`;
+    writeFileSync(tmp, JSON.stringify({ lastOkAt }) + "\n");
+    renameSync(tmp, p);
+  } catch {
+    // Best-effort: never let a sidecar write failure break the endpoint.
+  }
 }
 
 export function createLedgerRouter(opts: LedgerRouterOptions): IRouter {
   const HITS = opts.hitsPath;
   const CHECKPOINT = opts.checkpointPath;
-  let lastOkAt: string | null = null;
+  const LAST_OK_PATH = opts.lastOkPath ?? `${opts.hitsPath}.lastok`;
+  let lastOkAt: string | null = readPersistedLastOk(LAST_OK_PATH);
 
   function buildStatus(): LedgerIntegrityStatus {
     const checkedAt = new Date().toISOString();
@@ -219,6 +260,7 @@ export function createLedgerRouter(opts: LedgerRouterOptions): IRouter {
     }
 
     lastOkAt = checkedAt;
+    writePersistedLastOk(LAST_OK_PATH, checkedAt);
     return {
       ...base,
       status: "ok",

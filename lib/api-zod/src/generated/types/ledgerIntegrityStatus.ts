@@ -74,10 +74,13 @@ export interface LedgerIntegrityStatus {
   checkpointPath: string;
   /**
      * ISO-8601 timestamp of the most recent `status: ok` integrity
-  check served by this server process. In-memory only — resets
-  on server restart (mirrors the lockout panel's in-memory
-  pattern). Null when no successful check has been performed
-  since the process started. Lets operators tell if a
+  check. Persisted to a `data/hits.txt.lastok` sidecar
+  (`{ "lastOkAt": "..." }`) so the value survives server
+  restarts; on boot the server reads it back so the dashboard
+  immediately shows the real age instead of "never". Null
+  only when no successful check has ever been recorded.
+  Sidecar writes are best-effort — a write failure does not
+  break the integrity endpoint. Lets operators tell if a
   currently-amber/unreachable panel has been stuck for
   seconds vs hours.
 
