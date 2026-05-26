@@ -159,60 +159,19 @@ let ALERTS_LOG_PATH = path.join(REPO_ROOT, "data", "ledger-alerts.jsonl");
 const ALERTS_ACK_PATH = path.join(REPO_ROOT, "data", "ledger-alerts.ack.json");
 const ALERTS_DEFAULT_LIMIT = 20;
 const ALERTS_MAX_LIMIT = 200;
-const ALERTS_ACK_MAX_ENTRIES = 1000;
 
-function computeAlertId(timestamp: string, message: string): string {
-  return createHash("sha256")
-    .update(timestamp + "\n" + message)
-    .digest("hex");
-}
+import {
+  computeAlertId,
+  readAckMap as readAckMapShared,
+  writeAckMap as writeAckMapShared,
+} from "../lib/alertAckStore.js";
 
 function readAckMap(log: import("pino").Logger): Record<string, string> {
-  if (!existsSync(ALERTS_ACK_PATH)) return {};
-  let raw: string;
-  try {
-    raw = readFileSync(ALERTS_ACK_PATH, "utf8");
-  } catch (err) {
-    log.warn({ err, path: ALERTS_ACK_PATH }, "Failed to read alert ack sidecar");
-    return {};
-  }
-  const trimmed = raw.trim();
-  if (!trimmed) return {};
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(trimmed);
-  } catch (err) {
-    log.warn({ err, path: ALERTS_ACK_PATH }, "Malformed alert ack sidecar; ignoring");
-    return {};
-  }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-  const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
-    if (typeof k === "string" && /^[0-9a-f]{64}$/.test(k) && typeof v === "string") {
-      out[k] = v;
-    }
-  }
-  return out;
+  return readAckMapShared(ALERTS_ACK_PATH, log);
 }
 
 function writeAckMap(map: Record<string, string>, log: import("pino").Logger): void {
-  let trimmed = map;
-  const keys = Object.keys(map);
-  if (keys.length > ALERTS_ACK_MAX_ENTRIES) {
-    const sorted = keys
-      .map((k) => [k, map[k]] as const)
-      .sort((a, b) => (a[1] < b[1] ? 1 : a[1] > b[1] ? -1 : 0))
-      .slice(0, ALERTS_ACK_MAX_ENTRIES);
-    trimmed = Object.fromEntries(sorted);
-  }
-  const tmp = ALERTS_ACK_PATH + ".tmp";
-  try {
-    writeFileSync(tmp, JSON.stringify(trimmed, null, 2) + "\n", { mode: 0o644 });
-    renameSync(tmp, ALERTS_ACK_PATH);
-  } catch (err) {
-    log.error({ err, path: ALERTS_ACK_PATH }, "Failed to persist alert ack sidecar");
-    throw err;
-  }
+  writeAckMapShared(ALERTS_ACK_PATH, map, log);
 }
 
 type AlertDeliveryStatus = "ok" | "failed" | "not_configured";

@@ -469,6 +469,21 @@ export type LedgerIntegrityStatusMonitor = {
      * @nullable
      */
   lastAlertedFailureMode: string | null;
+  /**
+     * Task #98. When non-null, the operator has dismissed
+  the most-recent monitor-fired alert via
+  `POST /lean/ledger-alerts/ack` and the monitor is
+  holding fire on subsequent non-ok ticks — even on
+  failure_mode transition — until a recovery alert
+  clears the state. The value is the sha256 alert id
+  (matches `LedgerAlertEntry.id`). Lets the dashboard
+  show "alerts suppressed: acknowledged" instead of
+  misleading operators into thinking the monitor is
+  still spamming on every tick.
+
+     * @nullable
+     */
+  lastAcknowledgedAlertId: string | null;
 };
 
 export interface LedgerIntegrityStatus {

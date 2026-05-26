@@ -1137,6 +1137,7 @@ components:
             - intervalSeconds
             - lastTickAt
             - lastAlertedFailureMode
+            - lastAcknowledgedAlertId
           properties:
             enabled:
               type: boolean
@@ -1168,6 +1169,19 @@ components:
                 seen the ledger recover). Null while healthy or
                 disabled. Lets the dashboard tell operators which
                 failure mode is being de-duped.
+            lastAcknowledgedAlertId:
+              type: ["string", "null"]
+              description: |
+                Task #98. When non-null, the operator has dismissed
+                the most-recent monitor-fired alert via
+                `POST /lean/ledger-alerts/ack` and the monitor is
+                holding fire on subsequent non-ok ticks — even on
+                failure_mode transition — until a recovery alert
+                clears the state. The value is the sha256 alert id
+                (matches `LedgerAlertEntry.id`). Lets the dashboard
+                show "alerts suppressed: acknowledged" instead of
+                misleading operators into thinking the monitor is
+                still spamming on every tick.
 
     UploadUrlRequest:
       type: object

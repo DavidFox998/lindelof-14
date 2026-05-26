@@ -240,6 +240,131 @@ describe("startLedgerMonitor", () => {
     expect(calls).toBe(1);
   });
 
+  it("suppresses re-fire on failure_mode transition when the prior alert was acknowledged (task #98)", async () => {
+    const sealed = "line1\nline2\nline3\n";
+    const { size, sha } = writeHits(sealed);
+    writeCheckpoint(size, sha);
+
+    const { buildStatus } = createLedgerChecker({
+      hitsPath,
+      checkpointPath,
+      lastOkPath,
+    });
+    const { sink, calls } = makeRecordingSink();
+    const ackedIds = new Set<string>();
+    monitor = startLedgerMonitor({
+      buildStatus,
+      sink,
+      intervalMs: 60_000,
+      logger: silentLogger(),
+      isAcknowledged: (id) => ackedIds.has(id),
+    });
+
+    // Tamper 1: truncate → first alert fires.
+    writeFileSync(hitsPath, "x");
+    await monitor.tick();
+    expect(calls).toHaveLength(1);
+    expect(calls[0].context.failure_mode).toBe("hits_truncated");
+    const firedTimestamp = calls[0].context["timestamp"] as string;
+    const firedMessage = calls[0].message;
+    expect(firedTimestamp).toBeTruthy();
+    const firedId = sha256(firedTimestamp + "\n" + firedMessage);
+
+    // Operator dismisses it in the dashboard.
+    ackedIds.add(firedId);
+
+    // Tamper 2: failure_mode genuinely changes — normally re-fires.
+    // With ack-share state: monitor stays silent.
+    const tampered = "LINE1\nLINE2\nLINE3\n";
+    expect(Buffer.byteLength(tampered)).toBe(size);
+    writeFileSync(hitsPath, tampered);
+    await monitor.tick();
+    expect(calls).toHaveLength(1);
+
+    // getInfo reflects the suppressed-ack state and the latest mode.
+    const info = monitor.getInfo();
+    expect(info.lastAcknowledgedAlertId).toBe(firedId);
+    expect(info.lastAlertedFailureMode).toBe("hits_rewritten_in_place");
+
+    // Another non-ok tick of the new mode: still silent.
+    await monitor.tick();
+    expect(calls).toHaveLength(1);
+  });
+
+  it("fires the recovery alert even when the prior alert was acknowledged (task #98)", async () => {
+    const sealed = "line1\nline2\nline3\n";
+    const { size, sha } = writeHits(sealed);
+    writeCheckpoint(size, sha);
+
+    const { buildStatus } = createLedgerChecker({
+      hitsPath,
+      checkpointPath,
+      lastOkPath,
+    });
+    const { sink, calls } = makeRecordingSink();
+    const ackedIds = new Set<string>();
+    monitor = startLedgerMonitor({
+      buildStatus,
+      sink,
+      intervalMs: 60_000,
+      logger: silentLogger(),
+      isAcknowledged: (id) => ackedIds.has(id),
+    });
+
+    writeFileSync(hitsPath, "x");
+    await monitor.tick();
+    expect(calls).toHaveLength(1);
+    const firedId = sha256(
+      (calls[0].context["timestamp"] as string) + "\n" + calls[0].message,
+    );
+    ackedIds.add(firedId);
+
+    // Restore — recovery alert MUST still fire, ack notwithstanding.
+    writeFileSync(hitsPath, sealed);
+    await monitor.tick();
+    expect(calls).toHaveLength(2);
+    expect(calls[1].kind).toBe("recovered");
+
+    // State is reset; lastAcknowledgedAlertId clears on recovery.
+    expect(monitor.getInfo().lastAcknowledgedAlertId).toBeNull();
+    expect(monitor.getInfo().lastAlertedFailureMode).toBeNull();
+
+    // If a new incident arises after recovery, it fires fresh (the
+    // old ack doesn't bleed across incidents).
+    writeFileSync(hitsPath, "x");
+    await monitor.tick();
+    expect(calls).toHaveLength(3);
+    expect(calls[2].kind).toBe("alert");
+  });
+
+  it("does not suppress when isAcknowledged is omitted (backwards-compatible)", async () => {
+    const sealed = "line1\nline2\nline3\n";
+    const { size, sha } = writeHits(sealed);
+    writeCheckpoint(size, sha);
+
+    const { buildStatus } = createLedgerChecker({
+      hitsPath,
+      checkpointPath,
+      lastOkPath,
+    });
+    const { sink, calls } = makeRecordingSink();
+    monitor = startLedgerMonitor({
+      buildStatus,
+      sink,
+      intervalMs: 60_000,
+      logger: silentLogger(),
+    });
+
+    writeFileSync(hitsPath, "x");
+    await monitor.tick();
+    expect(calls).toHaveLength(1);
+    const tampered = "LINE1\nLINE2\nLINE3\n";
+    expect(Buffer.byteLength(tampered)).toBe(size);
+    writeFileSync(hitsPath, tampered);
+    await monitor.tick();
+    expect(calls).toHaveLength(2);
+  });
+
   it("stop() halts the interval", async () => {
     const sealed = "line1\n";
     const { size, sha } = writeHits(sealed);

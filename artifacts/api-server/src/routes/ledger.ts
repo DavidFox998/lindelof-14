@@ -18,6 +18,11 @@ import type {
   LedgerAlertSink,
 } from "../lib/ledgerAlerts.js";
 import { createKernelAlertSink } from "../lib/ledgerAlerts.js";
+import {
+  computeAlertId,
+  defaultAlertsAckPath,
+  isAlertAcknowledged,
+} from "../lib/alertAckStore.js";
 import { logger as defaultLogger } from "../lib/logger.js";
 
 type FailureMode =
@@ -346,6 +351,15 @@ export interface LedgerMonitorInfo {
   intervalSeconds: number | null;
   lastTickAt: string | null;
   lastAlertedFailureMode: string | null;
+  /**
+   * Task #98: when the operator has acknowledged the most-recent
+   * monitor-fired alert via `POST /lean/ledger-alerts/ack`, this is
+   * the alert id (sha256 hex). Subsequent non-ok ticks are silent
+   * (no webhook/email re-fire), even on failure_mode transition,
+   * until a recovery alert clears the state. Null when there is no
+   * outstanding acknowledged alert.
+   */
+  lastAcknowledgedAlertId: string | null;
 }
 
 const DISABLED_MONITOR_INFO: LedgerMonitorInfo = {
@@ -353,6 +367,7 @@ const DISABLED_MONITOR_INFO: LedgerMonitorInfo = {
   intervalSeconds: null,
   lastTickAt: null,
   lastAlertedFailureMode: null,
+  lastAcknowledgedAlertId: null,
 };
 
 export interface LedgerChecker {
@@ -703,6 +718,23 @@ export interface LedgerMonitorOptions {
     warn: (...args: unknown[]) => void;
     error: (...args: unknown[]) => void;
   };
+  /**
+   * Task #98: predicate consulted before firing a follow-up alert. If
+   * it returns true for the id of the most-recently-fired alert, the
+   * monitor stays silent — the operator has already acknowledged the
+   * incident in the dashboard and a webhook/email re-fire would be
+   * noise. Recovery alerts are NOT subject to this check; a green
+   * restore always notifies and clears the acked-state.
+   *
+   * The predicate is called with the alert id of the prior fire
+   * (sha256 of `timestamp + "\n" + message`, matching
+   * `lean.ts`'s `computeAlertId`). The predicate may read the on-disk
+   * ack sidecar fresh each call.
+   *
+   * Omit the option to opt out — dedup falls back to the pre-task-#98
+   * behaviour (re-fire on every failure_mode transition).
+   */
+  isAcknowledged?: (alertId: string) => boolean;
 }
 
 export interface LedgerMonitorHandle {
@@ -741,12 +773,28 @@ export function startLedgerMonitor(
   const log = opts.logger ?? defaultLogger;
   let lastAlerted: "none" | "alerted" = "none";
   let lastFailureMode: string | null = null;
+  let lastFiredAlertId: string | null = null;
+  let lastAcknowledgedAlertId: string | null = null;
   let lastTickAt: string | null = null;
   let inFlight = false;
   const intervalSeconds = Math.max(
     1,
     Math.floor(opts.intervalMs / 1000),
   );
+
+  function checkAcknowledged(): boolean {
+    if (!opts.isAcknowledged) return false;
+    if (!lastFiredAlertId) return false;
+    try {
+      return opts.isAcknowledged(lastFiredAlertId);
+    } catch (err) {
+      log.warn(
+        { err },
+        "ledger monitor: isAcknowledged predicate threw (treating as not acked)",
+      );
+      return false;
+    }
+  }
 
   async function tick(): Promise<void> {
     if (inFlight) return;
@@ -768,10 +816,40 @@ export function startLedgerMonitor(
         source: "api-server-monitor",
       };
       if (s.status !== "ok") {
-        if (
-          lastAlerted !== "alerted" ||
-          lastFailureMode !== s.failureMode
-        ) {
+        const needsFire =
+          lastAlerted !== "alerted" || lastFailureMode !== s.failureMode;
+        if (needsFire) {
+          // Task #98: if the previous monitor-fired alert was already
+          // dismissed in the dashboard, stay silent on subsequent
+          // non-ok ticks — even when the failure_mode genuinely
+          // transitions. The operator has acknowledged the incident;
+          // a webhook/email re-fire is noise. A recovery alert (below)
+          // will still fire on green-restore and reset state.
+          if (checkAcknowledged()) {
+            log.info(
+              {
+                failureMode: s.failureMode,
+                previousFailureMode: lastFailureMode,
+                acknowledgedAlertId: lastFiredAlertId,
+              },
+              "ledger monitor: suppressing alert (incident acknowledged in dashboard)",
+            );
+            lastAcknowledgedAlertId = lastFiredAlertId;
+            lastFailureMode = s.failureMode;
+            lastAlerted = "alerted";
+            return;
+          }
+          // Pre-stamp the timestamp so the alert id we record matches
+          // what the kernel writes to `data/ledger-alerts.jsonl` (the
+          // kernel honours `timestamp` in context — see
+          // `kernel._fire_ledger_alert`). Without this we'd never be
+          // able to correlate an in-memory monitor fire with an ack
+          // sidecar entry.
+          const alertTimestamp = new Date().toISOString();
+          const message =
+            `Ledger integrity check failed (api-server monitor): ` +
+            (s.reason ?? s.failureMode ?? "unknown failure");
+          const alertId = computeAlertId(alertTimestamp, message);
           const context: LedgerAlertContext = {
             failure_mode: s.failureMode,
             expected_size: s.checkpointSize,
@@ -779,18 +857,16 @@ export function startLedgerMonitor(
             actual_size: s.liveSize,
             actual_sha: s.livePrefixSha,
             checked_at: s.checkedAt,
+            timestamp: alertTimestamp,
             ...commonCtx,
           };
-          const message =
-            `Ledger integrity check failed (api-server monitor): ` +
-            (s.reason ?? s.failureMode ?? "unknown failure");
           const invocation: LedgerAlertInvocation = {
             kind: "alert",
             message,
             context,
           };
           log.warn(
-            { failureMode: s.failureMode, status: s.status },
+            { failureMode: s.failureMode, status: s.status, alertId },
             "ledger monitor: firing alert",
           );
           try {
@@ -803,27 +879,32 @@ export function startLedgerMonitor(
           }
           lastAlerted = "alerted";
           lastFailureMode = s.failureMode;
+          lastFiredAlertId = alertId;
+          lastAcknowledgedAlertId = null;
         }
       } else if (lastAlerted === "alerted") {
         const prev = lastFailureMode;
+        const alertTimestamp = new Date().toISOString();
+        const message =
+          `Ledger integrity RECOVERED (api-server monitor): ` +
+          `previous failure mode = ${prev ?? "unknown"}`;
+        const alertId = computeAlertId(alertTimestamp, message);
         const context: LedgerAlertContext = {
           failure_mode: "recovered",
           previous_failure_mode: prev,
           actual_size: s.liveSize,
           actual_sha: s.livePrefixSha,
           checked_at: s.checkedAt,
+          timestamp: alertTimestamp,
           ...commonCtx,
         };
-        const message =
-          `Ledger integrity RECOVERED (api-server monitor): ` +
-          `previous failure mode = ${prev ?? "unknown"}`;
         const invocation: LedgerAlertInvocation = {
           kind: "recovered",
           message,
           context,
         };
         log.info(
-          { previousFailureMode: prev },
+          { previousFailureMode: prev, alertId },
           "ledger monitor: firing recovery alert",
         );
         try {
@@ -836,6 +917,8 @@ export function startLedgerMonitor(
         }
         lastAlerted = "none";
         lastFailureMode = null;
+        lastFiredAlertId = null;
+        lastAcknowledgedAlertId = null;
       }
     } finally {
       lastTickAt = new Date().toISOString();
@@ -860,6 +943,7 @@ export function startLedgerMonitor(
         lastTickAt,
         lastAlertedFailureMode:
           lastAlerted === "alerted" ? lastFailureMode : null,
+        lastAcknowledgedAlertId,
       };
     },
   };
@@ -891,6 +975,7 @@ const monitorIntervalSeconds = resolveMonitorIntervalSeconds(
   process.env["LEDGER_INTEGRITY_CHECK_INTERVAL_SECONDS"],
 );
 if (monitorIntervalSeconds != null) {
+  const ackPath = defaultAlertsAckPath(REPO_ROOT);
   const monitor = startLedgerMonitor({
     buildStatus: defaultChecker.buildStatus,
     sink: createKernelAlertSink({
@@ -901,6 +986,12 @@ if (monitorIntervalSeconds != null) {
     hitsPath: defaultChecker.hitsPath,
     checkpointPath: defaultChecker.checkpointPath,
     logger: defaultLogger,
+    // Task #98: share dismissal state with the dashboard's
+    // `POST /lean/ledger-alerts/ack` sidecar so an acknowledged
+    // incident stays quiet on subsequent ticks (even on failure_mode
+    // transition) until a recovery alert clears it.
+    isAcknowledged: (alertId) =>
+      isAlertAcknowledged(ackPath, alertId, defaultLogger),
   });
   defaultChecker.setMonitorInfoProvider(() => monitor.getInfo());
   defaultLogger.info(
