@@ -383,6 +383,23 @@ BRICKS=(
   # this is closure of the *placeholder* predicate under spacetime
   # rigid motion.
   "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.HasFiniteEnergy_spacetime_rigid_motion"
+  # Task #133 (2026-05-27): parity (spatial reflection) invariance of
+  # the placeholder finite-energy predicate. Completes the discrete
+  # spacetime-symmetry pair (T + P) on the placeholder NS energy
+  # schema alongside Task #117's unsigned time reversal
+  # `HasFiniteEnergy_time_reverse` (and Task #132's signed variant).
+  # Where the continuous rigid-motion quartet was carried by Task #78
+  # (spatial translation), Task #89 (rotation), and Task #100 (time
+  # translation), parity `x ↦ -x` is the remaining elementary discrete
+  # spacetime symmetry. Proved as the one-line specialisation of
+  # Task #89's `HasFiniteEnergy_rotate` instantiated with
+  # `R := (LinearIsometryEquiv.neg ℝ).toLinearIsometry` — the negation
+  # map is a linear isometry of `EuclideanSpace ℝ (Fin 3)`. Same
+  # witness `M`. NS tower status unchanged: Open (`docs/ROADMAP.md` § 3).
+  # NOT a statement about the L² energy bound or any Leray-Hopf
+  # solution; this is closure of the *placeholder* predicate under
+  # the spatial reflection `x ↦ -x`.
+  "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.HasFiniteEnergy_parity"
   # Task #70 (2026-05-26): name the "energy never grows" predicate
   # inside the NS schema. `EnergyMonotone u u₀ : Prop` is the
   # explicit `∀ t, H1Norm u t ≤ H1Norm u₀ 0` shape named by the

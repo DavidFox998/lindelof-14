@@ -823,6 +823,62 @@ theorem HasFiniteEnergy_spacetime_rigid_motion (u₀ : VelocityField)
     (fun (t : ℝ) (x : EuclideanSpace ℝ (Fin 3)) => u₀ (t + s) x) R a
     (HasFiniteEnergy_time_translate u₀ s M h)
 
+/-
+  ## Task #133 (2026-05-27) — parity (spatial reflection) invariance of
+  the placeholder finite-energy predicate.
+
+  Completes the discrete spacetime-symmetry pair (T + P) on the
+  placeholder NS energy schema alongside Task #117's unsigned time
+  reversal `HasFiniteEnergy_time_reverse` (and Task #132's signed
+  variant). Where the continuous rigid-motion quartet was carried by
+  Task #78 (spatial translation), Task #89 (rotation / linear
+  isometry), and Task #100 (time translation), the discrete spatial
+  reflection `x ↦ -x` is the remaining elementary symmetry.
+
+  Parity is a *special case* of Task #89's `HasFiniteEnergy_rotate`:
+  the negation map is a linear isometry of `EuclideanSpace ℝ (Fin 3)`
+  (mathlib `LinearIsometryEquiv.neg ℝ`, with `‖-x‖ = ‖x‖` by
+  `norm_neg`). The brick instantiates `HasFiniteEnergy_rotate` with
+  `R := (LinearIsometryEquiv.neg ℝ).toLinearIsometry` so the proof
+  reads as the documented one-line specialisation; `simpa` discharges
+  the harmless coercion `(LinearIsometryEquiv.neg ℝ).toLinearIsometry x
+  = -x` (`LinearIsometryEquiv.coe_neg`).
+
+  **Honest scope.** Does NOT advance the NS tower past `Status: Open`
+  (see `docs/ROADMAP.md` § 3). `HasFiniteEnergy` is still the Task #51
+  placeholder (bounded amplitude at `t = 0`), not the L² energy bound;
+  parity closure of the *placeholder* predicate is not parity
+  invariance of the real energy or any Leray-Hopf solution. The point
+  is a *named* brick referencing the predicate under `x ↦ -x` so
+  future plans can point at it explicitly, completing the discrete
+  spacetime-symmetry pair (T + P) alongside the continuous
+  generators.
+
+  Axiom-footprint contract (per `scripts/check-towers.sh`): the
+  theorem must be either axiom-free or use only the classical trio
+  `{propext, Classical.choice, Quot.sound}`.
+-/
+
+/-- **Parity (spatial reflection) invariance of placeholder finite-
+    energy.** If `u₀` has finite placeholder energy with witness `M`,
+    then the parity-reflected field `fun t x => u₀ t (-x)` also has
+    finite placeholder energy with the *same* witness `M`. The
+    negation map `x ↦ -x` is a linear isometry of `EuclideanSpace ℝ
+    (Fin 3)` (mathlib `LinearIsometryEquiv.neg ℝ`), so this brick is
+    the parity specialisation of Task #89's `HasFiniteEnergy_rotate`.
+    Completes the discrete spacetime-symmetry pair (T + P) on the
+    placeholder schema alongside Task #117's `HasFiniteEnergy_time_reverse`.
+    NOT a statement about the L² energy bound or any Leray-Hopf
+    solution; this is closure of the *placeholder* predicate under
+    the spatial reflection `x ↦ -x`. -/
+theorem HasFiniteEnergy_parity (u₀ : VelocityField)
+    (hu : HasFiniteEnergy u₀) :
+    HasFiniteEnergy (fun (t : ℝ) (x : EuclideanSpace ℝ (Fin 3)) =>
+      u₀ t (-x)) := by
+  have h := HasFiniteEnergy_rotate u₀
+    (LinearIsometryEquiv.neg ℝ).toLinearIsometry hu
+  simpa using h
+
 end NS
 end Towers
 end TheoremaAureum
