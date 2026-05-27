@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
-import { mkdtempSync, writeFileSync, readFileSync, rmSync, unlinkSync, existsSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, unlinkSync, existsSync, chmodSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createHash, createHmac } from "node:crypto";
@@ -644,6 +644,101 @@ describe("GET /api/ledger/integrity", () => {
     expect(r.json.checkpointLastModified).toBeNull();
     expect(r.json.checkpointStale).toBe(true);
     expect(r.json.checkpointCoverageRatio).toBeNull();
+  });
+
+  it("Task #109: accepts an inline LEDGER_SIDECAR_SECRET env var with no keyfile on disk", async () => {
+    const sealed = "line1\nline2\n";
+    const { size, sha } = writeHits(sealed);
+    writeCheckpoint(size, sha);
+
+    const lastOkPath = path.join(tmpDir, "hits.txt.inline.lastok");
+    const secretPath = path.join(tmpDir, "hits.txt.inline.lastok.key");
+    try { unlinkSync(lastOkPath); } catch { /* ignore */ }
+    try { unlinkSync(secretPath); } catch { /* ignore */ }
+
+    const inlineHex = "ef".repeat(32);
+    const prev = process.env.LEDGER_SIDECAR_SECRET;
+    process.env.LEDGER_SIDECAR_SECRET = inlineHex;
+    try {
+      // Seed a sidecar MAC'd by the inline secret — server should
+      // accept it without ever touching the on-disk keyfile.
+      const legitPast = new Date(Date.now() - 30_000).toISOString();
+      writeFileSync(
+        lastOkPath,
+        sealSidecar(inlineHex, {
+          lastOkAt: legitPast,
+          lastCheckedAt: legitPast,
+          boundCheckpointSize: size,
+          boundCheckpointSha: sha,
+        }),
+      );
+      // Break ledger so lastOkAt must come from the seeded sidecar.
+      writeFileSync(hitsPath, "X");
+      const app = express();
+      app.use("/api", createLedgerRouter({ hitsPath, checkpointPath, lastOkPath, secretPath }));
+      const srv = http.createServer(app);
+      await new Promise<void>((resolve) => srv.listen(0, "127.0.0.1", resolve));
+      const port = (srv.address() as AddressInfo).port;
+      const r = await (await fetch(`http://127.0.0.1:${port}/api/ledger/integrity`)).json() as any;
+      expect(r.lastOkAt).toBe(legitPast);
+      // Confirm the keyfile was never written to disk.
+      expect(existsSync(secretPath)).toBe(false);
+      await new Promise<void>((resolve, reject) =>
+        srv.close((err) => (err ? reject(err) : resolve())),
+      );
+    } finally {
+      if (prev == null) delete process.env.LEDGER_SIDECAR_SECRET;
+      else process.env.LEDGER_SIDECAR_SECRET = prev;
+      try { unlinkSync(lastOkPath); } catch { /* ignore */ }
+      try { unlinkSync(secretPath); } catch { /* ignore */ }
+    }
+  });
+
+  it("Task #109: warns when the on-disk secret keyfile is group/world-readable", async () => {
+    const sealed = "line1\nline2\n";
+    const { size, sha } = writeHits(sealed);
+    writeCheckpoint(size, sha);
+
+    const lastOkPath = path.join(tmpDir, "hits.txt.loose.lastok");
+    const secretPath = path.join(tmpDir, "hits.txt.loose.lastok.key");
+    try { unlinkSync(lastOkPath); } catch { /* ignore */ }
+    try { unlinkSync(secretPath); } catch { /* ignore */ }
+
+    // Pre-seed a valid keyfile, then loosen its mode to 0644.
+    const secretHex = "ab".repeat(32);
+    writeFileSync(secretPath, secretHex + "\n");
+    try {
+      chmodSync(secretPath, 0o644);
+    } catch {
+      // chmod may be unsupported on some platforms — skip the test there.
+      return;
+    }
+    const mode = statSync(secretPath).mode & 0o777;
+    if ((mode & 0o044) === 0) {
+      // umask or filesystem stripped the perms — skip.
+      return;
+    }
+
+    // The warning is emitted via the module's pino logger (stdout
+    // JSON), so we don't intercept it here — we just smoke-test that
+    // a loose-mode keyfile is still accepted (loose mode is a
+    // warning, not a hard fail) and the integrity endpoint responds.
+    try {
+      const app = express();
+      app.use("/api", createLedgerRouter({ hitsPath, checkpointPath, lastOkPath, secretPath }));
+      const srv = http.createServer(app);
+      await new Promise<void>((resolve) => srv.listen(0, "127.0.0.1", resolve));
+      const port = (srv.address() as AddressInfo).port;
+      const r = await (await fetch(`http://127.0.0.1:${port}/api/ledger/integrity`)).json() as any;
+      // Server still functions — loose-mode is a warning, not a hard fail.
+      expect(r.status).toBe("ok");
+      await new Promise<void>((resolve, reject) =>
+        srv.close((err) => (err ? reject(err) : resolve())),
+      );
+    } finally {
+      try { unlinkSync(lastOkPath); } catch { /* ignore */ }
+      try { unlinkSync(secretPath); } catch { /* ignore */ }
+    }
   });
 
   it("reports stale=true with lastOkAgeSeconds=null when no successful check has ever been recorded", async () => {

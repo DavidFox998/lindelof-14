@@ -10,6 +10,7 @@ import {
   writeFileSync,
   renameSync,
   chmodSync,
+  constants as fsConstants,
 } from "node:fs";
 import path from "node:path";
 import type {
@@ -200,12 +201,70 @@ interface SidecarPayload {
   boundCheckpointSha: string | null;
 }
 
+/**
+ * Task #109: warn loudly if the on-disk keyfile is readable by anyone
+ * other than the owner. The HMAC scheme protects against an attacker
+ * who can write the sidecar but NOT read the key; a group/world-
+ * readable keyfile collapses that protection because the attacker can
+ * forge a valid MAC. We surface this on startup so the operator can
+ * `chmod 600` (or move the secret out of the data dir entirely via
+ * `LEDGER_SIDECAR_SECRET_PATH` / `LEDGER_SIDECAR_SECRET`) before the
+ * next deploy. Best-effort: on platforms where `statSync().mode` is
+ * not meaningful (e.g. Windows, some FUSE mounts) we skip silently
+ * rather than spamming warnings.
+ */
+function warnIfSecretFileLoose(
+  secretPath: string,
+  logger?: { warn: (...args: unknown[]) => void },
+): void {
+  try {
+    const st = statSync(secretPath);
+    // Low 9 bits = rwxrwxrwx. We only care about group + other read bits.
+    const looseBits = st.mode & (fsConstants.S_IRGRP | fsConstants.S_IROTH);
+    if (looseBits !== 0) {
+      const modeOctal = (st.mode & 0o777).toString(8).padStart(3, "0");
+      logger?.warn?.(
+        { secretPath, mode: modeOctal },
+        "ledger sidecar: secret file is group/world-readable — an attacker with read access can forge sidecar HMACs; chmod 600 or move the secret out of the data dir (set LEDGER_SIDECAR_SECRET_PATH to a tighter-ACL path, or LEDGER_SIDECAR_SECRET to an inline hex value with no on-disk fallback)",
+      );
+    }
+  } catch {
+    /* best-effort — stat may be unsupported, that's fine */
+  }
+}
+
+/**
+ * Task #109: prefer an env-var-only secret when set, so the keyfile
+ * never touches disk. Accepts 64-char lowercase/uppercase hex (32
+ * bytes). Invalid/empty values fall through to the file-based path
+ * with a warning rather than silently disabling the protection.
+ */
+function loadInlineSecret(
+  raw: string | undefined,
+  logger?: { warn: (...args: unknown[]) => void },
+): Buffer | null {
+  if (raw == null) return null;
+  const trimmed = raw.trim();
+  if (trimmed === "") return null;
+  if (!/^[0-9a-f]{64}$/i.test(trimmed)) {
+    logger?.warn?.(
+      "ledger sidecar: LEDGER_SIDECAR_SECRET set but not a 64-char hex string; falling back to on-disk keyfile",
+    );
+    return null;
+  }
+  return Buffer.from(trimmed, "hex");
+}
+
 function loadOrCreateSecret(
   secretPath: string,
   logger?: { warn: (...args: unknown[]) => void },
+  inlineSecret?: string | undefined,
 ): Buffer {
+  const inline = loadInlineSecret(inlineSecret, logger);
+  if (inline != null) return inline;
   try {
     if (existsSync(secretPath)) {
+      warnIfSecretFileLoose(secretPath, logger);
       const raw = readFileSync(secretPath, "utf-8").trim();
       if (/^[0-9a-f]{64}$/i.test(raw)) {
         return Buffer.from(raw, "hex");
@@ -231,6 +290,12 @@ function loadOrCreateSecret(
       /* best-effort */
     }
     renameSync(tmp, secretPath);
+    // Defensive re-chmod after rename in case the umask widened it.
+    try {
+      chmodSync(secretPath, 0o600);
+    } catch {
+      /* best-effort */
+    }
   } catch (err) {
     logger?.warn?.(
       { err, secretPath },
@@ -428,7 +493,16 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
   const HITS = opts.hitsPath;
   const CHECKPOINT = opts.checkpointPath;
   const LAST_OK_PATH = opts.lastOkPath ?? `${opts.hitsPath}.lastok`;
-  const SECRET_PATH = opts.secretPath ?? `${LAST_OK_PATH}.key`;
+  // Task #109: allow operators to relocate the sidecar HMAC keyfile
+  // out of the data dir (e.g. onto a tighter-ACL secrets mount) by
+  // setting LEDGER_SIDECAR_SECRET_PATH. Explicit `opts.secretPath`
+  // (used by tests) still wins.
+  const SECRET_PATH =
+    opts.secretPath ??
+    (process.env.LEDGER_SIDECAR_SECRET_PATH &&
+    process.env.LEDGER_SIDECAR_SECRET_PATH.trim() !== ""
+      ? process.env.LEDGER_SIDECAR_SECRET_PATH.trim()
+      : `${LAST_OK_PATH}.key`);
   const STALE_THRESHOLD_SECONDS =
     opts.staleThresholdSeconds != null && Number.isFinite(opts.staleThresholdSeconds) && opts.staleThresholdSeconds > 0
       ? Math.floor(opts.staleThresholdSeconds)
@@ -449,7 +523,11 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
       : resolveCheckedStaleThresholdSecondsFromEnv(
           process.env.LEDGER_CHECKED_STALE_THRESHOLD_SECONDS,
         );
-  const SIDECAR_SECRET = loadOrCreateSecret(SECRET_PATH, defaultLogger);
+  const SIDECAR_SECRET = loadOrCreateSecret(
+    SECRET_PATH,
+    defaultLogger,
+    process.env.LEDGER_SIDECAR_SECRET,
+  );
   const persisted = readPersistedState(
     LAST_OK_PATH,
     SIDECAR_SECRET,
