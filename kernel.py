@@ -66,8 +66,35 @@ CHECKPOINT = REPO_ROOT / "data" / "hits.txt.checkpoint"
 # asleep. Capped to the last `_ALERTS_MAX_ENTRIES` lines on write;
 # disk-full / permission errors are swallowed (best-effort, must never
 # mask `LedgerIntegrityError`).
+#
+# Task #105: in addition to the per-write line cap, the file is rotated
+# by byte size to bound disk usage during a long burst of incidents.
+# When the live file exceeds `_ALERTS_MAX_BYTES`, it is renamed to
+# `ledger-alerts.jsonl.1`, the previous `.1` is shifted to `.2`, and
+# so on up to `_ALERTS_MAX_ROTATIONS`; rotations past the cap are
+# deleted. The dashboard reader only consults the live file (older
+# rotations are archival).
 ALERTS_LOG = REPO_ROOT / "data" / "ledger-alerts.jsonl"
 _ALERTS_MAX_ENTRIES = 200
+
+
+def _env_positive_int(name: str, default: int) -> int:
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        v = int(raw)
+    except ValueError:
+        return default
+    return v if v > 0 else default
+
+
+_ALERTS_MAX_BYTES = _env_positive_int(
+    "MORNINGSTAR_ALERTS_MAX_BYTES", 5 * 1024 * 1024
+)
+_ALERTS_MAX_ROTATIONS = _env_positive_int(
+    "MORNINGSTAR_ALERTS_MAX_ROTATIONS", 3
+)
 # Sidecar lockfile coordinating cross-process / cross-tool access to
 # `hits.txt`. Used by `_append_line` AND by external backup/restore
 # helpers (e.g. the `morningstar-tamper` snapshot/restore fixture in
@@ -529,10 +556,62 @@ def _record_alert_history(
             sys.stderr.write(
                 f"WARN: ledger alert log rotation failed: {e}\n"
             )
+        # Task #105: byte-size rotation. Even with the 200-entry line
+        # cap above, a pathological single entry (or a future schema
+        # widening) could push disk usage unbounded across a long
+        # deployment. When the live file exceeds the byte cap, shift
+        # `ledger-alerts.jsonl{,.1,.2,...}` down by one and start
+        # fresh. Older rotations past `_ALERTS_MAX_ROTATIONS` are
+        # deleted; the dashboard reader only inspects the live file.
+        try:
+            _rotate_alerts_log_if_needed()
+        except OSError as e:
+            sys.stderr.write(
+                f"WARN: ledger alert size rotation failed: {e}\n"
+            )
     except OSError as e:
         sys.stderr.write(
             f"WARN: ledger alert history write failed: {e}\n"
         )
+
+
+def _rotate_alerts_log_if_needed() -> None:
+    """Rotate `ALERTS_LOG` when it grows past `_ALERTS_MAX_BYTES`.
+
+    Rotation scheme (logrotate-style):
+      ledger-alerts.jsonl.(K-1) -> deleted (if K rotations already kept)
+      ledger-alerts.jsonl.(K-2) -> ledger-alerts.jsonl.(K-1)
+      ...
+      ledger-alerts.jsonl.1     -> ledger-alerts.jsonl.2
+      ledger-alerts.jsonl       -> ledger-alerts.jsonl.1
+
+    Best-effort: any OSError propagates to the caller which logs to
+    stderr without masking the underlying integrity failure.
+    """
+    try:
+        size = ALERTS_LOG.stat().st_size
+    except FileNotFoundError:
+        return
+    if size <= _ALERTS_MAX_BYTES:
+        return
+    # Drop the oldest rotation if it exists at the cap boundary.
+    oldest = ALERTS_LOG.with_suffix(
+        ALERTS_LOG.suffix + f".{_ALERTS_MAX_ROTATIONS}"
+    )
+    if oldest.exists():
+        try:
+            oldest.unlink()
+        except FileNotFoundError:
+            pass
+    # Shift .N-1 -> .N, ..., .1 -> .2
+    for i in range(_ALERTS_MAX_ROTATIONS - 1, 0, -1):
+        src = ALERTS_LOG.with_suffix(ALERTS_LOG.suffix + f".{i}")
+        if src.exists():
+            dst = ALERTS_LOG.with_suffix(ALERTS_LOG.suffix + f".{i + 1}")
+            os.replace(src, dst)
+    # Current -> .1
+    dst1 = ALERTS_LOG.with_suffix(ALERTS_LOG.suffix + ".1")
+    os.replace(ALERTS_LOG, dst1)
 
 
 def read_recent_alerts(limit: int = 20) -> "list[dict[str, Any]]":
