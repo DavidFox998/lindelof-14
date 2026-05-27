@@ -1688,6 +1688,52 @@ export default function DashboardPage() {
             Read-only — never mutates the ledger. Polls every 30s.
           </p>
 
+          {ledgerIntegrity?.lastOkSidecarStatus === "forged" ? (
+            <div
+              className="border border-red-500/50 bg-red-500/10 p-3 font-mono text-xs space-y-1 text-red-700 dark:text-red-400"
+              data-testid="panel-ledger-sidecar-forged"
+            >
+              <div className="font-bold uppercase tracking-wider flex items-center gap-2">
+                <ShieldAlert className="w-3 h-3" />
+                Sidecar tamper detected
+              </div>
+              <div
+                className="whitespace-pre-wrap text-foreground/90"
+                data-testid="text-ledger-sidecar-forged-reason"
+              >
+                The persisted{" "}
+                <span className="text-foreground">data/hits.txt.lastok</span>{" "}
+                sidecar failed HMAC verification at boot — someone with
+                write access to the data dir wrote a forged payload
+                without the per-deploy secret. The forged value has
+                been discarded (lastOkAt reset to null).
+              </div>
+              <div className="text-foreground/70">
+                Recommended: rotate the sidecar secret (
+                <span className="text-foreground">LEDGER_SIDECAR_SECRET</span>{" "}
+                or <span className="text-foreground">data/hits.txt.lastok.key</span>
+                ), audit who has write access to{" "}
+                <span className="text-foreground">data/</span>, and re-verify
+                the ledger from a fresh checkout.
+              </div>
+            </div>
+          ) : ledgerIntegrity?.lastOkSidecarStatus ===
+            "stale_checkpoint_binding" ? (
+            <p
+              className="text-xs font-mono border border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 px-3 py-2"
+              data-testid="text-ledger-sidecar-stale-binding"
+            >
+              sidecar:{" "}
+              <span className="font-bold uppercase tracking-wider">
+                stale checkpoint binding
+              </span>
+              <span className="ml-2 text-muted-foreground">
+                (HMAC verified but bound to a different checkpoint; lastOkAt
+                discarded)
+              </span>
+            </p>
+          ) : null}
+
           {(() => {
             const isStale =
               ledgerIntegrity?.status === "ok" && ledgerIntegrity?.stale === true;

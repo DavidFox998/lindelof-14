@@ -451,6 +451,39 @@ export const LedgerIntegrityStatusStatus = {
 } as const;
 
 /**
+ * Task #110. Tamper-state of the persisted
+`data/hits.txt.lastok` sidecar the last time the server
+read or wrote it. `ok` = HMAC verified and the bound
+checkpoint matches the on-disk checkpoint. `missing` = no
+sidecar file (fresh deploy or wipe). `forged` = the file
+existed but the HMAC was missing/malformed/wrong — i.e.
+someone wrote it without the per-deploy secret. The
+forged value is discarded (`lastOkAt` falls back to null),
+and the dashboard surfaces a red banner so operators see
+a tamper attempt distinctly from a fresh-boot empty
+sidecar. `stale_checkpoint_binding` = HMAC verified but
+`boundCheckpointSha`/`boundCheckpointSize` no longer
+match the on-disk checkpoint, so the persisted
+`lastOkAt` refers to a different sealed prefix. The
+value sticks at `forged` after a boot tamper-read until
+the next legitimate write by this process replaces the
+on-disk payload with a fresh HMAC'd one. On boot, a
+`forged` detection also fires a one-shot alert through
+the configured ledger-alerts sink (webhook / SMTP), same
+path as the integrity-mismatch alerts.
+
+ */
+export type LedgerIntegrityStatusLastOkSidecarStatus = typeof LedgerIntegrityStatusLastOkSidecarStatus[keyof typeof LedgerIntegrityStatusLastOkSidecarStatus];
+
+
+export const LedgerIntegrityStatusLastOkSidecarStatus = {
+  ok: 'ok',
+  missing: 'missing',
+  forged: 'forged',
+  stale_checkpoint_binding: 'stale_checkpoint_binding',
+} as const;
+
+/**
  * Task #97. Observability surface for the server-side
 ledger-integrity monitor (the background timer added in
 task #85). Lets the dashboard show operators that the
@@ -717,6 +750,28 @@ export interface LedgerIntegrityStatus {
   is far behind the live file".
    */
   checkpointStale?: boolean;
+  /** Task #110. Tamper-state of the persisted
+  `data/hits.txt.lastok` sidecar the last time the server
+  read or wrote it. `ok` = HMAC verified and the bound
+  checkpoint matches the on-disk checkpoint. `missing` = no
+  sidecar file (fresh deploy or wipe). `forged` = the file
+  existed but the HMAC was missing/malformed/wrong — i.e.
+  someone wrote it without the per-deploy secret. The
+  forged value is discarded (`lastOkAt` falls back to null),
+  and the dashboard surfaces a red banner so operators see
+  a tamper attempt distinctly from a fresh-boot empty
+  sidecar. `stale_checkpoint_binding` = HMAC verified but
+  `boundCheckpointSha`/`boundCheckpointSize` no longer
+  match the on-disk checkpoint, so the persisted
+  `lastOkAt` refers to a different sealed prefix. The
+  value sticks at `forged` after a boot tamper-read until
+  the next legitimate write by this process replaces the
+  on-disk payload with a fresh HMAC'd one. On boot, a
+  `forged` detection also fires a one-shot alert through
+  the configured ledger-alerts sink (webhook / SMTP), same
+  path as the integrity-mismatch alerts.
+   */
+  lastOkSidecarStatus?: LedgerIntegrityStatusLastOkSidecarStatus;
   /** Task #97. Observability surface for the server-side
   ledger-integrity monitor (the background timer added in
   task #85). Lets the dashboard show operators that the

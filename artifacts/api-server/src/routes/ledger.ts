@@ -34,6 +34,24 @@ type FailureMode =
   | "hits_truncated"
   | "hits_rewritten_in_place";
 
+// Task #110: status of the persisted `data/hits.txt.lastok` sidecar
+// the last time the server tried to read it. `ok` = HMAC verified and
+// checkpoint binding matches. `missing` = no sidecar file on disk (a
+// fresh deploy or a wipe). `forged` = the file existed but the HMAC
+// did not verify (a missing `mac` field, a malformed mac, or a wrong
+// mac — i.e. someone wrote the file without the per-deploy secret).
+// `stale_checkpoint_binding` = HMAC verified but `boundCheckpointSha`
+// / `boundCheckpointSize` no longer match the on-disk checkpoint, so
+// the persisted `lastOkAt` refers to a different sealed prefix and we
+// discard it. `missing` / `stale_checkpoint_binding` are benign /
+// recoverable; `forged` is a tamper signal and triggers a red banner
+// + a one-shot monitor alert on boot.
+type LastOkSidecarStatus =
+  | "ok"
+  | "missing"
+  | "forged"
+  | "stale_checkpoint_binding";
+
 interface LedgerIntegrityStatus {
   status: "ok" | "mismatch" | "missing";
   failureMode: FailureMode | null;
@@ -60,6 +78,10 @@ interface LedgerIntegrityStatus {
   checkpointCoverageRatio: number | null;
   checkpointStaleThresholdSeconds: number;
   checkpointStale: boolean;
+  // Task #110: tamper-state of the persisted `lastOk` sidecar.
+  // Surfaces a red banner in the dashboard on `forged` so operators
+  // see a tamper attempt distinctly from a fresh boot (`missing`).
+  lastOkSidecarStatus: LastOkSidecarStatus;
 }
 
 const DEFAULT_STALE_THRESHOLD_SECONDS = 3600;
@@ -185,6 +207,10 @@ export type { LedgerIntegrityStatus, FailureMode };
 interface PersistedState {
   lastOkAt: string | null;
   lastCheckedAt: string | null;
+  // Task #110: result of the most recent sidecar-read attempt. The
+  // closure in `createLedgerChecker` stashes the boot read so the
+  // dashboard can surface `forged` distinctly from `missing`.
+  sidecarStatus: LastOkSidecarStatus;
 }
 
 interface SidecarPayload {
@@ -357,12 +383,36 @@ function readPersistedState(
   checkpointPath: string,
   logger?: { warn: (...args: unknown[]) => void },
 ): PersistedState {
-  const empty: PersistedState = { lastOkAt: null, lastCheckedAt: null };
+  const empty: PersistedState = {
+    lastOkAt: null,
+    lastCheckedAt: null,
+    sidecarStatus: "missing",
+  };
+  const forged: PersistedState = {
+    lastOkAt: null,
+    lastCheckedAt: null,
+    sidecarStatus: "forged",
+  };
   try {
     if (!existsSync(sidecarPath)) return empty;
     const raw = readFileSync(sidecarPath, "utf-8");
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object") return empty;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      logger?.warn?.(
+        { sidecarPath },
+        "ledger sidecar: unparseable JSON — treating as forged, discarding",
+      );
+      return forged;
+    }
+    if (!parsed || typeof parsed !== "object") {
+      logger?.warn?.(
+        { sidecarPath },
+        "ledger sidecar: non-object payload — treating as forged, discarding",
+      );
+      return forged;
+    }
     const obj = parsed as Record<string, unknown>;
     const mac = typeof obj["mac"] === "string" ? (obj["mac"] as string) : null;
     if (!mac) {
@@ -370,7 +420,7 @@ function readPersistedState(
         { sidecarPath },
         "ledger sidecar: missing mac — treating as forged, discarding",
       );
-      return empty;
+      return forged;
     }
     function pickIso(key: string): string | null {
       const v = obj[key];
@@ -397,7 +447,7 @@ function readPersistedState(
         { sidecarPath },
         "ledger sidecar: HMAC mismatch — treating as forged, discarding",
       );
-      return empty;
+      return forged;
     }
     // Checkpoint-binding check: if a bound checkpoint was recorded
     // (i.e. lastOkAt was set), it must still match the on-disk
@@ -414,12 +464,17 @@ function readPersistedState(
           { sidecarPath },
           "ledger sidecar: checkpoint binding stale — discarding lastOkAt",
         );
-        return { lastOkAt: null, lastCheckedAt: payload.lastCheckedAt };
+        return {
+          lastOkAt: null,
+          lastCheckedAt: payload.lastCheckedAt,
+          sidecarStatus: "stale_checkpoint_binding",
+        };
       }
     }
     return {
       lastOkAt: payload.lastOkAt,
       lastCheckedAt: payload.lastCheckedAt,
+      sidecarStatus: "ok",
     };
   } catch {
     return empty;
@@ -430,7 +485,7 @@ function writePersistedState(
   sidecarPath: string,
   secret: Buffer,
   checkpointPath: string,
-  state: PersistedState,
+  state: Pick<PersistedState, "lastOkAt" | "lastCheckedAt">,
 ): void {
   try {
     let bound: { size: number; sha: string } | null = null;
@@ -487,6 +542,16 @@ export interface LedgerChecker {
    * fresh on every request — provider may return live state.
    */
   setMonitorInfoProvider: (fn: () => LedgerMonitorInfo) => void;
+  /**
+   * Task #110: one-shot latch consumed by the background monitor on
+   * its first tick. Returns `true` exactly once — and only when the
+   * boot-time sidecar read came back `forged` — so the monitor can
+   * fire a tamper-detected alert per process lifetime without
+   * re-spamming on subsequent ticks. Returns `false` for `missing` /
+   * `ok` / `stale_checkpoint_binding` boots (and on every call after
+   * the first true).
+   */
+  consumeBootForgedAlert: () => boolean;
 }
 
 export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
@@ -536,6 +601,18 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
   );
   let lastOkAt: string | null = persisted.lastOkAt;
   let lastCheckedAt: string | null = persisted.lastCheckedAt;
+  // Task #110: sticky sidecar-status surface. We seed from the boot
+  // read. Subsequent legitimate writes by THIS process flip it back
+  // to `ok` (we just wrote a valid mac), so the banner clears once
+  // an attacker's forged file has been overwritten. A `forged` boot
+  // status remains visible to operators until the next legitimate
+  // write — long enough that the dashboard surfaces the tamper
+  // attempt distinctly from a fresh-boot empty sidecar.
+  let lastOkSidecarStatus: LastOkSidecarStatus = persisted.sidecarStatus;
+  // One-shot latch for the boot-time forged-detection alert. The
+  // server-side monitor (when wired) reads + clears this on its first
+  // tick so the alert fires exactly once per process lifetime.
+  let bootForgedAlertPending: boolean = persisted.sidecarStatus === "forged";
 
   function computeStaleness(checkedAtIso: string): {
     lastOkAgeSeconds: number | null;
@@ -715,6 +792,7 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
       checkpointCoverageRatio: cpInit.checkpointCoverageRatio,
       checkpointStaleThresholdSeconds: CHECKPOINT_STALE_THRESHOLD_SECONDS,
       checkpointStale: cpInit.checkpointStale,
+      lastOkSidecarStatus,
     };
 
 
@@ -730,7 +808,13 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
     // would show age ≈ 0 and `checkedStale` could never flip true.
     lastCheckedAt = checkedAt;
     writePersistedState(LAST_OK_PATH, SIDECAR_SECRET, CHECKPOINT, { lastOkAt, lastCheckedAt });
+    // Task #110: a legitimate write replaces whatever forged /
+    // missing payload was on disk with a fresh HMAC'd one. Flip the
+    // surfaced status back to `ok` so the dashboard banner clears
+    // once the operator (or the timer) has run a check.
+    lastOkSidecarStatus = "ok";
     base.lastCheckedAt = lastCheckedAt;
+    base.lastOkSidecarStatus = lastOkSidecarStatus;
 
     if (!existsSync(HITS)) {
       return {
@@ -905,6 +989,11 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
     setMonitorInfoProvider(fn) {
       monitorInfoProvider = fn;
     },
+    consumeBootForgedAlert() {
+      if (!bootForgedAlertPending) return false;
+      bootForgedAlertPending = false;
+      return true;
+    },
   };
 }
 
@@ -940,6 +1029,19 @@ export interface LedgerMonitorOptions {
    * behaviour (re-fire on every failure_mode transition).
    */
   isAcknowledged?: (alertId: string) => boolean;
+  /**
+   * Task #110: called once before the first integrity-check on each
+   * tick. When it returns true, the monitor fires a one-shot
+   * "sidecar forged" alert through `sink` — this lets the operator
+   * who's set up webhook/SMTP delivery learn about a tamper-at-rest
+   * attempt that was detected at boot, before the first scheduled
+   * tick discovers anything else. The implementation is expected to
+   * be a one-shot latch (i.e. only return true once per process
+   * lifetime); the monitor does not re-arm it.
+   */
+  consumeBootForgedAlert?: () => boolean;
+  /** Friendly tag for the boot-forged alert context (defaults to the hits path). */
+  sidecarPath?: string;
 }
 
 export interface LedgerMonitorHandle {
@@ -1001,10 +1103,62 @@ export function startLedgerMonitor(
     }
   }
 
+  async function fireBootForgedAlertIfPending(): Promise<void> {
+    if (!opts.consumeBootForgedAlert) return;
+    let shouldFire = false;
+    try {
+      shouldFire = opts.consumeBootForgedAlert();
+    } catch (err) {
+      log.warn(
+        { err },
+        "ledger monitor: consumeBootForgedAlert threw (treating as no boot-forged alert)",
+      );
+      return;
+    }
+    if (!shouldFire) return;
+    const alertTimestamp = new Date().toISOString();
+    const message =
+      `Ledger sidecar tamper detected (api-server monitor): ` +
+      `the persisted lastOk sidecar (${opts.sidecarPath ?? opts.hitsPath ?? "lastok"}) ` +
+      `failed HMAC verification at boot. An attacker with write access to the data dir ` +
+      `wrote a forged payload without the per-deploy secret. The forged value has been ` +
+      `discarded; rotate the sidecar secret and audit data-dir access.`;
+    const alertId = computeAlertId(alertTimestamp, message);
+    const context: LedgerAlertContext = {
+      failure_mode: "sidecar_forged",
+      hits_path: opts.hitsPath,
+      checkpoint_path: opts.checkpointPath,
+      source: "api-server-monitor",
+      timestamp: alertTimestamp,
+      checked_at: alertTimestamp,
+    };
+    const invocation: LedgerAlertInvocation = {
+      kind: "alert",
+      message,
+      context,
+    };
+    log.warn(
+      { alertId, sidecarPath: opts.sidecarPath ?? null },
+      "ledger monitor: firing one-shot sidecar-forged alert (boot-time tamper)",
+    );
+    try {
+      await opts.sink(invocation);
+    } catch (err) {
+      log.warn(
+        { err },
+        "ledger monitor: sidecar-forged sink threw (best-effort, swallowed)",
+      );
+    }
+  }
+
   async function tick(): Promise<void> {
     if (inFlight) return;
     inFlight = true;
     try {
+      // Task #110: drain the one-shot boot-forged latch on the very
+      // first tick. Runs before buildStatus so a sink that throws
+      // can't mask the integrity check itself.
+      await fireBootForgedAlertIfPending();
       let s: LedgerIntegrityStatus;
       try {
         s = opts.buildStatus();
@@ -1190,6 +1344,8 @@ if (monitorIntervalSeconds != null) {
     intervalMs: monitorIntervalSeconds * 1000,
     hitsPath: defaultChecker.hitsPath,
     checkpointPath: defaultChecker.checkpointPath,
+    sidecarPath: `${defaultChecker.hitsPath}.lastok`,
+    consumeBootForgedAlert: defaultChecker.consumeBootForgedAlert,
     logger: defaultLogger,
     // Task #98: share dismissal state with the dashboard's
     // `POST /lean/ledger-alerts/ack` sidecar so an acknowledged
