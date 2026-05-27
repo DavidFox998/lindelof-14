@@ -514,6 +514,67 @@ theorem HasFiniteEnergy_rotate (u₀ : VelocityField)
   obtain ⟨M, hM⟩ := hu
   exact ⟨M, fun x => hM (R x)⟩
 
+/-
+  ## Task #100 (2026-05-27) — time-translation invariance of the
+  placeholder finite-energy predicate.
+
+  Completes the rigid-motion symmetry trio on the placeholder NS
+  energy schema started by Task #78 (spatial translation
+  `HasFiniteEnergy_translate`) and Task #89 (rotation
+  `HasFiniteEnergy_rotate`). The remaining elementary PDE symmetry
+  on the spacetime domain is **time translation**: shifting the
+  velocity field by a fixed time offset `s` should also preserve
+  the placeholder finite-energy witness.
+
+  **Honest scope.** Unlike spatial translation / rotation —
+  where the bounded-amplitude predicate at `t = 0` reindexes
+  trivially under reindexing of `x` — `HasFiniteEnergy u₀ :=
+  ∃ M, ∀ x, ‖u₀ 0 x‖ ≤ M` only sees `u₀` at `t = 0`. The shifted
+  field `fun t x => u₀ (t + s) x` evaluated at `t = 0` is
+  `u₀ s x`, NOT `u₀ 0 x`. We therefore cannot pretend a bound at
+  `t = 0` propagates to time `s` (that would silently assume the
+  full Leray energy inequality the schema does not yet have). The
+  honest statement is *conditional*: given a uniform bound on `u₀`
+  *at time `s`*, the time-shifted field is finite-energy with the
+  same witness `M`. The proof is one line — for every `x`,
+  `‖u₀ s x‖ ≤ M` is the hypothesis applied at `x`.
+
+  Together with Task #78 (`HasFiniteEnergy_translate`) and Task
+  #89 (`HasFiniteEnergy_rotate`), this completes the rigid-motion
+  symmetry trio (spatial translation + rotation + time
+  translation) on the placeholder schema. It does NOT advance the
+  NS tower past `Status: Open` (see `docs/ROADMAP.md` § 3).
+  `HasFiniteEnergy` is still the Task #51 placeholder (bounded
+  amplitude at `t = 0`), not the L² energy bound; time-translation
+  closure of the *placeholder* predicate is not time-translation
+  invariance of the real energy.
+
+  Axiom-footprint contract (per `scripts/check-towers.sh`): the
+  theorem must be either axiom-free or use only the classical trio
+  `{propext, Classical.choice, Quot.sound}`.
+-/
+
+/-- **Time-translation invariance of placeholder finite-energy
+    (conditional form).** Given a time offset `s : ℝ` and a uniform
+    spatial bound `∀ x, ‖u₀ s x‖ ≤ M` on `u₀` *at time `s`*, the
+    time-shifted field `fun t x => u₀ (t + s) x` has finite
+    placeholder energy with witness `M`. The hypothesis is at time
+    `s` (not `0`) because the placeholder predicate
+    `HasFiniteEnergy` only sees the velocity field at `t = 0`, and
+    after the shift `t = 0 ↦ u₀ s`. References the Task #51 schema
+    def `HasFiniteEnergy`, completing the rigid-motion symmetry trio
+    with Task #78 (`HasFiniteEnergy_translate`) and Task #89
+    (`HasFiniteEnergy_rotate`). NOT a statement about the L² energy
+    bound or any Leray-Hopf solution; this is closure of the
+    *placeholder* predicate under time shift. -/
+theorem HasFiniteEnergy_time_translate (u₀ : VelocityField)
+    (s : ℝ) (M : ℝ)
+    (h : ∀ x : EuclideanSpace ℝ (Fin 3), ‖u₀ s x‖ ≤ M) :
+    HasFiniteEnergy (fun (t : ℝ) (x : EuclideanSpace ℝ (Fin 3)) =>
+      u₀ (t + s) x) := by
+  refine ⟨M, fun x => ?_⟩
+  simpa using h x
+
 end NS
 end Towers
 end TheoremaAureum

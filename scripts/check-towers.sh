@@ -290,6 +290,23 @@ BRICKS=(
   # bound or any Leray-Hopf solution; this is closure of the
   # *placeholder* predicate under spatial rotation.
   "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.HasFiniteEnergy_rotate"
+  # Task #100 (2026-05-27): time-translation invariance of the
+  # placeholder finite-energy predicate — completes the rigid-motion
+  # symmetry trio on `HasFiniteEnergy` started by Task #78 (spatial
+  # translation `HasFiniteEnergy_translate`) and Task #89 (rotation
+  # `HasFiniteEnergy_rotate`). Because the placeholder predicate
+  # `HasFiniteEnergy u₀ := ∃ M, ∀ x, ‖u₀ 0 x‖ ≤ M` only sees `u₀` at
+  # `t = 0`, the honest statement is *conditional*: given a uniform
+  # spatial bound `∀ x, ‖u₀ s x‖ ≤ M` on `u₀` at time `s`, the
+  # time-shifted field `fun t x => u₀ (t + s) x` has finite placeholder
+  # energy with the same witness `M`. The hypothesis sits at time `s`
+  # rather than `0` because shifting cannot manufacture a bound at
+  # time `s` from one at `t = 0` without invoking the (absent) Leray
+  # energy inequality. NS tower status unchanged: Open
+  # (`docs/ROADMAP.md` § 3). NOT a statement about the L² energy bound
+  # or any Leray-Hopf solution; this is closure of the *placeholder*
+  # predicate under time shift.
+  "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.HasFiniteEnergy_time_translate"
   # Task #70 (2026-05-26): name the "energy never grows" predicate
   # inside the NS schema. `EnergyMonotone u u₀ : Prop` is the
   # explicit `∀ t, H1Norm u t ≤ H1Norm u₀ 0` shape named by the
