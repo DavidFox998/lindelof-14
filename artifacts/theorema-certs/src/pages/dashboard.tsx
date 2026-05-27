@@ -9,6 +9,7 @@ import {
   useGetLedgerIntegrity,
   useGetLedgerAlerts,
   useAckLedgerAlert,
+  useAckSidecarForged,
   getGetMorningstarHitsQueryKey,
   getGetLeanVerificationQueryKey,
   getGetLeanRebuildHistoryQueryKey,
@@ -270,6 +271,12 @@ export default function DashboardPage() {
   const ackAlertMutation = useAckLedgerAlert({
     request: lockoutsAuthHeader ? { headers: lockoutsAuthHeader } : undefined,
   });
+  const ackSidecarForgedMutation = useAckSidecarForged({
+    request: lockoutsAuthHeader ? { headers: lockoutsAuthHeader } : undefined,
+  });
+  const [sidecarForgedAckError, setSidecarForgedAckError] = useState<
+    string | null
+  >(null);
   const [pendingAckId, setPendingAckId] = useState<string | null>(null);
   const [alertAckError, setAlertAckError] = useState<string | null>(null);
   const {
@@ -1771,10 +1778,24 @@ export default function DashboardPage() {
             <div
               className="border border-red-500/50 bg-red-500/10 p-3 font-mono text-xs space-y-1 text-red-700 dark:text-red-400"
               data-testid="panel-ledger-sidecar-forged"
+              data-acknowledged={
+                ledgerIntegrity?.lastOkSidecarStatusAcknowledgedAt
+                  ? "true"
+                  : "false"
+              }
             >
-              <div className="font-bold uppercase tracking-wider flex items-center gap-2">
+              <div className="font-bold uppercase tracking-wider flex items-center gap-2 flex-wrap">
                 <ShieldAlert className="w-3 h-3" />
                 Sidecar tamper detected
+                {ledgerIntegrity?.lastOkSidecarStatusAcknowledgedAt ? (
+                  <span
+                    className="text-[10px] uppercase tracking-wider border border-red-500/40 bg-red-500/20 px-1.5 py-0.5"
+                    data-testid="badge-ledger-sidecar-forged-acknowledged"
+                    title={`Acknowledged at ${ledgerIntegrity.lastOkSidecarStatusAcknowledgedAt}`}
+                  >
+                    acknowledged
+                  </span>
+                ) : null}
               </div>
               <div
                 className="whitespace-pre-wrap text-foreground/90"
@@ -1795,6 +1816,64 @@ export default function DashboardPage() {
                 <span className="text-foreground">data/</span>, and re-verify
                 the ledger from a fresh checkout.
               </div>
+              {rebuildToken ? (
+                <div className="flex items-center gap-2 pt-1 flex-wrap">
+                  <button
+                    type="button"
+                    className="border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed px-2 py-1 text-[11px] uppercase tracking-wider text-red-700 dark:text-red-300"
+                    data-testid="button-ack-ledger-sidecar-forged"
+                    disabled={
+                      ackSidecarForgedMutation.isPending ||
+                      Boolean(
+                        ledgerIntegrity?.lastOkSidecarStatusAcknowledgedAt,
+                      )
+                    }
+                    onClick={() => {
+                      setSidecarForgedAckError(null);
+                      ackSidecarForgedMutation.mutate(undefined, {
+                        onSuccess: () => {
+                          void queryClient.invalidateQueries({
+                            queryKey: getGetLedgerIntegrityQueryKey(),
+                          });
+                        },
+                        onError: (err: unknown) => {
+                          const msg =
+                            err instanceof Error
+                              ? err.message
+                              : "Failed to acknowledge sidecar tamper banner.";
+                          setSidecarForgedAckError(msg);
+                        },
+                      });
+                    }}
+                  >
+                    {ackSidecarForgedMutation.isPending
+                      ? "Acknowledging…"
+                      : ledgerIntegrity?.lastOkSidecarStatusAcknowledgedAt
+                        ? "Acknowledged"
+                        : "Acknowledge"}
+                  </button>
+                  <span className="text-[10px] text-muted-foreground">
+                    Banner stays visible (with badge) until a non-forged
+                    sidecar is read on next boot.
+                  </span>
+                </div>
+              ) : (
+                <div
+                  className="text-[10px] text-muted-foreground pt-1"
+                  data-testid="hint-ack-ledger-sidecar-forged-no-token"
+                >
+                  Paste a referee rebuild token in the Lean 4 Verification
+                  card to enable the Acknowledge button.
+                </div>
+              )}
+              {sidecarForgedAckError ? (
+                <div
+                  className="text-[11px] text-red-700 dark:text-red-300"
+                  data-testid="text-ack-ledger-sidecar-forged-error"
+                >
+                  {sidecarForgedAckError}
+                </div>
+              ) : null}
             </div>
           ) : ledgerIntegrity?.lastOkSidecarStatus ===
             "stale_checkpoint_binding" ? (

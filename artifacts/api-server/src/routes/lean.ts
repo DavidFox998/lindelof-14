@@ -200,6 +200,16 @@ import {
   readAckMap as readAckMapShared,
   writeAckMap as writeAckMapShared,
 } from "../lib/alertAckStore.js";
+import { defaultChecker as defaultLedgerChecker } from "./ledger.js";
+
+/**
+ * Task #124: indirection so tests can swap in a stub acker without
+ * needing the full ledger boot path. Defaults to the real default
+ * checker's `acknowledgeForgedSidecar` (which writes the on-disk
+ * forged-ack sidecar and clears any in-flight one-shot alert latch).
+ */
+let forgedSidecarAcker: typeof defaultLedgerChecker.acknowledgeForgedSidecar =
+  defaultLedgerChecker.acknowledgeForgedSidecar;
 
 function readAckMap(log: import("pino").Logger): Record<string, string> {
   return readAckMapShared(ALERTS_ACK_PATH, log);
@@ -422,6 +432,39 @@ router.get("/lean/ledger-alerts", (req, res) => {
     ackGcDropped,
     rotation,
     availableRotations,
+  });
+});
+
+router.post("/ledger/sidecar-forged-ack", (req, res) => {
+  const auth = checkRebuildAuth(req);
+  if (!auth.ok) {
+    applyAuthFailureHeaders(res, auth);
+    res.status(auth.status).json({ ok: false, error: auth.error });
+    return;
+  }
+  const result = forgedSidecarAcker();
+  if (!result.ok) {
+    res.status(409).json({
+      ok: false,
+      error:
+        "No forged-sidecar incident to acknowledge: the boot sidecar read came back ok / missing / stale_checkpoint_binding.",
+    });
+    return;
+  }
+  req.log.info(
+    {
+      payloadSha: result.payloadSha,
+      acknowledgedAt: result.acknowledgedAt,
+      alreadyAcknowledged: result.alreadyAcknowledged,
+      ackedBy: getClientIp(req),
+    },
+    "Ledger sidecar-forged incident acknowledged by operator",
+  );
+  res.json({
+    ok: true,
+    acknowledgedAt: result.acknowledgedAt,
+    alreadyAcknowledged: result.alreadyAcknowledged,
+    payloadSha: result.payloadSha,
   });
 });
 

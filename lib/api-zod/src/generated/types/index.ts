@@ -37,5 +37,6 @@ export * from './ledgerIntegrityStatusMonitor';
 export * from './ledgerIntegrityStatusStatus';
 export * from './morningstarHits';
 export * from './morningstarProbe';
+export * from './sidecarForgedAckResult';
 export * from './uploadUrlRequest';
 export * from './uploadUrlResponse';

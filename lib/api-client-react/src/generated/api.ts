@@ -38,6 +38,7 @@ import type {
   LedgerAlertsResponse,
   LedgerIntegrityStatus,
   MorningstarHits,
+  SidecarForgedAckResult,
   UploadUrlRequest,
   UploadUrlResponse
 } from './api.schemas';
@@ -1074,6 +1075,100 @@ export function useGetLedgerAlerts<TData = Awaited<ReturnType<typeof getLedgerAl
 
 
 
+
+export const getAckSidecarForgedUrl = () => {
+
+
+
+
+  return `/api/ledger/sidecar-forged-ack`
+}
+
+/**
+ * Task #124. Records that an operator has investigated and
+dismissed the red "Sidecar tamper detected" banner driven by
+`lastOkSidecarStatus === "forged"`. The acknowledgement is
+keyed by the sha256 of the forged sidecar payload bytes and
+persisted to `data/hits.txt.lastok.forged-ack`, so the
+"acknowledged" badge survives server restarts as long as the
+same forged file is still on disk.
+
+The banner itself stays visible (with the badge) until a
+subsequent boot reads a non-forged sidecar — i.e. the
+operator has rotated `LEDGER_SIDECAR_SECRET` and either
+deleted the forged file or let a legitimate write replace
+it. A fresh forged read with different bytes invalidates the
+old ack and re-fires the alert as a new incident.
+
+Idempotent: re-acking is a 200 with `alreadyAcknowledged:
+true`. Returns 409 when there is no active forged incident
+(boot read came back `ok` / `missing` /
+`stale_checkpoint_binding`).
+
+Requires the same `Authorization: Bearer <LEAN_REBUILD_TOKEN>`
+header as the other admin endpoints, and is subject to the
+same per-IP brute-force limiter.
+
+ * @summary Acknowledge the current forged-sidecar banner
+ */
+export const ackSidecarForged = async ( options?: RequestInit): Promise<SidecarForgedAckResult> => {
+
+  return customFetch<SidecarForgedAckResult>(getAckSidecarForgedUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAckSidecarForgedMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ackSidecarForged>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof ackSidecarForged>>, TError,void, TContext> => {
+
+const mutationKey = ['ackSidecarForged'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof ackSidecarForged>>, void> = () => {
+
+
+          return  ackSidecarForged(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AckSidecarForgedMutationResult = NonNullable<Awaited<ReturnType<typeof ackSidecarForged>>>
+
+    export type AckSidecarForgedMutationError = ErrorType<void>
+
+    /**
+ * @summary Acknowledge the current forged-sidecar banner
+ */
+export const useAckSidecarForged = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ackSidecarForged>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof ackSidecarForged>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAckSidecarForgedMutationOptions(options));
+    }
 
 export const getAckLedgerAlertUrl = () => {
 

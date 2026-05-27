@@ -10,6 +10,7 @@ import {
   writeFileSync,
   renameSync,
   chmodSync,
+  unlinkSync,
   constants as fsConstants,
 } from "node:fs";
 import path from "node:path";
@@ -82,6 +83,17 @@ interface LedgerIntegrityStatus {
   // Surfaces a red banner in the dashboard on `forged` so operators
   // see a tamper attempt distinctly from a fresh boot (`missing`).
   lastOkSidecarStatus: LastOkSidecarStatus;
+  /**
+   * Task #124: ISO-8601 timestamp at which the operator acknowledged
+   * the current forged-sidecar incident via
+   * `POST /ledger/sidecar-forged-ack`. Null while the banner is
+   * still un-acked (or when there is no forged incident at all).
+   * The dashboard renders an "acknowledged" badge on the banner and
+   * keeps it visible (sticky) until a fresh forged read on next boot
+   * either clears the incident (sidecar gone / written ok) or
+   * replaces it with a new un-acked one (a different forged payload).
+   */
+  lastOkSidecarStatusAcknowledgedAt: string | null;
 }
 
 const DEFAULT_STALE_THRESHOLD_SECONDS = 3600;
@@ -545,6 +557,68 @@ function readPersistedState(
   }
 }
 
+/**
+ * Task #124: forged-sidecar acknowledgement sidecar. Persists the
+ * operator's "I've seen and handled this" click across server
+ * restarts. Bound to the sha256 of the forged sidecar payload so a
+ * fresh tamper attempt with different bytes is correctly surfaced as
+ * a NEW, un-acked incident (the old ack does not "cover" the new
+ * forged file).
+ */
+interface ForgedAckRecord {
+  payloadSha: string;
+  acknowledgedAt: string;
+}
+
+function readForgedAck(
+  ackPath: string,
+  logger?: { warn: (...args: unknown[]) => void },
+): ForgedAckRecord | null {
+  try {
+    if (!existsSync(ackPath)) return null;
+    const raw = readFileSync(ackPath, "utf-8").trim();
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return null;
+    const obj = parsed as Record<string, unknown>;
+    const payloadSha = obj["payloadSha"];
+    const acknowledgedAt = obj["acknowledgedAt"];
+    if (
+      typeof payloadSha !== "string" ||
+      !/^[0-9a-f]{64}$/i.test(payloadSha) ||
+      typeof acknowledgedAt !== "string" ||
+      Number.isNaN(Date.parse(acknowledgedAt))
+    ) {
+      return null;
+    }
+    return { payloadSha: payloadSha.toLowerCase(), acknowledgedAt };
+  } catch (err) {
+    logger?.warn?.(
+      { err, ackPath },
+      "ledger sidecar: forged-ack record unreadable; ignoring",
+    );
+    return null;
+  }
+}
+
+function writeForgedAck(
+  ackPath: string,
+  record: ForgedAckRecord,
+  logger?: { warn: (...args: unknown[]) => void },
+): void {
+  try {
+    const tmp = `${ackPath}.tmp`;
+    writeFileSync(tmp, JSON.stringify(record) + "\n", { mode: 0o600 });
+    renameSync(tmp, ackPath);
+  } catch (err) {
+    logger?.warn?.(
+      { err, ackPath },
+      "ledger sidecar: failed to persist forged-ack record",
+    );
+    throw err;
+  }
+}
+
 function writePersistedState(
   sidecarPath: string,
   secret: Buffer,
@@ -616,6 +690,22 @@ export interface LedgerChecker {
    * the first true).
    */
   consumeBootForgedAlert: () => boolean;
+  /**
+   * Task #124: operator-driven acknowledgement of the current
+   * forged-sidecar incident. Returns `null` when there is no active
+   * forged incident to acknowledge (e.g. the boot read was `ok` /
+   * `missing` / `stale_checkpoint_binding`). Idempotent: re-acking
+   * an already-acked incident returns the original `acknowledgedAt`
+   * with `alreadyAcknowledged: true`.
+   */
+  acknowledgeForgedSidecar: () =>
+    | {
+        ok: true;
+        acknowledgedAt: string;
+        alreadyAcknowledged: boolean;
+        payloadSha: string;
+      }
+    | { ok: false; reason: "no_incident" };
 }
 
 export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
@@ -677,10 +767,74 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
   // write — long enough that the dashboard surfaces the tamper
   // attempt distinctly from a fresh-boot empty sidecar.
   let lastOkSidecarStatus: LastOkSidecarStatus = persisted.sidecarStatus;
+  // Task #124: sticky forged-sidecar incident. Set when boot detects
+  // a forged sidecar; kept in memory (and persisted as a sibling ack
+  // file) until the operator acknowledges, then surfaces as a
+  // visible "acknowledged" badge on the dashboard banner. Cleared
+  // only by a subsequent boot whose sidecar read is non-forged OR
+  // whose forged payload sha differs from the acknowledged one (a
+  // fresh tamper attempt = new un-acked incident).
+  const FORGED_ACK_PATH = `${LAST_OK_PATH}.forged-ack`;
+  type ForgedIncident = {
+    payloadSha: string;
+    acknowledgedAt: string | null;
+  };
+  let forgedIncident: ForgedIncident | null = null;
+  if (persisted.sidecarStatus === "forged") {
+    let payloadSha: string;
+    try {
+      const raw = readFileSync(LAST_OK_PATH);
+      payloadSha = createHash("sha256").update(raw).digest("hex");
+    } catch {
+      // The file became unreadable between readPersistedState and
+      // here (race / filesystem flake) — treat as missing rather
+      // than forged. The banner won't show, but we also don't
+      // synthesize a fake incident.
+      payloadSha = "";
+    }
+    if (payloadSha) {
+      const priorAck = readForgedAck(FORGED_ACK_PATH, defaultLogger);
+      const carriedAck =
+        priorAck != null && priorAck.payloadSha === payloadSha
+          ? priorAck.acknowledgedAt
+          : null;
+      if (priorAck != null && priorAck.payloadSha !== payloadSha) {
+        // Stale ack from a previous incident — clear it so the
+        // dashboard surfaces the new tamper as un-acked.
+        try {
+          unlinkSync(FORGED_ACK_PATH);
+        } catch {
+          /* best-effort */
+        }
+      }
+      forgedIncident = { payloadSha, acknowledgedAt: carriedAck };
+    } else {
+      // Couldn't sha the forged file — fall back to "no incident".
+      try {
+        unlinkSync(FORGED_ACK_PATH);
+      } catch {
+        /* best-effort */
+      }
+    }
+  } else {
+    // No forged sidecar on this boot — drop any leftover ack file
+    // from a previous incident.
+    try {
+      if (existsSync(FORGED_ACK_PATH)) unlinkSync(FORGED_ACK_PATH);
+    } catch {
+      /* best-effort */
+    }
+  }
   // One-shot latch for the boot-time forged-detection alert. The
   // server-side monitor (when wired) reads + clears this on its first
   // tick so the alert fires exactly once per process lifetime.
-  let bootForgedAlertPending: boolean = persisted.sidecarStatus === "forged";
+  // Task #124: an already-acknowledged forged incident from a prior
+  // boot must not re-fire the webhook/SMTP alert — the operator has
+  // already seen and dismissed it. Same isAcknowledged semantics as
+  // the integrity-alert path (task #98).
+  let bootForgedAlertPending: boolean =
+    persisted.sidecarStatus === "forged" &&
+    (forgedIncident == null || forgedIncident.acknowledgedAt == null);
 
   function computeStaleness(checkedAtIso: string): {
     lastOkAgeSeconds: number | null;
@@ -861,6 +1015,7 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
       checkpointStaleThresholdSeconds: CHECKPOINT_STALE_THRESHOLD_SECONDS,
       checkpointStale: cpInit.checkpointStale,
       lastOkSidecarStatus,
+      lastOkSidecarStatusAcknowledgedAt: null,
     };
 
 
@@ -878,11 +1033,19 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
     writePersistedState(LAST_OK_PATH, SIDECAR_SECRET, CHECKPOINT, { lastOkAt, lastCheckedAt });
     // Task #110: a legitimate write replaces whatever forged /
     // missing payload was on disk with a fresh HMAC'd one. Flip the
-    // surfaced status back to `ok` so the dashboard banner clears
-    // once the operator (or the timer) has run a check.
+    // surfaced status back to `ok` — but task #124 keeps the banner
+    // sticky via `forgedIncident` so the operator still sees the
+    // tamper notice (with an "acknowledged" badge once they click
+    // Acknowledge) until a subsequent boot clears the incident.
     lastOkSidecarStatus = "ok";
     base.lastCheckedAt = lastCheckedAt;
-    base.lastOkSidecarStatus = lastOkSidecarStatus;
+    if (forgedIncident != null) {
+      base.lastOkSidecarStatus = "forged";
+      base.lastOkSidecarStatusAcknowledgedAt = forgedIncident.acknowledgedAt;
+    } else {
+      base.lastOkSidecarStatus = lastOkSidecarStatus;
+      base.lastOkSidecarStatusAcknowledgedAt = null;
+    }
 
     if (!existsSync(HITS)) {
       return {
@@ -1049,6 +1212,49 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
     }
     res.status(200).json({ ...status, monitor });
   });
+
+  function acknowledgeForgedSidecar():
+    | {
+        ok: true;
+        acknowledgedAt: string;
+        alreadyAcknowledged: boolean;
+        payloadSha: string;
+      }
+    | { ok: false; reason: "no_incident" } {
+    if (forgedIncident == null) {
+      return { ok: false, reason: "no_incident" };
+    }
+    if (forgedIncident.acknowledgedAt != null) {
+      return {
+        ok: true,
+        acknowledgedAt: forgedIncident.acknowledgedAt,
+        alreadyAcknowledged: true,
+        payloadSha: forgedIncident.payloadSha,
+      };
+    }
+    const acknowledgedAt = new Date().toISOString();
+    writeForgedAck(
+      FORGED_ACK_PATH,
+      { payloadSha: forgedIncident.payloadSha, acknowledgedAt },
+      defaultLogger,
+    );
+    forgedIncident = {
+      payloadSha: forgedIncident.payloadSha,
+      acknowledgedAt,
+    };
+    // Suppress any still-pending boot-forged one-shot alert: the
+    // operator has dismissed the incident from the dashboard, so the
+    // monitor's first tick should stay quiet (same dedup contract as
+    // `isAcknowledged` for integrity-mismatch alerts, task #98).
+    bootForgedAlertPending = false;
+    return {
+      ok: true,
+      acknowledgedAt,
+      alreadyAcknowledged: false,
+      payloadSha: forgedIncident.payloadSha,
+    };
+  }
+
   return {
     router,
     buildStatus,
@@ -1062,6 +1268,7 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
       bootForgedAlertPending = false;
       return true;
     },
+    acknowledgeForgedSidecar,
   };
 }
 
@@ -1652,4 +1859,5 @@ if (monitorIntervalSeconds != null) {
   );
 }
 
+export { defaultChecker };
 export default defaultChecker.router;

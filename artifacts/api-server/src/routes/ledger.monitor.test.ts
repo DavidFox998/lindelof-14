@@ -387,17 +387,16 @@ describe("startLedgerMonitor", () => {
       secretPath,
     });
 
-    // Boot status surfaces `forged` in the integrity payload before
-    // the first build overwrites the sidecar.
+    // Boot status surfaces `forged` in the integrity payload. Task
+    // #124 makes the banner sticky: the `forgedIncident` latch keeps
+    // `lastOkSidecarStatus` pinned at `forged` (with a null
+    // `lastOkSidecarStatusAcknowledgedAt`) even after the first
+    // legitimate write flips the internal sidecar state back to ok,
+    // so the dashboard banner stays up until the operator either
+    // acknowledges it or reboots onto a non-forged sidecar.
     const bootStatus = checker.buildStatus();
-    // Note: buildStatus() itself runs a write that flips status back
-    // to "ok" — but `base` is constructed first, so the FIRST build
-    // returns the forged status (the dashboard's first poll will see
-    // it). Subsequent builds report "ok".
-    expect(bootStatus.lastOkSidecarStatus).toBe("ok");
-    // Capture the status before any build for the dashboard:
-    // we already overwrote it, but the in-memory latch is what feeds
-    // the monitor alert.
+    expect(bootStatus.lastOkSidecarStatus).toBe("forged");
+    expect(bootStatus.lastOkSidecarStatusAcknowledgedAt).toBeNull();
 
     const { sink, calls } = makeRecordingSink();
     monitor = startLedgerMonitor({

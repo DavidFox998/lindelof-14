@@ -237,6 +237,23 @@ export interface LedgerIntegrityStatus {
   path as the integrity-mismatch alerts.
    */
   lastOkSidecarStatus?: LedgerIntegrityStatusLastOkSidecarStatus;
+  /**
+     * Task #124. ISO-8601 timestamp when an operator dismissed
+  the current forged-sidecar incident via
+  `POST /ledger/sidecar-forged-ack`. Null when the
+  incident is still unacknowledged (or when
+  `lastOkSidecarStatus` is not `forged`). The ack is keyed
+  by the sha256 of the forged sidecar payload bytes and
+  persisted to `data/hits.txt.lastok.forged-ack`, so it
+  survives restarts as long as the same forged file is
+  still on disk; a fresh forged read with different bytes
+  invalidates it. The dashboard keeps the red banner
+  visible (with an "acknowledged" badge) until a
+  subsequent boot reads a non-forged sidecar.
+
+     * @nullable
+     */
+  lastOkSidecarStatusAcknowledgedAt?: string | null;
   /** Task #97. Observability surface for the server-side
   ledger-integrity monitor (the background timer added in
   task #85). Lets the dashboard show operators that the

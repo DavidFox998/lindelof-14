@@ -257,6 +257,27 @@ export interface LedgerAlertAckResult {
 }
 
 /**
+ * Result of `POST /ledger/sidecar-forged-ack` (task #124). On
+success, the dashboard banner driven by
+`lastOkSidecarStatus === "forged"` gains an "acknowledged"
+badge and the boot-time `sidecar_forged` one-shot alert is
+suppressed for this incident, exactly the way
+`isAcknowledged` already suppresses the integrity-mismatch
+alert (task #98).
+
+ */
+export interface SidecarForgedAckResult {
+  ok: boolean;
+  /** ISO-8601 timestamp recorded on the on-disk forged-ack sidecar */
+  acknowledgedAt?: string;
+  /** True if the same forged-sidecar incident was already acked (no-op) */
+  alreadyAcknowledged?: boolean;
+  /** sha256 hex of the forged sidecar payload bytes the ack is bound to */
+  payloadSha?: string;
+  error?: string;
+}
+
+/**
  * Per-transport delivery status at fire time
  */
 export type LedgerAlertEntryDelivery = {
@@ -806,6 +827,23 @@ export interface LedgerIntegrityStatus {
   path as the integrity-mismatch alerts.
    */
   lastOkSidecarStatus?: LedgerIntegrityStatusLastOkSidecarStatus;
+  /**
+     * Task #124. ISO-8601 timestamp when an operator dismissed
+  the current forged-sidecar incident via
+  `POST /ledger/sidecar-forged-ack`. Null when the
+  incident is still unacknowledged (or when
+  `lastOkSidecarStatus` is not `forged`). The ack is keyed
+  by the sha256 of the forged sidecar payload bytes and
+  persisted to `data/hits.txt.lastok.forged-ack`, so it
+  survives restarts as long as the same forged file is
+  still on disk; a fresh forged read with different bytes
+  invalidates it. The dashboard keeps the red banner
+  visible (with an "acknowledged" badge) until a
+  subsequent boot reads a non-forged sidecar.
+
+     * @nullable
+     */
+  lastOkSidecarStatusAcknowledgedAt?: string | null;
   /** Task #97. Observability surface for the server-side
   ledger-integrity monitor (the background timer added in
   task #85). Lets the dashboard show operators that the
