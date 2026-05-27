@@ -1737,6 +1737,17 @@ BRICKS=(
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Peter_Weyl_partial"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Heat_kernel_at_identity_nonneg"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Truncation_error_bound_value_nonneg"
+  # -----------------------------------------------------------------
+  # Batch 19.1r — Mayer_overlap typed-surface promotion. +1 BRICK.
+  # Promotes Plaquette/Polymer/Mayer_overlap (def) from Attempts/
+  # into YM/, with the Mayer_overlap def now concrete
+  # (∃ p, p ∈ γ₁ ∧ p ∈ γ₂) rather than sorry. The BRICK below is
+  # the first real property of the new def — symmetry of the
+  # overlap predicate. Closes one of the three 19.1q sorries
+  # (Attempts/ 11 → 10). YM tower stays Status: Open per
+  # docs/ROADMAP.md § 2.
+  # -----------------------------------------------------------------
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Mayer_overlap_symm"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

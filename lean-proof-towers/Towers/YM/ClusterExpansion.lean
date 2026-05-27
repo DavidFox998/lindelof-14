@@ -2063,6 +2063,109 @@ theorem Truncation_error_bound_value_nonneg (t : ℝ) (N : ℕ) :
   unfold Truncation_error_bound_value
   exact Weyl_sum_explicit_SU3_real_nonneg t N
 
+/-! ============================================================
+    Batch 19.1r — Mayer_overlap (typed-surface promotion)
+
+    Promote the three placeholder typed surfaces that 19.1q put
+    in `Towers/Attempts/ClusterExpansion.lean` as stubs
+    (`Plaquette`, `Polymer`, `Mayer_overlap`) into this file,
+    where:
+      * `Plaquette` and `Polymer` are *unchanged in shape* —
+        still the same minimum structural stubs (`ℕ` and
+        `Finset Plaquette`). Moving them up the import graph so
+        the **definitional** discharge of `Mayer_overlap` can
+        live in a BRICK-eligible file. Real lattice-plaquette /
+        connected-set surfaces remain downstream work.
+      * `Mayer_overlap` is now a real *concrete* definition —
+        `∃ p, p ∈ γ₁ ∧ p ∈ γ₂` — discharging the 19.1q sorry
+        with mathematical content (the standard Mayer-graph
+        edge predicate; Glimm-Jaffe Eq. 20.3.4, Friedli-Velenik
+        Defn. 5.1). No mathlib import beyond what
+        `Finset Plaquette` already brings.
+
+    **One new BRICK below:** `Mayer_overlap_symm` (the
+    overlap predicate is symmetric in its two arguments). One
+    real property of the new def, sorry-free, two-line proof,
+    axiom footprint `⊆ {propext, Classical.choice, Quot.sound}`.
+
+    **Deviation from spec (honest, called out in commit
+    message).** The 19.1r spec wrote `p ∈ γ₁.support` and asked
+    for the def itself to be the BRICK. Two corrections:
+      (a) `Polymer := Finset Plaquette` has no `.support`
+          field — `Finset` *is* its own support. Use `p ∈ γ`
+          directly; same mathematical content.
+      (b) BRICKS in this repo are theorems, not defs (the
+          axiom-footprint guard reads `#print axioms`, which
+          is meaningful only when a logical claim is being
+          made). The honest +1 brick is therefore the symmetry
+          theorem, with the def `Mayer_overlap` itself
+          documented as the underlying definitional discharge.
+
+    **Tower status:** YM stays `Status: Open` per
+    `docs/ROADMAP.md` § 2. This batch closes *one* of the
+    three 19.1q named obligations (`Mayer_overlap`); the
+    remaining two (`polymer_activity_finite_N` and
+    `kotecky_preiss_criterion`) stay in `Towers/Attempts/`
+    as sorry. No claim about Brydges-Federbush convergence or
+    the Clay surface is altered.
+============================================================ -/
+
+/-- **Placeholder lattice plaquette index type.** Real surface:
+a plaquette is a unit square in the 4D lattice `Λ ⊆ ℤ⁴` spanned
+by two orthogonal unit lattice vectors, equipped with an
+orientation. The placeholder `:= ℕ` is the minimum stub making
+`Polymer := Finset Plaquette` typecheck — *not* an embedding
+into the geometry. Promoted from `Towers/Attempts/` in 19.1r
+unchanged in shape.
+
+**`abbrev`, not `def`** — needed so that typeclass synthesis
+on `Polymer = Finset Plaquette` unfolds through to `Finset ℕ`
+without an explicit instance, in particular for the `p ∈ γ`
+membership in `Mayer_overlap`. -/
+abbrev Plaquette : Type := ℕ
+
+/-- **Placeholder polymer type.** Real surface: a polymer is a
+*connected* finite set of plaquettes (connectivity via shared
+links, Glimm-Jaffe Defn. 20.1.3). The placeholder `:= Finset
+Plaquette` drops the connectivity constraint — it is the
+minimum stub making `Mayer_overlap` and `polymer_activity_finite_N`
+typecheck. Promoted from `Towers/Attempts/` in 19.1r unchanged.
+
+**`abbrev`, not `def`** — same reason as `Plaquette`: keeps
+the `Membership Plaquette (Finset Plaquette)` instance visible
+through the alias so `p ∈ γ` resolves in `Mayer_overlap`. -/
+abbrev Polymer : Type := Finset Plaquette
+
+/-- **Mayer-graph edge predicate (19.1r — definitional
+discharge of the 19.1q sorry).** Two polymers `γ₁` and `γ₂`
+*overlap* iff they share at least one plaquette. This is the
+incompatibility relation on which the Kotecký-Preiss criterion
+quantifies (Glimm-Jaffe Eq. 20.3.4; Friedli-Velenik 2018
+Defn. 5.1).
+
+`Polymer` is `Finset Plaquette` so a polymer *is* its own
+support — `p ∈ γ` is the direct membership test (spec asked
+for `γ.support`, which doesn't exist on `Finset`; the content
+is identical).
+
+Decidable in principle (`Finset.decidableMem` + decidable
+existential over the finite carrier), though we don't declare
+the instance here — downstream proofs that need decidability
+can add it locally. -/
+def Mayer_overlap (γ₁ γ₂ : Polymer) : Prop :=
+  ∃ p : Plaquette, p ∈ γ₁ ∧ p ∈ γ₂
+
+/-- **BRICK (19.1r) — Mayer overlap is symmetric.** First real
+property of the new `Mayer_overlap` def. Two-line proof by
+unfolding the existential and swapping the two conjuncts.
+Sorry-free; axiom footprint `⊆ {propext, Classical.choice,
+Quot.sound}`. -/
+theorem Mayer_overlap_symm (γ₁ γ₂ : Polymer) :
+    Mayer_overlap γ₁ γ₂ ↔ Mayer_overlap γ₂ γ₁ := by
+  unfold Mayer_overlap
+  exact ⟨fun ⟨p, h1, h2⟩ => ⟨p, h2, h1⟩,
+         fun ⟨p, h1, h2⟩ => ⟨p, h2, h1⟩⟩
+
 end ClusterExpansion
 end YM
 end Towers

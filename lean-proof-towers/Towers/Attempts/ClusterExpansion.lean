@@ -531,38 +531,17 @@ theorem Single_plaquette_bound_SU3 (β : ℝ) (_hβ : 0 < β) :
     No new BRICKS. No YM/ changes. Wall stays 443.
 ============================================================ -/
 
-/-- **Placeholder lattice plaquette index type.** Real surface:
-a plaquette is a unit square in the 4D lattice `Λ ⊆ ℤ⁴` spanned
-by two orthogonal unit lattice vectors, equipped with an
-orientation. The placeholder `:= ℕ` is the minimum stub that
-makes `Polymer := Finset Plaquette` typecheck — *not* an
-embedding into the geometry. -/
-def Plaquette : Type := ℕ
-
-/-- **Placeholder polymer type.** Real surface: a polymer is a
-*connected* finite set of plaquettes (connectivity via shared
-links, Glimm-Jaffe Defn. 20.1.3). The placeholder `:= Finset
-Plaquette` drops the connectivity constraint — it is the
-minimum stub making `polymer_activity_finite_N` typecheck.
-Promoting to the real connected-set type is downstream work. -/
-def Polymer : Type := Finset Plaquette
-
-/-- **Mayer-graph edge predicate.** Real surface: `Mayer_overlap
-γ γ' = true` iff `γ ∩ γ' ≠ ∅` (Glimm-Jaffe Eq. 20.3.4). The
-Kotecký-Preiss criterion is stated as a sum over neighbours of
-a fixed polymer `γ₀` in this graph, so the edge predicate is
-the only structural piece needed downstream.
-
-**Why sorry, not `γ.toFinset ∩ γ'.toFinset ≠ ∅`?** Because
-`Polymer := Finset Plaquette` is itself a placeholder, the real
-intersection predicate cannot be written honestly yet — the
-real `Polymer` type would be a connected-set quotient, where
-overlap also accounts for shared links / shared sites at the
-boundary, not just shared plaquettes. Marked `sorry` to flag
-that the predicate IS the real definitional content, not a
-trivial Finset operation. -/
-def Mayer_overlap (_γ₀ _γ : Polymer) : Prop := by
-  sorry
+/-! **19.1r update.** The 19.1q placeholder `def`s for
+`Plaquette`, `Polymer`, and the sorry-bearing `Mayer_overlap`
+have been promoted into `Towers/YM/ClusterExpansion.lean`,
+where the latter is now a real concrete definition (the
+existential `∃ p, p ∈ γ₁ ∧ p ∈ γ₂`) rather than a typed
+sorry. They are visible here unchanged via the existing
+`open TheoremaAureum.Towers.YM.ClusterExpansion` on line 57.
+The two remaining 19.1q sorries below (`polymer_activity_finite_N`
+and `kotecky_preiss_criterion`) are untouched and still
+gate the Brydges-Federbush surface. Attempts/ sorry count:
+11 → 10. YM tower stays `Status: Open`. -/
 
 /-- **Polymer activity functional `ζ(β, N, γ)`** at the
 finite-N Peter-Weyl truncation. Real surface:
@@ -625,7 +604,15 @@ Chapter 5. **Estimated formalisation cost:** 6-12 months,
 2000+ lines, with the bulk going to the supporting
 infinite-sum + tree-graph mathlib infrastructure rather than
 the KP argument itself (which is short once the substrate
-exists). -/
+exists).
+
+**19.1r dependency status.** `Mayer_overlap` is now defined
+concretely in `Towers/YM/ClusterExpansion.lean` (the 19.1q
+sorry is discharged with the standard `∃ p, p ∈ γ₁ ∧ p ∈ γ₂`
+edge predicate). Remaining named gaps blocking this
+implication: `polymer_activity_finite_N` (the activity
+functional itself, sorry above) and the absolute-convergence
+proof on weighted polymer sums. -/
 theorem kotecky_preiss_criterion (β : ℝ) (N : ℕ) (_γ₀ : Polymer) :
     True → Converges_Mayer_expansion β N := by
   sorry
