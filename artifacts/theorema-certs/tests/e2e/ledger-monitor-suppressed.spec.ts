@@ -90,6 +90,61 @@ async function installLedgerIntegrityMock(
   });
 }
 
+const LEDGER_ALERTS_URL = "**/api/lean/ledger-alerts*";
+
+function buildLedgerAlertsBody(alertId: string) {
+  const ts = new Date().toISOString();
+  // Pad with a generous number of filler rows so the target row is
+  // genuinely off-screen at page load, making the scrollIntoView
+  // assertion meaningful (otherwise it could pass trivially).
+  const fillers = Array.from({ length: 40 }, (_, i) => ({
+    id: `filler-alert-${i}`,
+    acknowledgedAt: null,
+    timestamp: ts,
+    workflow: `filler-workflow-${i}`,
+    message: `Filler alert ${i} — padding so the target alert row starts off-screen`,
+    failureMode: "truncation",
+    recovery: null,
+    hitsPath: "data/hits.txt",
+    checkpointPath: "data/hits.txt.checkpoint",
+    expectedSize: 1024,
+    actualSize: 1024,
+    expectedSha:
+      "0000000000000000000000000000000000000000000000000000000000000000",
+    source: "kernel._verify_checkpoint",
+    delivery: { webhook: { status: "ok", error: null } },
+  }));
+  return {
+    alerts: [
+      ...fillers,
+      {
+        id: alertId,
+        acknowledgedAt: ts,
+        timestamp: ts,
+        workflow: "zeta-burst-101-10000",
+        message: "Target alert — the suppressed link should jump here.",
+        failureMode: "truncation",
+        recovery: null,
+        hitsPath: "data/hits.txt",
+        checkpointPath: "data/hits.txt.checkpoint",
+        expectedSize: 1024,
+        actualSize: 1024,
+        expectedSha:
+          "0000000000000000000000000000000000000000000000000000000000000000",
+        source: "kernel._verify_checkpoint",
+        delivery: { webhook: { status: "ok", error: null } },
+      },
+    ],
+    limit: 50,
+    totalReturned: fillers.length + 1,
+    logPath: "data/ledger-alerts.jsonl",
+    logExists: true,
+    ackGcDropped: 0,
+    rotation: 0,
+    availableRotations: [],
+  };
+}
+
 test.describe("dashboard: ledger monitor suppressed badge", () => {
   test("renders the suppressed indicator with ack-id link, surfaces the silenced-transition badge when failure modes diverge, and stays absent when no alert is acknowledged", async ({
     page,
@@ -175,5 +230,80 @@ test.describe("dashboard: ledger monitor suppressed badge", () => {
         '[data-testid="badge-ledger-monitor-silenced-transition"]',
       ),
     ).toHaveCount(0);
+  });
+
+  test("clicking the ack-id link scrolls the target alert row into view and visibly highlights it (task #145)", async ({
+    page,
+  }) => {
+    const ackedId =
+      "01HX9YQF8VABCDEF0123456789ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ";
+    const overridesRef: { current: SuppressedOverrides } = {
+      current: {
+        status: "mismatch",
+        failureMode: "truncation",
+        lastAcknowledgedAlertId: ackedId,
+        lastAlertedFailureMode: "truncation",
+      },
+    };
+
+    await installLedgerIntegrityMock(page, overridesRef);
+    await page.route(LEDGER_ALERTS_URL, async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(buildLedgerAlertsBody(ackedId)),
+      });
+    });
+
+    await page.goto("/");
+
+    // The alerts panel renders the acked-alerts toggle hidden by
+    // default; the target alert in our fixture carries
+    // `acknowledgedAt`, so flip the toggle on before clicking the
+    // link so the row is actually in the DOM. The link's onClick
+    // handler is the surface under test; the toggle behaviour is
+    // covered elsewhere.
+    const acknowledgedToggle = page.locator(
+      '[data-testid="checkbox-show-acknowledged-alerts"]',
+    );
+    await expect(acknowledgedToggle).toBeVisible();
+    if (!(await acknowledgedToggle.isChecked())) {
+      await acknowledgedToggle.check();
+    }
+
+    const targetRow = page.locator(`#alert-${ackedId}`);
+    await expect(targetRow).toHaveCount(1);
+    await expect(targetRow).toHaveAttribute("data-alert-id", ackedId);
+
+    // Sanity: before the click, the target row must NOT be marked
+    // as highlighted. (The transient class is set by the link's
+    // onClick handler.)
+    await expect(targetRow).not.toHaveAttribute("data-highlighted", "true");
+
+    // Measure scroll position before; the filler rows push the target
+    // off-screen so a working scrollIntoView must move the page.
+    const scrollBefore = await page.evaluate(() => window.scrollY);
+
+    const ackLink = page.locator('[data-testid="link-ledger-monitor-ack-id"]');
+    await expect(ackLink).toBeVisible();
+    await ackLink.click();
+
+    // Highlight must light up synchronously when the row is in DOM.
+    await expect(targetRow).toHaveAttribute("data-highlighted", "true");
+
+    // The row must end up within the viewport — Playwright's
+    // `toBeInViewport` covers the "at minimum brings it into view"
+    // half of the acceptance criteria.
+    await expect(targetRow).toBeInViewport();
+
+    // And the document must have actually scrolled — not just
+    // "happened to already be visible".
+    const scrollAfter = await page.evaluate(() => window.scrollY);
+    expect(scrollAfter).not.toEqual(scrollBefore);
+
+    // The highlight is transient (cleared on a ~1.6s timer); we don't
+    // assert on its removal because the exact timing is an
+    // implementation detail and flakily timing the disappearance
+    // would add no real coverage.
   });
 });

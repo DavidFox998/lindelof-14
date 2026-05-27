@@ -417,6 +417,9 @@ export default function DashboardPage() {
   >(null);
   const [pendingAckId, setPendingAckId] = useState<string | null>(null);
   const [alertAckError, setAlertAckError] = useState<string | null>(null);
+  const [highlightedAlertId, setHighlightedAlertId] = useState<string | null>(
+    null,
+  );
   const {
     data: ledgerIntegrity,
     error: ledgerIntegrityError,
@@ -1687,19 +1690,28 @@ export default function DashboardPage() {
                             (t) => t.info.status === "dropped_backpressure",
                           );
                           const isAcked = Boolean(alert.acknowledgedAt);
+                          const isHighlighted =
+                            highlightedAlertId === alert.id;
                           return (
                             <li
                               key={`alert-${alert.id}`}
-                              className={`px-3 py-2 font-mono text-[11px] space-y-1 ${
-                                isAcked
-                                  ? "opacity-60"
-                                  : anyDropped
-                                    ? "bg-amber-500/15 border-l-2 border-amber-600"
-                                    : anyFailed
-                                      ? "bg-amber-500/10 border-l-2 border-amber-500"
-                                      : ""
+                              id={`alert-${alert.id}`}
+                              className={`px-3 py-2 font-mono text-[11px] space-y-1 scroll-mt-24 transition-colors duration-500 ${
+                                isHighlighted
+                                  ? "ring-2 ring-amber-500 bg-amber-500/30"
+                                  : isAcked
+                                    ? "opacity-60"
+                                    : anyDropped
+                                      ? "bg-amber-500/15 border-l-2 border-amber-600"
+                                      : anyFailed
+                                        ? "bg-amber-500/10 border-l-2 border-amber-500"
+                                        : ""
                               }`}
                               data-testid={`row-ledger-alert-${i}`}
+                              data-alert-id={alert.id}
+                              data-highlighted={
+                                isHighlighted ? "true" : undefined
+                              }
                               data-dropped-backpressure={
                                 anyDropped ? "true" : undefined
                               }
@@ -2682,6 +2694,28 @@ export default function DashboardPage() {
                   className="text-foreground underline decoration-dotted underline-offset-2"
                   data-testid="link-ledger-monitor-ack-id"
                   title={ackedId}
+                  onClick={(e) => {
+                    const row = document.getElementById(`alert-${ackedId}`);
+                    if (!row) {
+                      // Row isn't in the DOM (e.g. acked alerts hidden);
+                      // let the default hash navigation fall through so
+                      // the URL still records the intent.
+                      return;
+                    }
+                    e.preventDefault();
+                    row.scrollIntoView({
+                      behavior: "smooth",
+                      block: "center",
+                    });
+                    setHighlightedAlertId(ackedId);
+                    window.setTimeout(
+                      () =>
+                        setHighlightedAlertId((cur) =>
+                          cur === ackedId ? null : cur,
+                        ),
+                      1600,
+                    );
+                  }}
                 >
                   {shortId}…
                 </a>
