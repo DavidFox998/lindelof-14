@@ -1929,6 +1929,17 @@ BRICKS=(
   # `t^{-(p+1)}` decay (what the linear bound gives) into the
   # Weyl-law `t^{-d/2} = t^{-4}` heat-trace shape.
   "Towers.YM.Casimir|TheoremaAureum.Towers.YM.Casimir.Casimir_SU3_explicit_real_ge_quadratic"
+  # ---------------------------------------------------------------
+  # Batch 156.2 / Task #156 file 2 of 6 (Varadhan scaffolding).
+  # Cubic Weyl-dim upper bound for SU(3):
+  #     dim_SU3 m n ≤ 8 · (m + n + 1) ^ 3
+  # with `dim_SU3 m n := (m + 1) · (n + 1) · (m + n + 2) / 2`.
+  # Pairs with Batch 20.2a's quadratic Casimir lower bound. Future
+  # file-3 (HeatTraceBound) will combine the two for the heat-trace
+  # `K(t) ≤ C · t^{-4}` shape (`d = dim_ℝ SU(3) = 8` ⇒ `t^{-d/2}`).
+  # NOT a heat-kernel statement. NOT Varadhan. ℕ-polynomial only.
+  # YM tower stays Status: Open. mathlib v4.12.0 only.
+  "Towers.YM.WeylDim|TheoremaAureum.Towers.YM.WeylDim.dim_cubic_bound"
 )
 
 VERIFIER_DIR="$(mktemp -d)"
