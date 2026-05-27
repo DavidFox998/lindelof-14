@@ -25,6 +25,7 @@ import hashlib
 import json
 import re
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -65,6 +66,68 @@ def _read_ack_map(path: Path) -> "dict[str, str]":
         if isinstance(k, str) and _ACK_KEY_RE.match(k) and isinstance(v, str):
             out[k] = v
     return out
+
+
+_SINCE_DURATION_RE = re.compile(r"^(\d+)([smhd])$")
+_SINCE_UNIT_SECONDS = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+
+
+def _parse_since(raw: str) -> datetime:
+    """Parse `--since` as either a duration (`30m`, `2h`, `1d`, `45s`)
+    interpreted as "now minus that interval" or an absolute ISO-8601
+    timestamp (`2026-05-26T00:00Z`, `2026-05-26T12:34:56+00:00`).
+    Returns a tz-aware UTC datetime. Raises `argparse.ArgumentTypeError`
+    on malformed input so argparse surfaces a clean error."""
+    s = raw.strip()
+    if not s:
+        raise argparse.ArgumentTypeError("--since: empty value")
+    m = _SINCE_DURATION_RE.match(s)
+    if m:
+        n = int(m.group(1))
+        unit = m.group(2)
+        return datetime.now(timezone.utc) - timedelta(
+            seconds=n * _SINCE_UNIT_SECONDS[unit]
+        )
+    iso = s.replace("Z", "+00:00") if s.endswith("Z") else s
+    try:
+        dt = datetime.fromisoformat(iso)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(
+            f"--since: not a duration (e.g. 1h) or ISO-8601 timestamp: {raw}"
+        ) from e
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _entry_timestamp(entry: dict) -> "datetime | None":
+    ts = entry.get("timestamp")
+    if not isinstance(ts, str):
+        return None
+    iso = ts.replace("Z", "+00:00") if ts.endswith("Z") else ts
+    try:
+        dt = datetime.fromisoformat(iso)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _entry_matches_filters(
+    entry: dict,
+    since: "datetime | None",
+    failure_modes: "set[str] | None",
+) -> bool:
+    if since is not None:
+        dt = _entry_timestamp(entry)
+        if dt is None or dt < since:
+            return False
+    if failure_modes:
+        fm = entry.get("failure_mode")
+        if not isinstance(fm, str) or fm not in failure_modes:
+            return False
+    return True
 
 
 def _fmt_transport(name: str, info: object) -> str:
@@ -113,6 +176,30 @@ def main(argv: "list[str] | None" = None) -> int:
         help="Emit a JSON array instead of a human-readable table.",
     )
     parser.add_argument(
+        "--since",
+        type=_parse_since,
+        default=None,
+        metavar="WHEN",
+        help=(
+            "Only show entries newer than WHEN. WHEN is either a "
+            "duration like `30m`, `2h`, `1d`, `45s` (interpreted as "
+            "now minus that interval) or an ISO-8601 timestamp like "
+            "`2026-05-26T00:00Z`."
+        ),
+    )
+    parser.add_argument(
+        "--failure-mode",
+        action="append",
+        default=[],
+        metavar="MODE",
+        help=(
+            "Only show entries with this `failure_mode`. May be "
+            "repeated to allow multiple modes (e.g. "
+            "`--failure-mode hits_truncated --failure-mode "
+            "hits_rewritten`)."
+        ),
+    )
+    parser.add_argument(
         "--include-acknowledged",
         action="store_true",
         help=(
@@ -124,27 +211,43 @@ def main(argv: "list[str] | None" = None) -> int:
     args = parser.parse_args(argv)
 
     limit = max(0, args.limit)
+    failure_modes: "set[str] | None" = (
+        set(args.failure_mode) if args.failure_mode else None
+    )
+    since: "datetime | None" = args.since
+    has_filters = since is not None or failure_modes is not None
+
     if limit == 0:
         entries: "list[dict]" = []
     else:
         ack_map = _read_ack_map(ALERTS_ACK_PATH)
-        if args.include_acknowledged or not ack_map:
+        skip_acked = not args.include_acknowledged and bool(ack_map)
+
+        if not skip_acked and not has_filters:
             entries = kernel.read_recent_alerts(limit=limit)
         else:
-            # Over-fetch so that, after dropping acked entries, we can
-            # still return up to `limit` actionable ones. `+ len(ack_map)`
-            # is a tight upper bound: every acked id must correspond to
-            # an entry still on disk for it to actually filter one out.
-            fetch_n = limit + len(ack_map)
+            # Over-fetch so that, after dropping acked / filtered-out
+            # entries, we can still return up to `limit` actionable
+            # ones. We don't know how many entries on disk fail a
+            # `--since` / `--failure-mode` filter, so when those are
+            # set we fetch the whole ring buffer (capped by kernel at
+            # `_ALERTS_MAX_ENTRIES`) and slice after filtering.
+            if has_filters:
+                fetch_n = kernel._ALERTS_MAX_ENTRIES
+            else:
+                fetch_n = limit + len(ack_map)
             raw_entries = kernel.read_recent_alerts(limit=fetch_n)
             entries = []
             for e in raw_entries:
-                ts = e.get("timestamp", "")
-                msg = e.get("message", "")
-                if isinstance(ts, str) and isinstance(msg, str):
-                    alert_id = _compute_alert_id(ts, msg)
-                    if alert_id in ack_map:
-                        continue
+                if skip_acked:
+                    ts = e.get("timestamp", "")
+                    msg = e.get("message", "")
+                    if isinstance(ts, str) and isinstance(msg, str):
+                        alert_id = _compute_alert_id(ts, msg)
+                        if alert_id in ack_map:
+                            continue
+                if not _entry_matches_filters(e, since, failure_modes):
+                    continue
                 entries.append(e)
                 if len(entries) >= limit:
                     break
