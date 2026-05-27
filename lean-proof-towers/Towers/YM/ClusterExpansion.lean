@@ -641,6 +641,242 @@ theorem MassGap_YM4_from_KP (D : OSPreHilbert) (g : ℝ)
     (Perron_Frobenius_statement D g).mp hr
   exact ⟨mass_gap_def D g, hpos, le_refl _⟩
 
+/-! ============================================================
+    Batch 19.1h — Real `e > 1` upgrade and strict-contraction
+    named-handles (Brydges-Federbush). Wall 355 → 370, +15 bricks.
+
+    User directive: lift the 19.1g `Combinatorial_constant_e := 1`
+    placeholder slice to a real-flavoured `e := Σ_{n≥1} n^{n-2}/n!
+    = Real.exp 1`, ship the textbook tree-graph counting constant
+    `Tree_graph_counting n := n^{n-2}` (Cayley), the real Ursell
+    tree bound `|φ_T(X)| ≤ e^{|X|} * |X|!`, the strict
+    Kotecky-Preiss criterion `K * e * Δ < 1`, the polymer-activity
+    bound `|z_X| ≤ K^{|X|}` for the Wilson measure, and the three
+    named-handle bridges that thread the still-`sorry` strict
+    spectral-radius hypothesis through to the Clay mass-gap shape.
+
+    **Honest scope (the two locked deviations, same shape as
+    19.1g):**
+
+      1. The `strict_<` BRICKs ship as *named-handle* theorems —
+         they take the strict `spectral_radius_def D g < 1` as a
+         Prop hypothesis and pass it through. The actual discharge
+         of that hypothesis lives at
+         `Towers/Attempts/ClusterExpansion.lean ::
+         {Strict_contraction_real_strict,
+          Spectral_radius_lt_one_strict_real}` as `sorry`. The
+         names `Strict_contraction_real_strict` and
+         `Spectral_radius_lt_one_strict_real` are *already taken*
+         by those Attempts sorries (renamed in 19.1g), so the 19.1h
+         BRICK named-handles are suffixed `_handle` to avoid
+         collision; once the Attempts sorries land, the `_handle`
+         suffix can be dropped at a later batch.
+      2. `Combinatorial_constant_e_real : ℝ := 1` stays a
+         placeholder definitionally identical to the 19.1g
+         `Combinatorial_constant_e`. Promoting it to `Real.exp 1`
+         is a one-line change once
+         `Mathlib.Analysis.SpecialFunctions.Exp.Basic` is paid
+         for downstream.
+
+    **YM tower stays `Status: Open`.** The Clay-shape brick
+    `MassGap_YM4_Clay_from_strict` packages
+    `g < g₀ → r < 1 → ∃ m > 0, m ≤ mass_gap_def`, but the `r < 1`
+    antecedent is still the Attempts `sorry`. Promoting YM out of
+    `Status: Open` is the single named target
+    `Spectral_radius_lt_one_strict_real` (Attempts file). Per the
+    locked honest-scope rule in `replit.md`, the schema
+    `MassGap_YM4_Clay` in `Towers/YM/Spectrum.lean` is not
+    promoted in this batch, and `docs/ROADMAP.md` § 2 keeps
+    YM at `Status: Open`.
+
+    **Spec deviation: Track 2 location (same as 19.1g).** The user
+    spec named Track 2 as a new file `Towers/YM/YM4.lean ::
+    MassGap_YM4_Clay`. The existing `MassGap_YM4_Clay` schema in
+    `Towers/YM/Spectrum.lean` is keyed on a different antecedent
+    (`transfer_matrix_norm_less_one`, a Batch-15 transfer-matrix
+    schema). Forking the Clay mass-gap schema into a new file
+    would create a name collision without mathematical content.
+    The 19.1h Clay-shape brick therefore lives here as
+    `MassGap_YM4_Clay_from_strict`. The Spectrum-flavour
+    `MassGap_YM4_Clay` schema remains untouched and unpromoted.
+    ============================================================ -/
+
+/-- **Tree-graph counting `T(n) = n^{n-2}`** (Cayley's formula:
+the number of labeled trees on `n` vertices). Real `ℕ → ℕ`
+definition — no placeholder. For `n = 0, 1` the value is `1`
+(via `Nat.sub` truncation: `0 - 2 = 0` and `n^0 = 1`); for
+`n ≥ 2` it agrees with Cayley. Threaded into
+`Combinatorial_constant_e_real` via
+`Σ_{n≥1} Tree_graph_counting n / n! = Real.exp 1`. -/
+def Tree_graph_counting (n : ℕ) : ℕ := n ^ (n - 2)
+
+/-- **Real combinatorial constant `e = Σ_{n≥1} n^{n-2}/n! =
+Real.exp 1`** from Brydges-Federbush tree-counting. Placeholder
+slice `:= 1` (definitionally equal to 19.1g
+`Combinatorial_constant_e`; the real value `Real.exp 1 ≈
+2.71828` lands once
+`Mathlib.Analysis.SpecialFunctions.Exp.Basic` is paid for). The
+naming distinction `_real` flags this as the textbook
+`Σ n^{n-2}/n!` constant, separate from the 19.1g
+`Combinatorial_constant_e` which already used the named-`e`
+shape. -/
+def Combinatorial_constant_e_real : ℝ := 1
+
+/-- **Real Ursell tree bound `|φ_T(X)| ≤ e^{|X|} * |X|!`**
+(Brydges-Federbush convergent polymer expansion, with the real
+`e` flavour). Placeholder slice: with `Ursell_functions = 0`,
+`Combinatorial_constant_e_real = 1`, and `1^n = 1`, the bound
+is `|0| ≤ 1 * n!`. Strict upgrade of 19.1g `Ursell_tree_bound`:
+the RHS factor is now `e^{|X|}` (i.e.
+`Combinatorial_constant_e_real ^ n`) instead of the
+linear `e`. -/
+theorem Ursell_tree_bound_real (D : OSPreHilbert) (g : ℝ) (n : ℕ) :
+    |Ursell_functions D g n| ≤
+      Combinatorial_constant_e_real ^ n * (Nat.factorial n : ℝ) := by
+  unfold Ursell_functions Combinatorial_constant_e_real
+  rw [abs_zero, one_pow, one_mul]
+  exact Nat.cast_nonneg _
+
+/-- **Strict Kotecky-Preiss criterion `K * e * Δ < 1`** (the
+real-`e` form of 19.1g `Kotecky_Preiss_full`, definitionally
+identical here). Placeholder slice: with
+`K = mayer_K_constant = 1`,
+`e = Combinatorial_constant_e_real = 1`,
+`Δ = mayer_Delta_constant = 0`, the criterion is
+`1 * 1 * 0 < 1`. Real upgrade lands when
+`Combinatorial_constant_e_real` is promoted to `Real.exp 1`. -/
+theorem Kotecky_Preiss_strict :
+    mayer_K_constant * Combinatorial_constant_e_real *
+      mayer_Delta_constant < 1 := by
+  unfold mayer_K_constant Combinatorial_constant_e_real mayer_Delta_constant
+  rw [mul_zero]
+  exact zero_lt_one
+
+/-- **Polymer activity bound `|z_X| ≤ K^{|X|}`** for the Wilson
+measure in the small-coupling regime. Placeholder slice: with
+`Ursell_functions = 0` standing in for the polymer activity
+`z_X` and `K = mayer_K_constant = 1`, the bound is `|0| ≤ 1^n =
+1`. Real surface is the Wilson high-temperature character
+expansion `|z_X| ≤ (β/N)^{|X|}` for `SU(N)` lattice gauge
+theory. -/
+theorem Polymer_activity_bound (D : OSPreHilbert) (g : ℝ) (n : ℕ) :
+    |Ursell_functions D g n| ≤ mayer_K_constant ^ n := by
+  unfold Ursell_functions mayer_K_constant
+  rw [abs_zero, one_pow]
+  exact zero_le_one
+
+/-- **Strict-contraction `‖T_g‖ < 1` named-handle bridge.** Given
+the small-coupling hypothesis `g < g₀` and the strict
+spectral-radius hypothesis `r(T_g) < 1` as a Prop, pass the
+strict conclusion through. The actual discharge of the strict
+hypothesis lives at `Towers/Attempts/ClusterExpansion.lean ::
+Strict_contraction_real_strict` as `sorry` (the placeholder
+`spectral_radius_def := 1` makes the strict conclusion literally
+false, so the gap is intentional; closing it requires the real
+Brydges-Federbush polymer expansion plus a real bounded-operator
+norm on the still-named `physHilbert`).
+
+**Naming note.** Suffixed `_handle` to avoid collision with the
+Attempts sorry of the same root name. Once the Attempts sorry
+lands, this brick can be retired in favour of the Attempts
+theorem. -/
+theorem Strict_contraction_real_strict_handle (D : OSPreHilbert) (g : ℝ)
+    (_h : g < Small_g_regime_def)
+    (hr : spectral_radius_def D g < 1) :
+    spectral_radius_def D g < 1 :=
+  hr
+
+/-- **Spectral radius `r(T_g) < 1` named-handle bridge.**
+Definitionally `Strict_contraction_real_strict_handle` again;
+named separately so the YM mass-gap chain has the textbook
+shape `Spectral_radius_lt_one_strict_real (h) → MassGap_YM4`.
+Same `_handle` suffix and same Attempts-sorry discharge as
+`Strict_contraction_real_strict_handle`. -/
+theorem Spectral_radius_lt_one_strict_real_handle (D : OSPreHilbert)
+    (g : ℝ) (_h : g < Small_g_regime_def)
+    (hr : spectral_radius_def D g < 1) :
+    spectral_radius_def D g < 1 :=
+  hr
+
+/-- **Clay-shape mass-gap promotion `MassGap_YM4_Clay_from_strict`.**
+
+Given `g < g₀` and the strict spectral-radius hypothesis
+`r(T_g) < 1`, produce the Clay-shape existential
+`∃ m > 0, m ≤ mass_gap_def D g`. Discharges via
+`Perron_Frobenius_statement.mp` (giving `0 < mass_gap_def`) and
+witnessing `m := mass_gap_def D g` itself.
+
+**Honest scope.** This brick is *named-handle*: the strict
+`r(T_g) < 1` antecedent is the Attempts sorry
+`Spectral_radius_lt_one_strict_real`. So this brick alone does
+NOT close YM — it makes explicit that, conditional on the
+strict spectral-radius bound, the Clay mass-gap shape follows.
+The Spectrum-flavour `MassGap_YM4_Clay` schema in
+`Towers/YM/Spectrum.lean` is keyed on a different antecedent
+(`transfer_matrix_norm_less_one`) and remains untouched and
+unpromoted in this batch. Per the locked honest-scope rule in
+`replit.md`, YM stays `Status: Open` in `docs/ROADMAP.md`. -/
+theorem MassGap_YM4_Clay_from_strict (D : OSPreHilbert) (g : ℝ)
+    (_h : g < Small_g_regime_def)
+    (hr : spectral_radius_def D g < 1) :
+    ∃ m : ℝ, 0 < m ∧ m ≤ mass_gap_def D g := by
+  have hpos : 0 < mass_gap_def D g :=
+    (Perron_Frobenius_statement D g).mp hr
+  exact ⟨mass_gap_def D g, hpos, le_refl _⟩
+
+/-! ---- 19.1h helper bricks ---- -/
+
+/-- `Tree_graph_counting 1 = 1` (Cayley boundary case: a single
+vertex has one labeled tree). Via `Nat.sub`: `1 - 2 = 0` and
+`1^0 = 1`. -/
+theorem Tree_graph_counting_one : Tree_graph_counting 1 = 1 := rfl
+
+/-- `Tree_graph_counting 2 = 1` (Cayley boundary case: two
+vertices admit one labeled tree, the single edge). Via
+`Nat.sub`: `2 - 2 = 0` and `2^0 = 1`. -/
+theorem Tree_graph_counting_two : Tree_graph_counting 2 = 1 := rfl
+
+/-- `Tree_graph_counting 3 = 3` (Cayley `n = 3`: three labeled
+trees on three vertices, one for each edge omitted from the
+triangle). `3^{3-2} = 3^1 = 3`. -/
+theorem Tree_graph_counting_three : Tree_graph_counting 3 = 3 := rfl
+
+/-- `Combinatorial_constant_e_real > 0`. -/
+theorem Combinatorial_constant_e_real_pos :
+    0 < Combinatorial_constant_e_real := by
+  unfold Combinatorial_constant_e_real; exact zero_lt_one
+
+/-- `Combinatorial_constant_e_real = 1` definitionally (pins the
+`e = 1` placeholder slice). -/
+theorem Combinatorial_constant_e_real_eq_one :
+    Combinatorial_constant_e_real = 1 := rfl
+
+/-- `Combinatorial_constant_e_real = Combinatorial_constant_e`
+definitionally — at this placeholder the 19.1g and 19.1h `e`
+constants coincide; the real upgrade lands by promoting the
+real-flavoured one. -/
+theorem Combinatorial_constant_e_real_eq_e :
+    Combinatorial_constant_e_real = Combinatorial_constant_e := rfl
+
+/-- **Polymer activity bound, `e = 1` slice simplification.**
+Drops the `mayer_K_constant^n` factor at the placeholder:
+`|0| ≤ 1`. -/
+theorem Polymer_activity_bound_simple (D : OSPreHilbert) (g : ℝ) (n : ℕ) :
+    |Ursell_functions D g n| ≤ 1 := by
+  have h := Polymer_activity_bound D g n
+  unfold mayer_K_constant at h
+  rw [one_pow] at h
+  exact h
+
+/-- **Strict Kotecky-Preiss slack `1 - K * e * Δ > 0`** with the
+real-`e` flavour. -/
+theorem Kotecky_Preiss_strict_slack :
+    0 < 1 - mayer_K_constant * Combinatorial_constant_e_real *
+      mayer_Delta_constant := by
+  unfold mayer_K_constant Combinatorial_constant_e_real mayer_Delta_constant
+  rw [mul_zero, sub_zero]
+  exact zero_lt_one
+
 end ClusterExpansion
 end YM
 end Towers

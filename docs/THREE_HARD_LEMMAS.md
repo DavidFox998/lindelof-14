@@ -1,8 +1,42 @@
 # The Three Hard Lemmas
 
-**Status:** open. **Repository wall:** 355 bricks, axiom footprint
+**Status:** open. **Repository wall:** 370 bricks, axiom footprint
 `⊆ {propext, Classical.choice, Quot.sound}`. **Towers:**
 `Status: Open` (`docs/ROADMAP.md` § 2, § 3).
+
+**Batch 19.1h update (2026-05-27):** the 19.1g `e := 1`
+combinatorial constant is lifted to a real-flavoured
+`Combinatorial_constant_e_real` (still `:= 1` placeholder, pinned
+to 19.1g by the helper `_eq_e := rfl`; promotion to
+`Real.exp 1` is a one-line edit once
+`Mathlib.Analysis.SpecialFunctions.Exp.Basic` is paid for
+downstream). +15 bricks in `Towers/YM/ClusterExpansion.lean`:
+`Tree_graph_counting` (Cayley `n^{n-2}`),
+`Combinatorial_constant_e_real`, `Ursell_tree_bound_real`
+(`|φ_T(X)| ≤ e^{|X|} * |X|!`), `Kotecky_Preiss_strict`
+(`K * e * Δ < 1`), `Polymer_activity_bound` (`|z_X| ≤ K^{|X|}`
+for Wilson measure), `Strict_contraction_real_strict_handle`,
+`Spectral_radius_lt_one_strict_real_handle`,
+`MassGap_YM4_Clay_from_strict` (`∃ m > 0, m ≤ mass_gap_def`),
+plus 7 helpers (`Tree_graph_counting_one/two/three`,
+`Combinatorial_constant_e_real_pos/_eq_one/_eq_e`,
+`Polymer_activity_bound_simple`, `Kotecky_Preiss_strict_slack`).
+Honest scope: the strict-`<` BRICKs ship as *named-handle*
+theorems (suffixed `_handle` to avoid collision with the
+existing Attempts sorries `Strict_contraction_real_strict` and
+`Spectral_radius_lt_one_strict_real`), taking the strict
+`spectral_radius_def D g < 1` as a Prop hypothesis. The actual
+discharge of that hypothesis remains the Attempts sorry
+`Spectral_radius_lt_one_strict_real`, which is the single named
+target separating YM from `Status: Closed`. Per the locked
+honest-scope rule in `replit.md`, YM tower stays `Status: Open`
+in `docs/ROADMAP.md` and the Spectrum-flavour
+`MassGap_YM4_Clay` schema (keyed on the different antecedent
+`transfer_matrix_norm_less_one`) remains untouched. Spec
+deviation: Track 2 lives in `Towers/YM/ClusterExpansion.lean`
+under `MassGap_YM4_Clay_from_strict` rather than a new file
+`Towers/YM/YM4.lean :: MassGap_YM4_Clay` — see
+`docs/CHANGELOG.md` Batch 19.1h.
 
 **Batch 19.1g update (2026-05-27):** the 19.1f `e = 1` slice of
 the Kotecky-Preiss criterion is lifted to the full textbook

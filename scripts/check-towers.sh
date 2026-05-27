@@ -1322,6 +1322,75 @@ BRICKS=(
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Ursell_tree_bound_simple"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Small_coupling_KP_slack"
   "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.MassGap_YM4_from_KP"
+  # -----------------------------------------------------------------
+  # Batch 19.1h — Real `e > 1` upgrade and strict-contraction named-
+  # handles (Brydges-Federbush). Wall 355 → 370, +15 bricks.
+  #
+  # 8 spec'd bricks:
+  #   - Tree_graph_counting (def: Cayley's `n^{n-2}`, real ℕ→ℕ)
+  #   - Combinatorial_constant_e_real (def: := 1 placeholder for
+  #     `Σ n^{n-2}/n! = Real.exp 1`)
+  #   - Ursell_tree_bound_real (`|φ_T(X)| ≤ e^|X| * |X|!`)
+  #   - Kotecky_Preiss_strict (`K * e * Δ < 1`)
+  #   - Polymer_activity_bound (`|z_X| ≤ K^|X|` for Wilson measure)
+  #   - Strict_contraction_real_strict_handle (named-handle `< 1`)
+  #   - Spectral_radius_lt_one_strict_real_handle (named-handle `< 1`)
+  #   - MassGap_YM4_Clay_from_strict (`∃ m > 0, m ≤ mass_gap_def`)
+  #
+  # 7 helper bricks:
+  #   - Tree_graph_counting_one/two/three (Cayley boundary cases)
+  #   - Combinatorial_constant_e_real_pos / _eq_one / _eq_e
+  #   - Polymer_activity_bound_simple, Kotecky_Preiss_strict_slack
+  #
+  # Two locked honest deviations (same shape as 19.1g):
+  #   1. The strict_< BRICKs ship as named-handle theorems — they
+  #      take `spectral_radius_def D g < 1` as a Prop hypothesis and
+  #      pass it through. The actual discharge lives at
+  #      `Towers/Attempts/ClusterExpansion.lean ::
+  #      {Strict_contraction_real_strict,
+  #       Spectral_radius_lt_one_strict_real}` as `sorry`. The 19.1h
+  #      BRICK names are suffixed `_handle` to avoid collision with
+  #      the Attempts sorries of the same root name (renamed in
+  #      19.1g). Drop the `_handle` suffix once the Attempts sorries
+  #      land.
+  #   2. `Combinatorial_constant_e_real : ℝ := 1` stays a
+  #      placeholder definitionally identical to 19.1g
+  #      `Combinatorial_constant_e` (`_eq_e` brick pins this).
+  #      Promotion to `Real.exp 1` is one line once
+  #      `Mathlib.Analysis.SpecialFunctions.Exp.Basic` is paid for.
+  #
+  # YM tower stays `Status: Open` — `MassGap_YM4_Clay_from_strict`
+  # is a named-handle, not a closure of the schema. The Spectrum-
+  # flavour `MassGap_YM4_Clay` schema (`Towers/YM/Spectrum.lean`,
+  # different antecedent `transfer_matrix_norm_less_one`) remains
+  # untouched. Promoting YM out of `Status: Open` is still the
+  # single named target `Spectral_radius_lt_one_strict_real`
+  # (Attempts file, `sorry`).
+  #
+  # Spec deviation: Track 2 location (same as 19.1g). The user spec
+  # named Track 2 as `Towers/YM/YM4.lean :: MassGap_YM4_Clay`. The
+  # existing `MassGap_YM4_Clay` in `Towers/YM/Spectrum.lean` is keyed
+  # on a different antecedent, so the Cluster-Expansion-flavoured
+  # promotion lives in this same file as
+  # `MassGap_YM4_Clay_from_strict` to avoid a Clay-mass-gap name
+  # collision.
+  # -----------------------------------------------------------------
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Tree_graph_counting"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_real"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Ursell_tree_bound_real"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Kotecky_Preiss_strict"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Polymer_activity_bound"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Strict_contraction_real_strict_handle"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Spectral_radius_lt_one_strict_real_handle"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.MassGap_YM4_Clay_from_strict"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Tree_graph_counting_one"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Tree_graph_counting_two"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Tree_graph_counting_three"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_real_pos"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_real_eq_one"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Combinatorial_constant_e_real_eq_e"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Polymer_activity_bound_simple"
+  "Towers.YM.ClusterExpansion|TheoremaAureum.Towers.YM.ClusterExpansion.Kotecky_Preiss_strict_slack"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

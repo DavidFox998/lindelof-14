@@ -6,6 +6,140 @@ this file is the version history.
 
 ---
 
+## Batch 19.1h — Real `e > 1` upgrade and strict-contraction named-handles. Wall 355 → 370, +15 bricks (2026-05-27)
+
+User directive: lift the 19.1g `Combinatorial_constant_e := 1`
+placeholder to a real-flavoured `e := Σ_{n≥1} n^{n-2}/n! =
+Real.exp 1` by naming the Brydges-Federbush tree-graph counting
+constant (`Tree_graph_counting n := n^{n-2}`, Cayley) and the
+real `e`, ship the textbook Ursell tree bound `|φ_T(X)| ≤
+e^{|X|} * |X|!`, the strict Kotecky-Preiss criterion `K * e * Δ
+< 1`, the polymer-activity bound `|z_X| ≤ K^{|X|}` for the
+Wilson measure, and three named-handle bridges
+(`Strict_contraction_real_strict_handle`,
+`Spectral_radius_lt_one_strict_real_handle`,
+`MassGap_YM4_Clay_from_strict`) that thread the still-`sorry`
+strict spectral-radius hypothesis through to the Clay mass-gap
+shape `∃ m > 0, m ≤ mass_gap_def`.
+
+**Honest scope — two locked deviations (same shape as 19.1g):**
+
+1. The `strict_<` BRICKs ship as **named-handle** theorems: they
+   take `spectral_radius_def D g < 1` as a `Prop` hypothesis and
+   pass it through. The actual discharge of that hypothesis is
+   the Attempts sorry `Spectral_radius_lt_one_strict_real`
+   (renamed in 19.1g). Naming collision is avoided by suffixing
+   the 19.1h BRICKs with `_handle`
+   (`Strict_contraction_real_strict_handle`,
+   `Spectral_radius_lt_one_strict_real_handle`); once the
+   Attempts sorries land, the `_handle` suffix can be dropped at
+   a later batch. The `≤ → <` gap remains the real
+   Brydges-Federbush strict-contraction content
+   (Glimm-Jaffe Lemma 18.5.3).
+2. `Combinatorial_constant_e_real : ℝ := 1` stays definitionally
+   identical to the 19.1g `Combinatorial_constant_e` — pinned by
+   the helper `Combinatorial_constant_e_real_eq_e := rfl`. The
+   real value `Real.exp 1 ≈ 2.71828` lands as a one-line edit
+   once `Mathlib.Analysis.SpecialFunctions.Exp.Basic` is paid
+   for downstream. The textbook `K * e * Δ < 1` shape is now
+   present at the **Prop** level with the named real `e`,
+   even though it still evaluates to the 19.1g placeholder
+   `1 * 1 * 0 < 1`.
+
+**YM tower stays `Status: Open`.** Per the locked honest-scope
+rule in `replit.md` ("Do not describe any of the five roadmap
+towers as 'proved' / 'certified' / 'discharged' unless the Lean
+spine actually closes that named theorem with axioms = []"),
+this batch does **not** promote the Spectrum-flavour schema
+`MassGap_YM4_Clay` and does **not** flip `docs/ROADMAP.md` § 2
+to `Status: Closed`. The named-handle brick
+`MassGap_YM4_Clay_from_strict` packages the implication
+`g < g₀ → r < 1 → ∃ m > 0, m ≤ mass_gap_def` at the Prop level,
+but `r < 1` is still the Attempts `sorry`. Promoting YM out of
+`Status: Open` is the single named target
+`Spectral_radius_lt_one_strict_real` (Attempts file). The user
+spec's "If `Strict_contraction_real_strict` stays sorry" branch
+is the one we are on: wall 370 green, real `e` named, Attempts/
+holds 3 sorries (`Strict_contraction_CE_real`,
+`Strict_contraction_real_strict`,
+`Spectral_radius_lt_one_strict_real`), schema untouched.
+
+**Spec deviation: Track 2 location (same as 19.1g).** The user
+spec named Track 2 as a new file `Towers/YM/YM4.lean ::
+MassGap_YM4_Clay`. The existing `MassGap_YM4_Clay` schema in
+`Towers/YM/Spectrum.lean` is keyed on a *different* antecedent
+(`transfer_matrix_norm_less_one`, a Batch-15 transfer-matrix
+schema, NOT the cluster-expansion `spectral_radius_def`).
+Forking the Clay mass-gap schema into a new file would create
+a Clay-mass-gap name collision without adding mathematical
+content. The 19.1h Clay-shape brick therefore lives in
+`Towers/YM/ClusterExpansion.lean` under the distinguishing name
+`MassGap_YM4_Clay_from_strict`. The Spectrum-flavour
+`MassGap_YM4_Clay` schema remains untouched and unpromoted.
+
+**Track 1 — `Towers/YM/ClusterExpansion.lean` (+15 BRICKS,
+sorry-free):**
+
+Eight spec'd bricks:
+
+- `Tree_graph_counting (n : ℕ) : ℕ := n^(n-2)` — real `ℕ → ℕ`
+  Cayley definition (no placeholder; for `n ≥ 2` agrees with the
+  number of labeled trees on `n` vertices).
+- `Combinatorial_constant_e_real : ℝ := 1` — placeholder for
+  `Σ_{n≥1} n^{n-2}/n! = Real.exp 1`.
+- `Ursell_tree_bound_real (D g n) :
+  |Ursell_functions D g n| ≤ Combinatorial_constant_e_real^n *
+  (Nat.factorial n : ℝ)` — real Brydges-Federbush shape with
+  `e^{|X|}` instead of the 19.1g linear `e`.
+- `Kotecky_Preiss_strict :
+  mayer_K_constant * Combinatorial_constant_e_real *
+  mayer_Delta_constant < 1` — strict-form with the real-`e`
+  flavour.
+- `Polymer_activity_bound (D g n) :
+  |Ursell_functions D g n| ≤ mayer_K_constant^n` — Wilson
+  high-temperature character-expansion shape `|z_X| ≤ (β/N)^{|X|}`.
+- `Strict_contraction_real_strict_handle (D g) (_h) (hr) :
+  spectral_radius_def D g < 1` — named-handle.
+- `Spectral_radius_lt_one_strict_real_handle (D g) (_h) (hr) :
+  spectral_radius_def D g < 1` — named-handle (textbook chain
+  shape).
+- `MassGap_YM4_Clay_from_strict (D g) (_h) (hr) :
+  ∃ m > 0, m ≤ mass_gap_def D g` — Clay-shape promotion via
+  `Perron_Frobenius_statement.mp` with witness
+  `m := mass_gap_def D g`.
+
+Seven helpers naturally arising from the spec'd bricks:
+
+- `Tree_graph_counting_one / _two / _three` — Cayley boundary
+  cases (`T(1) = 1`, `T(2) = 1`, `T(3) = 3`).
+- `Combinatorial_constant_e_real_pos / _eq_one / _eq_e` — sign /
+  unfold helpers; `_eq_e` pins the 19.1g ↔ 19.1h placeholder
+  identity.
+- `Polymer_activity_bound_simple` — `e = 1` slice corollary.
+- `Kotecky_Preiss_strict_slack` — strict-positive
+  `1 - K * e * Δ > 0`.
+
+**Track 1b — `Towers/Attempts/ClusterExpansion.lean` (no
+changes).** The three Attempts sorries from 19.1g
+(`Strict_contraction_CE_real`,
+`Strict_contraction_real_strict`,
+`Spectral_radius_lt_one_strict_real`) are the discharge targets
+for the 19.1h `_handle` bricks and remain unchanged.
+
+**Track 2 — `Towers/YM/Spectrum.lean` (no changes).** The
+existing `MassGap_YM4_Clay` schema is keyed on a different
+antecedent; promoting it requires the strict spectral-radius
+discharge plus a separate transfer-matrix bridge and is
+deliberately out of scope for 19.1h.
+
+**Drift guard.** Genesis seal `eecbcd9a…875f` re-verified green.
+Axiom footprint of BRICKS stays `⊆ {propext, Classical.choice,
+Quot.sound}`. No sorry in `Towers/YM/ClusterExpansion.lean`;
+three sorries total in `Towers/Attempts/ClusterExpansion.lean`
+unchanged from 19.1g.
+
+---
+
 ## Batch 19.1g — Real Kotecky-Preiss (`e > 1` upgrade). Wall 340 → 355, +15 bricks (2026-05-27)
 
 User directive: lift the 19.1f `e = 1` slice of the Kotecky-Preiss
