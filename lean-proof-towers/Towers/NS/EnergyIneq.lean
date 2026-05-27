@@ -879,6 +879,70 @@ theorem HasFiniteEnergy_parity (u₀ : VelocityField)
     (LinearIsometryEquiv.neg ℝ).toLinearIsometry hu
   simpa using h
 
+/-
+  ## Task #134 (2026-05-27) — Galilean boost invariance of the
+  placeholder finite-energy predicate.
+
+  Tasks #78 / #89 / #100 covered the rigid-motion symmetry trio on
+  `HasFiniteEnergy` (spatial translation, rotation, time translation),
+  Task #101 composed the spatial generators into the full E(3)
+  Euclidean motion `x ↦ R x + a`, Task #118 composed those with time
+  translation into the full spacetime rigid motion
+  `(t, x) ↦ (t + s, R x + a)`. The natural remaining piece of the full
+  inhomogeneous Galilean group on the placeholder is the **Galilean
+  boost** `(t, x) ↦ (t, x + v t)` — switching to an inertial frame
+  moving at constant velocity `v`.
+
+  **Honest scope.** The placeholder predicate
+  `HasFiniteEnergy u₀ := ∃ M, ∀ x, ‖u₀ 0 x‖ ≤ M` only inspects `u₀` at
+  `t = 0`. The boost `x ↦ x + v t` evaluated at `t = 0` is the
+  identity (`x + v · 0 = x`), so the boosted field
+  `fun t x => u₀ t (x + v • t)` at `t = 0` is *definitionally*
+  `u₀ 0 x` and the original witness `M` survives unchanged. This is
+  the same `t = 0`-is-fixed-point flavour as Task #117 (time reversal):
+  unconditional and one line.
+
+  Together with Task #118 (`HasFiniteEnergy_spacetime_rigid_motion`),
+  this documents closure under the full inhomogeneous Galilean group
+  on the spatial slice — the actual symmetry group of classical
+  Navier-Stokes.
+
+  Does NOT advance the NS tower past `Status: Open` (see
+  `docs/ROADMAP.md` § 3). `HasFiniteEnergy` is still the Task #51
+  placeholder (bounded amplitude at `t = 0`), not the L² energy
+  bound; Galilean-boost closure of the *placeholder* predicate is
+  not Galilean invariance of the real energy or any Leray-Hopf
+  solution.
+
+  Axiom-footprint contract (per `scripts/check-towers.sh`): the
+  theorem must be either axiom-free or use only the classical trio
+  `{propext, Classical.choice, Quot.sound}`.
+-/
+
+/-- **Galilean-boost invariance of placeholder finite-energy.** If
+    `u₀` has finite placeholder energy with witness `M`, then for any
+    constant boost velocity `v : EuclideanSpace ℝ (Fin 3)` the boosted
+    field `fun t x => u₀ t (x + v • t)` — switching to an inertial
+    frame moving at constant velocity `v` — also has finite placeholder
+    energy with the *same* witness `M`. Unconditional (like Task #117's
+    `HasFiniteEnergy_time_reverse`) because the placeholder predicate
+    inspects `u₀` only at `t = 0`, which is the fixed point of the
+    boost (`x + v • 0 = x`). References the Task #51 schema def
+    `HasFiniteEnergy`. Together with Task #118
+    (`HasFiniteEnergy_spacetime_rigid_motion`) this documents closure
+    under the full inhomogeneous Galilean group on the spatial slice.
+    NOT a statement about the L² energy bound or any Leray-Hopf
+    solution, and NOT Galilean invariance of real Navier-Stokes; this
+    is closure of the *placeholder* predicate under the boost
+    `x ↦ x + v t`. -/
+theorem HasFiniteEnergy_galilean_boost (u₀ : VelocityField)
+    (v : EuclideanSpace ℝ (Fin 3)) (hu : HasFiniteEnergy u₀) :
+    HasFiniteEnergy (fun (t : ℝ) (x : EuclideanSpace ℝ (Fin 3)) =>
+      u₀ t (x + (t : ℝ) • v)) := by
+  obtain ⟨M, hM⟩ := hu
+  refine ⟨M, fun x => ?_⟩
+  simpa using hM x
+
 end NS
 end Towers
 end TheoremaAureum

@@ -400,6 +400,26 @@ BRICKS=(
   # solution; this is closure of the *placeholder* predicate under
   # the spatial reflection `x ↦ -x`.
   "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.HasFiniteEnergy_parity"
+  # Task #134 (2026-05-27): Galilean-boost invariance of the
+  # placeholder finite-energy predicate — switching to an inertial
+  # frame moving at constant velocity `v`, `(t, x) ↦ (t, x + v t)`.
+  # The remaining piece of the full inhomogeneous Galilean group on
+  # the placeholder after Task #118's full spacetime rigid motion
+  # `(t, x) ↦ (t + s, R x + a)`. Because the placeholder predicate
+  # `HasFiniteEnergy u₀ := ∃ M, ∀ x, ‖u₀ 0 x‖ ≤ M` only inspects `u₀`
+  # at `t = 0`, and the boost `x ↦ x + v t` evaluated at `t = 0` is
+  # the identity (`x + v • 0 = x`), the proof is unconditional and
+  # one-line — same `t = 0`-is-fixed-point flavour as Task #117 (time
+  # reversal). Same witness `M` survives unchanged. Together with
+  # Task #118 (`HasFiniteEnergy_spacetime_rigid_motion`), this
+  # documents closure under the full inhomogeneous Galilean group on
+  # the spatial slice — the actual symmetry group of classical
+  # Navier-Stokes. NS tower status unchanged: Open (`docs/ROADMAP.md`
+  # § 3). NOT a statement about the L² energy bound or any Leray-Hopf
+  # solution, and NOT Galilean invariance of real Navier-Stokes;
+  # this is closure of the *placeholder* predicate under the boost
+  # `x ↦ x + v t`.
+  "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.HasFiniteEnergy_galilean_boost"
   # Task #70 (2026-05-26): name the "energy never grows" predicate
   # inside the NS schema. `EnergyMonotone u u₀ : Prop` is the
   # explicit `∀ t, H1Norm u t ≤ H1Norm u₀ 0` shape named by the
