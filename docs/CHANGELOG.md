@@ -6,6 +6,118 @@ this file is the version history.
 
 ---
 
+## Batch 19.1p-redux-b — Truncated Peter-Weyl ≤ heat-kernel envelope. Wall 456 → 460, +4 BRICKS, Attempts sorry 10 → 9 (2026-05-27)
+
+**Track 1 (YM/, sorry-free, Task #155).** New file
+`Towers/YM/PeterWeylHeat.lean` (4 bricks). Wires Batch
+19.1p-redux-a's `PeterWeyl_Summable_SU3` headline through mathlib's
+top-level `sum_le_tsum` into a real bound for the finite Peter-Weyl
+truncation `Weyl_sum_explicit_SU3_real t N` defined in
+`Towers/YM/ClusterExpansion.lean`.
+
+**Key discovery (locked).** The original 19.3 parked sorry at
+`Towers/Attempts/ClusterExpansion.lean:693` claimed
+  `Weyl_sum_explicit_SU3_real t N ≤ Heat_kernel_def_real t`
+against the small-`t` Varadhan / Molchanov asymptotic placeholder
+`exp(-(heat_decay_constant / t)) / t^4`. That statement is **false
+at the placeholder values** (LHS at `N = 0, t = 1` equals
+`Weyl_sum_explicit_SU3_real_at_zero = 1` (the trivial-rep `(0,0)`
+summand), RHS equals `Real.exp(-1) / 1^4 ≈ 0.368`). The parked
+sorry's own in-source docstring already admitted this — same
+`(0,0)` obstruction that forced Batch 19.2 to drop
+`exists_c_per_plaquette_pw` and ship `plaquette_activity_pw_ge_one`
+instead. The honest 19.1p-redux-b discharge therefore retargets the
+RHS at the **genuine** Peter-Weyl envelope
+`Heat_kernel_envelope_real t := ∑'_{(m,n) : ℕ²} (dim λ)² · exp(-(t · C₂(λ)))`,
+NOT the Varadhan asymptotic shape. The Varadhan asymptotic
+`tsum t ≤ heat_amplitude_constant · exp(-(c/t)) / t^4` for small
+`t` remains a **separate open gap** and is what would actually
+advance YM tower past Open.
+
+**Drift note.** The Attempts/ theorem `Weyl_sum_le_heat_kernel_real`
+keeps its *name* (downstream callers unchanged) but its
+*conclusion* changes from `... ≤ Heat_kernel_def_real t` (false) to
+`... ≤ Heat_kernel_envelope_real t` (true, sorry-free). The
+preamble docstring in `Towers/Attempts/ClusterExpansion.lean`
+documents the retargeting explicitly. Sorry count: 10 → 9.
+
+The four bricks:
+
+  1. `Heat_kernel_envelope_real_nonneg` —
+     `0 ≤ Heat_kernel_envelope_real t` for every `t`. Trivial via
+     `tsum_nonneg` on `(dim)² · exp(_) ≥ 0`; does not even need
+     `Summable`.
+  2. `Weyl_sum_explicit_SU3_real_le_Heat_kernel_envelope_real`
+     *(headline)* —
+     `Weyl_sum_explicit_SU3_real t N ≤ Heat_kernel_envelope_real t`
+     for `t > 0`. Direct mathlib `sum_le_tsum` against the Finset
+     `(Finset.range (N+1) ×ˢ Finset.range (N+1)).filter (m+n ≤ N)`,
+     consuming `PeterWeyl_Summable_SU3 ht` from Batch 19.1p-redux-a.
+     Nonneg side condition is `(dim)² ≥ 0 ∧ exp _ ≥ 0`.
+  3. `Heat_kernel_envelope_real_ge_one_of_pos` —
+     `1 ≤ Heat_kernel_envelope_real t` for `t > 0`. Composition:
+     `Weyl_sum_explicit_SU3_real_at_zero` (from
+     `Towers/YM/ClusterExpansion.lean`) gives LHS = 1 at `N = 0`,
+     then Brick 2 closes. Proves the envelope is not the
+     trivial-zero `tsum`-default value, i.e. `Summable` actually
+     fires and the trivial-rep summand `1` is accounted for.
+  4. `Heat_kernel_envelope_real_ge_truncation` — convenience alias
+     of Brick 2 with `(t : ℝ) (ht : 0 < t) (N : ℕ)` argument order
+     matching the original Attempts/ParkedSorry signature, used as
+     the `:= …` term of the patched Attempts forwarder.
+
+**Honest scope (locked).** The four bricks above are textbook
+real-analysis facts about the finite truncation of a `Summable`
+series. They are NOT:
+  * the Varadhan / Molchanov small-`t` asymptotic
+    `K_t(1) ~ C · exp(-c/t) / t^4` (still open, next gap),
+  * a proof that `Heat_kernel_envelope_real = Heat_kernel_def_real`
+    (the placeholder shape — that equality is FALSE at the
+    placeholder values, see above),
+  * a constructive 4D pure-Yang-Mills measure,
+  * the OS Hilbert reconstruction,
+  * a mass-gap lower bound on any YM Hamiltonian.
+
+YM tower stays `Status: Open` (`docs/ROADMAP.md` § 2). Surface #2
+("Truncated Peter-Weyl bridges to heat-kernel") is **not** promoted
+to GREEN — the bridge against the genuine `tsum` envelope is real,
+but the bridge against the Varadhan placeholder remains parked.
+
+**Build receipt.** `bash scripts/check-towers.sh` reports
+`ok: Towers library built; all 460 brick(s) passed the
+axiom-footprint check.` All 460 trio-clean against
+`{propext, Classical.choice, Quot.sound}`; no research-grade
+axioms.
+
+**Drift coverage.**
+  * `lakefile.lean` roots gains `Towers.YM.PeterWeylHeat`.
+  * `scripts/check-towers.sh` BRICKS gains the 4 new entries with
+    long-form Task #155 comment. Wall 456 → 460.
+  * `Towers/Attempts/ClusterExpansion.lean:693` theorem body
+    rewritten as a one-line forwarder against
+    `Heat_kernel_envelope_real_ge_truncation`; preamble docstring
+    rewritten end-to-end (retargeting noted honestly). Sorry count
+    10 → 9.
+  * `replit.md` table gains the per-batch row. YM tower status
+    unchanged in `docs/ROADMAP.md`.
+  * `data/hits.txt` preamble Genesis seal unchanged
+    (`eecbcd9a…875f`); no probe appends.
+
+**Tripwires.**
+  * The retargeted Attempts theorem still has the original name
+    `Weyl_sum_le_heat_kernel_real` for downstream-caller stability;
+    any future caller that was relying on the *false* Varadhan-
+    placeholder conclusion will get a type mismatch at the
+    `Heat_kernel_envelope_real` vs `Heat_kernel_def_real` site —
+    intentional. There are currently no such callers.
+  * `Heat_kernel_def_real` (the Varadhan asymptotic placeholder)
+    is now unused by Attempts/; touching its definition will no
+    longer break this Attempts forwarder. The honest bridge from
+    the genuine envelope to that asymptotic shape is the next
+    parked gap.
+
+---
+
 ## Batch 19.1p-redux-a — SU(3) Peter-Weyl Summability. Wall 452 → 456, +4 BRICKS, no new Attempts sorry (2026-05-27)
 
 **Track 1 (YM/, sorry-free, Task #154).** New file

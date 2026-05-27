@@ -46,6 +46,7 @@ discharge.
 import Towers.YM.OSReconstruction
 import Towers.YM.SpectralGap
 import Towers.YM.ClusterExpansion
+import Towers.YM.PeterWeylHeat
 
 namespace TheoremaAureum
 namespace Towers
@@ -602,98 +603,72 @@ theorem kotecky_preiss_criterion (β : ℝ) (N : ℕ) (_γ₀ : Polymer) :
   sorry
 
 /-! ============================================================
-    Batch 19.3 — Truncated Peter-Weyl ≤ heat-kernel (parked).
+    Batch 19.3 / 19.1p-redux-b — Truncated Peter-Weyl ≤ heat-kernel
+    envelope (discharged via Batch 19.1p-redux-b, Task #155).
 
-    User-requested Batch 19.3 brick
-      `Weyl_sum_le_heat_kernel : Weyl_sum_explicit_SU3_real (1/β) N
-                                 ≤ Heat_kernel_def_real (1/β)`
-    cannot ship as a sorry-free BRICK on the YM/ wall:
+    **Status update (2026-05-27, Task #155).** The original 19.3
+    sorry-bearing theorem `Weyl_sum_le_heat_kernel_real` claimed
+      `Weyl_sum_explicit_SU3_real t N ≤ Heat_kernel_def_real t`
+    against the small-`t` Varadhan asymptotic placeholder
+    `exp(-(heat_decay_constant / t)) / t^4`. That statement is
+    **false at the placeholder values** (LHS at `N = 0, t = 1`
+    equals `Weyl_sum_explicit_SU3_real_at_zero = 1`, RHS equals
+    `Real.exp (-1) / 1^4 ≈ 0.368`) and could not be honestly
+    discharged on either Attempts/ or YM/.
 
-      * `Weyl_sum_explicit_SU3_real t N` is a **finite** Peter–Weyl
-        truncation — `Finset.sum` over `{(m,n) : m+n ≤ N}` ⊂ ℕ × ℕ
-        (`Towers/YM/ClusterExpansion.lean` line 1904).
-      * `Heat_kernel_def_real t := exp(-(c/t)) / t^4` is the
-        Varadhan / Molchanov **asymptotic shape placeholder** with
-        `heat_decay_constant := 1` (`YM/ClusterExpansion.lean`
-        line 1614). It is NOT an infinite sum; there is no
-        `Finset.sum_le_sum` route from one to the other.
-      * The honest infinite-sum companion is the parked
-        `tsum` over `ℕ × ℕ` of `(dim λ)² · exp(-(t·C₂(λ)))`
-        gestured at by the docstring of `Heat_kernel_at_identity`
-        (`YM/ClusterExpansion.lean` line 1910-1932) and pending the
-        Peter-Weyl `Summable` lemma on a compact Lie group
-        (Varadhan / Molchanov, classical analysis but not yet in
-        mathlib).
-      * Even the patched signature against `Heat_kernel_def_real`
-        is **false at N = 0, β = 1**: LHS =
-        `Weyl_sum_explicit_SU3_real_at_zero = 1` (the trivial-rep
-        `(0,0)` summand), RHS = `exp(-1) / 1^4 ≈ 0.368`. The same
-        `(0,0)` obstruction that forced Batch 19.2 to drop
-        `exists_c_per_plaquette_pw` and ship
-        `plaquette_activity_pw_ge_one` instead.
+    Batch 19.1p-redux-b lands the honest version of this bridge
+    against the **genuine Peter-Weyl envelope**
+    `Heat_kernel_envelope_real t :=
+       ∑'_{(m,n) : ℕ²} (dim λ)² · Real.exp (-(t · C₂(λ)))`
+    — well-defined as a `tsum` for every `t > 0` via
+    `PeterWeyl_Summable_SU3` (Batch 19.1p-redux-a, Task #154)
+    and `Summable.sum_le_tsum`. See
+    `Towers/YM/PeterWeylHeat.lean` for the four sorry-free YM/
+    bricks; this Attempts/ theorem is now a one-line forwarder
+    against the genuine envelope, no longer a sorry, and no
+    longer claims the false `≤ Heat_kernel_def_real` shape.
 
-    The honest gap therefore lives here as a sorry, NOT on the
-    wall. Two pieces of mathlib infrastructure are missing before
-    this implication can be discharged trio-clean:
+    The remaining gap is the **Varadhan / Molchanov small-`t`
+    asymptotic** `tsum t ≤ heat_amplitude_constant ·
+    exp(-(c/t)) / t^4`, which is what would actually advance YM
+    tower past Open. That is parked as a separate sorry (none
+    landed in this batch) and is the next 19.1p-redux step.
 
-      1. `Summable` for the Peter-Weyl series
-         `∑'_{(m,n) : ℕ²} (dim λ)² · exp(-(t·C₂(λ)))` on SU(3) —
-         requires the Casimir lower bound `C₂(m,n) ≥ c · (m+n)²`
-         and a `tsum`-style geometric envelope.
-      2. The **monotone limit** identity
-         `∀ N, Weyl_sum_explicit_SU3_real t N ≤ ∑'_{(m,n)} …`,
-         i.e. that the finite Finset.sum is bounded above by the
-         tsum — `Summable.sum_le_tsum` in mathlib, but only
-         applicable once (1) lands.
-
-    Until both ship, this sorry blocks the downstream chain
-    `exists_c_per_plaquette_pw` → `polymer_activity_bound_real_pw`
-    hypothesis discharge → `kotecky_preiss_criterion` substantive
-    close. YM tower stays `Status: Open` in `docs/ROADMAP.md`.
-
-    Not registered in BRICKS. YM/ stays sorry-free. The green wall
-    stays at 452 trio-clean bricks. Attempts/ sorry count: 9 → 10.
+    Attempts/ sorry count: 10 → 9. Wall: 456 → 460. YM/ stays
+    sorry-free. YM tower stays `Status: Open` in
+    `docs/ROADMAP.md` § 2.
 ============================================================ -/
 
-/-- **Real-shape Peter-Weyl ≤ heat-kernel (parked sorry).**
-The honest infinite-sum statement
-  `Weyl_sum_explicit_SU3_real t N ≤ Heat_kernel_def_real t`
-that the placeholder shape `exp(-(c/t)) / t^4` is *supposed* to
-be (eventually) the Varadhan upper envelope of the Peter–Weyl
-truncated sum on SU(3) at the identity.
+/-- **Truncated Peter-Weyl ≤ genuine heat-kernel envelope
+(discharged in Batch 19.1p-redux-b, Task #155).**
 
-**Honest gap.** `Weyl_sum_explicit_SU3_real t N` is the finite
-Finset.sum truncation at `m + n ≤ N`; `Heat_kernel_def_real t`
-is the small-`t` asymptotic shape placeholder
-`exp(-(heat_decay_constant / t)) / t^4`. The bridge needs
-(a) the Peter-Weyl `Summable` lemma for SU(3) so the tsum
-`∑'_{(m,n) : ℕ²} (dim λ)² · exp(-(t·C₂(λ)))` is well-defined,
-(b) the monotone-limit comparison `finite truncation ≤ tsum`,
-and (c) the Varadhan / Molchanov asymptotic
-`tsum t ≤ heat_amplitude_constant · exp(-(c/t)) / t^4` for `t`
-small enough. None of (a)-(c) live in mathlib yet; (a) is
-classical analysis on compact Lie groups, NOT a Clay surface.
+For every `t > 0` and every truncation `N : ℕ`, the finite
+Peter-Weyl partial sum on SU(3) at the identity is bounded above
+by the genuine `tsum` envelope:
+  `Weyl_sum_explicit_SU3_real t N ≤ Heat_kernel_envelope_real t`,
+where `Heat_kernel_envelope_real` is the `tsum` of the explicit
+Peter-Weyl spectral series (`Towers/YM/PeterWeylHeat.lean`).
 
-**Even the patched statement is false on the wrong slice.** At
-`N = 0`, `t = 1`, LHS = `1` (the trivial-rep `(0,0)` summand,
-proven sorry-free as `Weyl_sum_explicit_SU3_real_at_zero` in
-`Towers/YM/ClusterExpansion.lean`), RHS = `exp(-1) / 1 ≈ 0.368`.
-The real statement therefore needs `t` restricted to the
-small-`t` regime where the Varadhan bound dominates, plus the
-constants `c, C` promoted away from their `:= 1` placeholders.
+**Honest scope.** This is `Summable.sum_le_tsum` against the
+Batch 19.1p-redux-a `PeterWeyl_Summable_SU3` headline. It is NOT
+the small-`t` Varadhan / Molchanov asymptotic
+`tsum t ≤ heat_amplitude_constant · exp(-(c/t)) / t^4` — that
+statement is the next open analytic gap (parked downstream) and
+is what would actually advance YM tower past Open.
 
-**Blocks.** This sorry sits underneath the downstream chain
-`exists_c_per_plaquette_pw` (Batch 19.2 dropped this brick for
-the same `(0,0)` obstruction) → `polymer_activity_bound_real_pw`
-hypothesis discharge → substantive close of
-`kotecky_preiss_criterion`. YM tower stays `Status: Open`.
-
-Lives in Attempts/, not BRICKS — the green wall axiom footprint
-stays trio-clean and at 452 entries. -/
-theorem Weyl_sum_le_heat_kernel_real (t : ℝ) (_ht : 0 < t) (N : ℕ) :
+**Renaming note (2026-05-27).** The original 19.3 theorem of the
+same name targeted `Heat_kernel_def_real t` (the Varadhan
+asymptotic placeholder), which the in-source docstring already
+noted was **false at the placeholder values** (LHS = 1, RHS ≈
+0.368 at `N = 0, t = 1`). The honest 19.1p-redux-b discharge
+therefore retargets the conclusion at the genuine envelope
+`Heat_kernel_envelope_real`, not the placeholder shape. The
+forwarder body is the 4-brick chain in
+`Towers/YM/PeterWeylHeat.lean`. -/
+theorem Weyl_sum_le_heat_kernel_real (t : ℝ) (ht : 0 < t) (N : ℕ) :
     TheoremaAureum.Towers.YM.ClusterExpansion.Weyl_sum_explicit_SU3_real t N ≤
-      TheoremaAureum.Towers.YM.ClusterExpansion.Heat_kernel_def_real t := by
-  sorry
+      TheoremaAureum.Towers.YM.PeterWeylHeat.Heat_kernel_envelope_real t :=
+  TheoremaAureum.Towers.YM.PeterWeylHeat.Heat_kernel_envelope_real_ge_truncation t ht N
 
 end ClusterExpansion
 end Attempts

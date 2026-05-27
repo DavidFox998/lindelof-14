@@ -1817,6 +1817,35 @@ BRICKS=(
   "Towers.YM.PeterWeyl|TheoremaAureum.Towers.YM.PeterWeyl.Weyl_dim_SU3_explicit_real_le_poly"
   "Towers.YM.PeterWeyl|TheoremaAureum.Towers.YM.PeterWeyl.summable_poly_succ_exp_neg_real"
   "Towers.YM.PeterWeyl|TheoremaAureum.Towers.YM.PeterWeyl.PeterWeyl_Summable_SU3"
+  # Task #155 (2026-05-27, Batch 19.1p-redux-b): Truncated Peter-Weyl
+  # ≤ heat-kernel envelope — four sorry-free bricks in
+  # `Towers/YM/PeterWeylHeat.lean`. Wires the Batch 19.1p-redux-a
+  # `PeterWeyl_Summable_SU3` headline through `Summable.sum_le_tsum`
+  # into a real bound for the finite truncation
+  # `Weyl_sum_explicit_SU3_real t N`. Bricks:
+  #   1. `Heat_kernel_envelope_real_nonneg` — tsum of nonneg ≥ 0.
+  #   2. `Weyl_sum_explicit_SU3_real_le_Heat_kernel_envelope_real`
+  #      (headline) — finite truncation ≤ tsum envelope for t > 0,
+  #      directly via `Summable.sum_le_tsum` + `PeterWeyl_Summable_SU3`.
+  #   3. `Heat_kernel_envelope_real_ge_one_of_pos` — 1 ≤ envelope
+  #      for t > 0, composing `Weyl_sum_explicit_SU3_real_at_zero`
+  #      with Brick 2; proves the envelope is not the trivial-zero
+  #      `tsum`-default value (i.e. `Summable` actually fires).
+  #   4. `Heat_kernel_envelope_real_ge_truncation` — convenience
+  #      alias of Brick 2 with `(t, ht, N)` argument order, used by
+  #      the `Towers/Attempts/ClusterExpansion.lean:693` patch as
+  #      its `:= …` term (Attempts/ sorry count 10 → 9).
+  # **Honest scope.** None of these advance YM past Status: Open —
+  # they wire Batch 19.1p-redux-a's `Summable` lemma into the
+  # finite-truncation inequality. The Varadhan / Molchanov
+  # small-`t` asymptotic `tsum t ≤ exp(-(c/t)) / t^4` (the would-be
+  # bridge to `Heat_kernel_def_real`) remains a separate open gap
+  # and is the next 19.1p-redux step. YM tower stays `Status: Open`
+  # in `docs/ROADMAP.md` § 2.
+  "Towers.YM.PeterWeylHeat|TheoremaAureum.Towers.YM.PeterWeylHeat.Heat_kernel_envelope_real_nonneg"
+  "Towers.YM.PeterWeylHeat|TheoremaAureum.Towers.YM.PeterWeylHeat.Weyl_sum_explicit_SU3_real_le_Heat_kernel_envelope_real"
+  "Towers.YM.PeterWeylHeat|TheoremaAureum.Towers.YM.PeterWeylHeat.Heat_kernel_envelope_real_ge_one_of_pos"
+  "Towers.YM.PeterWeylHeat|TheoremaAureum.Towers.YM.PeterWeylHeat.Heat_kernel_envelope_real_ge_truncation"
 )
 
 VERIFIER_DIR="$(mktemp -d)"
