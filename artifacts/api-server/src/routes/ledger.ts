@@ -1201,6 +1201,23 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
       /* best-effort */
     }
   }
+  // Task #183: sticky stale-checkpoint-binding flag. Set when boot
+  // reads a sidecar whose HMAC verifies but whose `boundCheckpoint*`
+  // fields no longer match the on-disk checkpoint (Task #110's
+  // `stale_checkpoint_binding` PersistedState). Without this latch
+  // the surface would be silently overwritten on the very first
+  // `/integrity` call, because `buildStatusInner` always re-seals the
+  // sidecar with a fresh MAC bound to the current checkpoint and
+  // then flips the in-memory `lastOkSidecarStatus` to `"ok"`. The
+  // dashboard's amber "stale checkpoint binding" banner therefore
+  // never lit up in production. We clear the flag once an integrity
+  // check returns `ok` (which means the binding has just been
+  // legitimately refreshed and the operator's view of the world is
+  // healthy again) or on the next boot whose sidecar read is
+  // non-stale. The `forgedIncident` branch always wins over this
+  // one — a tamper signal is strictly more severe.
+  let staleCheckpointBindingAtBoot: boolean =
+    persisted.sidecarStatus === "stale_checkpoint_binding";
   // One-shot latch for the boot-time forged-detection alert. The
   // server-side monitor (when wired) reads + clears this on its first
   // tick so the alert fires exactly once per process lifetime.
@@ -1421,6 +1438,14 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
       base.lastOkSidecarStatus = "forged";
       base.lastOkSidecarStatusAcknowledgedAt = forgedIncident.acknowledgedAt;
       base.lastOkSidecarStatusAcknowledgedBy = forgedIncident.ackedBy;
+    } else if (staleCheckpointBindingAtBoot) {
+      // Task #183: surface the sticky boot-time stale-binding signal
+      // so the dashboard's amber banner reflects what the server
+      // actually observed. Cleared by a successful ok verify (below)
+      // or by a subsequent boot whose sidecar read is non-stale.
+      base.lastOkSidecarStatus = "stale_checkpoint_binding";
+      base.lastOkSidecarStatusAcknowledgedAt = null;
+      base.lastOkSidecarStatusAcknowledgedBy = null;
     } else {
       base.lastOkSidecarStatus = lastOkSidecarStatus;
       base.lastOkSidecarStatusAcknowledgedAt = null;
@@ -1563,6 +1588,16 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
 
     lastOkAt = checkedAt;
     writePersistedState(LAST_OK_PATH, SIDECAR_SECRET, CHECKPOINT, { lastOkAt, lastCheckedAt });
+    // Task #183: a successful verify just re-sealed the sidecar with
+    // a fresh MAC bound to the on-disk checkpoint, so the binding is
+    // no longer stale. Clear the sticky flag and override the
+    // surface so the dashboard banner clears on this very response
+    // (the `base` object was computed before this branch decided
+    // verification would succeed).
+    const hadStaleBindingAtBoot = staleCheckpointBindingAtBoot;
+    if (hadStaleBindingAtBoot) {
+      staleCheckpointBindingAtBoot = false;
+    }
     const freshStaleness = computeStaleness(checkedAt);
     return {
       ...base,
@@ -1577,6 +1612,13 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
       lastOkAgeSeconds: freshStaleness.lastOkAgeSeconds,
       lastCheckedAt,
       stale: freshStaleness.stale,
+      ...(hadStaleBindingAtBoot
+        ? {
+            lastOkSidecarStatus: "ok" as const,
+            lastOkSidecarStatusAcknowledgedAt: null,
+            lastOkSidecarStatusAcknowledgedBy: null,
+          }
+        : {}),
     };
   }
 

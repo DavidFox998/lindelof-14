@@ -691,6 +691,57 @@ describe("GET /api/ledger/integrity", () => {
     const r = await (await fetch(`http://127.0.0.1:${port}/api/ledger/integrity`)).json() as any;
     expect(r.status).toBe("mismatch");
     expect(r.lastOkAt).toBeNull();
+    // Task #183: the boot-time stale-checkpoint-binding signal must
+    // survive to the wire — previously `buildStatusInner` overwrote
+    // it with `"ok"` on every call, so the dashboard amber banner
+    // never lit up in production.
+    expect(r.lastOkSidecarStatus).toBe("stale_checkpoint_binding");
+    expect(r.lastOkSidecarStatusAcknowledgedAt).toBeNull();
+    expect(r.lastOkSidecarStatusAcknowledgedBy).toBeNull();
+    // A second poll (still no fresh ok verify) keeps the signal
+    // sticky — the verifier hasn't yet refreshed the binding.
+    const r2 = await (await fetch(`http://127.0.0.1:${port}/api/ledger/integrity`)).json() as any;
+    expect(r2.lastOkSidecarStatus).toBe("stale_checkpoint_binding");
+    await new Promise<void>((resolve, reject) =>
+      srv.close((err) => (err ? reject(err) : resolve())),
+    );
+    try { unlinkSync(lastOkPath); } catch { /* ignore */ }
+    try { unlinkSync(secretPath); } catch { /* ignore */ }
+  });
+
+  it("clears the stale-binding signal once a successful integrity verify refreshes the sidecar (task #183)", async () => {
+    // Boot with a valid-MAC but stale-bound sidecar AND a healthy
+    // ledger so the very first /integrity call returns `ok` and
+    // re-seals the binding. The amber banner must clear on that
+    // same response.
+    const sealed = "alpha\nbeta\n";
+    const { size, sha } = writeHits(sealed);
+    writeCheckpoint(size, sha);
+
+    const lastOkPath = path.join(tmpDir, "hits.txt.bindrot-clears.lastok");
+    const secretPath = `${lastOkPath}.key`;
+    try { unlinkSync(lastOkPath); } catch { /* ignore */ }
+    try { unlinkSync(secretPath); } catch { /* ignore */ }
+    const secretHex = "ef".repeat(32);
+    writeFileSync(secretPath, secretHex + "\n");
+    writeFileSync(
+      lastOkPath,
+      sealSidecar(secretHex, {
+        lastOkAt: new Date(Date.now() - 30_000).toISOString(),
+        lastCheckedAt: new Date(Date.now() - 30_000).toISOString(),
+        boundCheckpointSize: 999,
+        boundCheckpointSha: "0".repeat(64),
+      }),
+    );
+
+    const app = express();
+    app.use("/api", createLedgerRouter({ hitsPath, checkpointPath, lastOkPath, secretPath }));
+    const srv = http.createServer(app);
+    await new Promise<void>((resolve) => srv.listen(0, "127.0.0.1", resolve));
+    const port = (srv.address() as AddressInfo).port;
+    const r = await (await fetch(`http://127.0.0.1:${port}/api/ledger/integrity`)).json() as any;
+    expect(r.status).toBe("ok");
+    expect(r.lastOkSidecarStatus).toBe("ok");
     await new Promise<void>((resolve, reject) =>
       srv.close((err) => (err ? reject(err) : resolve())),
     );
