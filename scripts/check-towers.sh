@@ -2272,6 +2272,64 @@ BRICKS=(
   "Towers.YM.TailImpliesTransfer|TheoremaAureum.Towers.YM.OS.tail_implies_transfer"
   "Towers.YM.ShiftOperator|TheoremaAureum.Towers.YM.OS.norm_shift_apply"
   "Towers.YM.NontrivialGap|TheoremaAureum.Towers.YM.OS.nontrivial_gap"
+  # Task #174 — land the remaining 3 Varadhan-track files for Task #156
+  # (files 4–6 of the original 6-file plan). All three are trio-clean
+  # honest stand-ins; none promotes the YM tower past `Status: Open`.
+  #
+  # File 4 — `Towers/YM/VaradhanStripWidened.lean` (small-`t` Varadhan
+  # strip refinement, stand-in):
+  #   * `varadhan_t_lo_widened_lt` — widened lower endpoint
+  #     `varadhan_t_lo / 2 = 1/2` is strictly less than
+  #     `varadhan_t_lo`; positivity / containment witness for a
+  #     widened strip.
+  #   * `Heat_kernel_envelope_real_le_varadhan_widened` — the strip-
+  #     form Varadhan-shape bound from Batch 156.3 re-stated under the
+  #     widened-strip signature. The hypotheses are still the *original*
+  #     strip bounds — this is NOT a real extension of the valid
+  #     `t`-range (the literal small-`t` Varadhan inequality is false
+  #     near `0`, see file preamble). The widened endpoints are slots
+  #     for a future genuine refinement once a real off-diagonal
+  #     Killing-form argument lands.
+  #
+  # File 5 — `Towers/YM/ContinuumHookup.lean` (continuum-limit
+  # hookup, stand-in):
+  #   * `continuum_heat_envelope_bound a A {t} ht_lo ht_top` —
+  #     re-exposes `Heat_kernel_envelope_real_le_varadhan` under a
+  #     signature that *names* the lattice data `(a, A)` and the
+  #     resulting continuum schema `lattice_to_continuum a A :
+  #     YM4_Continuum`. The lattice inputs are positional (consumed
+  #     by `_`); proof delegates to the existing strip bound. No
+  #     `a → 0` content is added — `lattice_to_continuum` is the
+  #     identity-trivial map shipped by Batch 20.1a.
+  #   * `continuum_heat_envelope_bound_target_default` — the
+  #     identity-trivial nature of `lattice_to_continuum` is recorded
+  #     as a `rfl` brick: `lattice_to_continuum a A = ({} : YM4_Continuum)`.
+  #     Replacing `lattice_to_continuum` with a real continuum functor
+  #     will *intentionally* break this brick — the tripwire signal for
+  #     a genuine continuum limit landing.
+  #
+  # File 6 — `Towers/YM/MassGapEnvelope.lean` (final mass-gap
+  # envelope, stand-in):
+  #   * `mass_gap_envelope_constant_pos` — the concrete positive real
+  #     `varadhan_C / varadhan_t_top ^ 4` is `> 0`. Built from the
+  #     strip-form Varadhan amplitude; carries NO spectral content.
+  #   * `IsMassGap_mass_gap_envelope_default` — the placeholder
+  #     `IsMassGap` predicate from `Towers/YM/Continuum.lean` (which
+  #     IS `0 < Δ`, with no Hilbert space / Hamiltonian) on the
+  #     default `YM4_Continuum` is satisfied by
+  #     `Δ := mass_gap_envelope_constant`. NOT a proof that any real
+  #     4D pure-YM theory has a mass gap; the witness is a strip-form
+  #     positivity, not a spectral gap.
+  #
+  # Wall: 491 → 497. YM tower stays `Status: Open` in
+  # `docs/ROADMAP.md` § 2. Surfaces #1 / #2 / #3 all stay OPEN.
+  "Towers.YM.VaradhanStripWidened|TheoremaAureum.Towers.YM.VaradhanStripWidened.varadhan_t_lo_widened_lt"
+  "Towers.YM.VaradhanStripWidened|TheoremaAureum.Towers.YM.VaradhanStripWidened.varadhan_t_top_lt_widened"
+  "Towers.YM.VaradhanStripWidened|TheoremaAureum.Towers.YM.VaradhanStripWidened.Heat_kernel_envelope_real_le_varadhan_widened"
+  "Towers.YM.ContinuumHookup|TheoremaAureum.Towers.YM.ContinuumHookup.continuum_heat_envelope_bound"
+  "Towers.YM.ContinuumHookup|TheoremaAureum.Towers.YM.ContinuumHookup.continuum_heat_envelope_bound_target_default"
+  "Towers.YM.MassGapEnvelope|TheoremaAureum.Towers.YM.MassGapEnvelope.mass_gap_envelope_constant_pos"
+  "Towers.YM.MassGapEnvelope|TheoremaAureum.Towers.YM.MassGapEnvelope.IsMassGap_mass_gap_envelope_default"
 )
 
 VERIFIER_DIR="$(mktemp -d)"
