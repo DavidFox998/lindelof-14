@@ -2335,6 +2335,20 @@ BRICKS=(
   "Towers.YM.ContinuumHookup|TheoremaAureum.Towers.YM.ContinuumHookup.continuum_heat_envelope_bound_target_default"
   "Towers.YM.MassGapEnvelope|TheoremaAureum.Towers.YM.MassGapEnvelope.mass_gap_envelope_constant_pos"
   "Towers.YM.MassGapEnvelope|TheoremaAureum.Towers.YM.MassGapEnvelope.IsMassGap_mass_gap_envelope_default"
+  # TRI PARALLEL #8 / Batches 168.1, 168.2, 168.3 — begin YM Measure
+  # surface. SU(2) lattice gauge carrier (LatticeGauge), SU(2) Wilson
+  # plaquette action (WilsonAction), Dirac-stand-in Gibbs measure
+  # (GibbsMeasure). All three are trio-clean honest stand-ins with
+  # documented drift from the user snippet (SU(2) plaquette returns
+  # a `Matrix` not `G` since `SpecialUnitaryGroup` is a `Submonoid`
+  # not a `Group` in mathlib v4.12.0; Haar pivots to `Measure.dirac`
+  # since `Measure.haarMeasure` requires `BorelSpace`/`T2Space`/
+  # `LocallyCompactSpace` instances on `SpecialUnitaryGroup` that
+  # v4.12.0 does not export). None promotes YM past `Status: Open`.
+  # Surface #1 stays OPEN. See per-file docstrings for full drift.
+  "Towers.YM.LatticeGauge|TheoremaAureum.Towers.YM.LatticeGauge.Lattice_def"
+  "Towers.YM.WilsonAction|TheoremaAureum.Towers.YM.LatticeGauge.wilsonAction_zero_beta"
+  "Towers.YM.GibbsMeasure|TheoremaAureum.Towers.YM.LatticeGauge.partitionFn_zero_beta_eq_one"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

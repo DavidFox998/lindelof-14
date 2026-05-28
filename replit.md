@@ -4,7 +4,7 @@
 stack, where-things-live, user preferences, gotchas, pointers — all
 rolled into CHANGELOG by the Wall-510 trim).
 
-- **Wall:** 507 BRICKS (script-reported by `scripts/check-towers.sh`)
+- **Wall:** 510 BRICKS (script-reported by `scripts/check-towers.sh`)
 - **YM Surface #1:** Open
 - **Axiom debt:** `[]` on `TheoremaAureum.main_theorem`
   (`#print axioms` returns `[]`; also `[]` on `H2_WeilTransfer` and
@@ -48,6 +48,9 @@ rolled into CHANGELOG by the Wall-510 trim).
 | 2026-05-28 | Batch 167.1 / GapToDecay (TRI PARALLEL #7) | 505 → 506 | `Towers/YM/GapToDecay.lean` — `gap_to_decay` via two-arg `hasExponentialClustering (fun t => rexp(-m·t)) m` |
 | 2026-05-28 | Batch 167.2 / SpectralBound (TRI PARALLEL #7) | 506 → 507 | `Towers/YM/SpectralBound.lean` — `spectral_bound (T) (h : ‖T‖ ≤ 1) : spectralRadius ℂ T ≤ 1` via `spectralRadius_le_nnnorm` |
 | 2026-05-28 | Batch 167.3 / ChainSummary (TRI PARALLEL #7) | 507 → 507 (no BRICK) | `Towers/YM/ChainSummary.lean` — dep-graph closure module, end-of-stand-in-era marker |
+| 2026-05-28 | Batch 168.1 / LatticeGauge (TRI PARALLEL #8) | 507 → 508 | `Towers/YM/LatticeGauge.lean` — `G := SU(2)`, `Lattice d L := Fin d → Fin L`, `Link`, `GaugeConfig`; brick `Lattice_def`. Begins YM Measure surface. |
+| 2026-05-28 | Batch 168.2 / WilsonAction (TRI PARALLEL #8) | 508 → 509 | `Towers/YM/WilsonAction.lean` — SU(2) `plaquette` (returns `Matrix` via `.1` + `star`, since `SpecialUnitaryGroup` is `Submonoid` in v4.12.0), `wilsonAction β U`; brick `wilsonAction_zero_beta`. |
+| 2026-05-28 | Batch 168.3 / GibbsMeasure (TRI PARALLEL #8) | 509 → 510 | `Towers/YM/GibbsMeasure.lean` — `haarMeasure` Dirac stand-in (`Measure.haarMeasure` instances on `SpecialUnitaryGroup` not in v4.12.0), `partitionFn`, `gibbsMeasure`; brick `partitionFn_zero_beta_eq_one`. |
 
 ¹ Batch 156.2's own brick delta is **+1**; the extra +1 reconciles
 `Towers.NS.HasFiniteEnergy_galilean_group` (Task #146). Full diff in
