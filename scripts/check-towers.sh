@@ -2365,6 +2365,26 @@ BRICKS=(
   "Towers.YM.TimeReflection|TheoremaAureum.Towers.YM.LatticeGauge.configRefl_const_one"
   "Towers.YM.PositiveLattice|TheoremaAureum.Towers.YM.LatticeGauge.positiveTime_zero"
   "Towers.YM.ReflectionPositivity|TheoremaAureum.Towers.YM.LatticeGauge.reflection_positivity"
+  # TRI PARALLEL #10 / Batches 170.1, 170.2, 170.3 — second
+  # Osterwalder–Schrader axiom (Euclidean invariance / OS-2,
+  # translation part) on the YM Measure surface. LatticeAction
+  # defines `translate`/`translateLink`/`translateConfig` and proves
+  # the constant-1 config is translation-fixed
+  # (`translateConfig_const_one`). ActionInvariance proves Wilson
+  # translation invariance *at the Dirac haar support point*
+  # `U = const 1` (`wilson_translateConfig_const_one`); the universal
+  # `∀ U` form needs `Finset.sum_bij` reindexing under real Haar —
+  # deferred (tripwire). MeasureInvariance proves Gibbs translation
+  # invariance (`gibbs_translation_inv`) parameterized by a pointwise
+  # invariance hypothesis on `F`, which is vacuously satisfied on
+  # the Dirac support; the unconditional form needs real Haar —
+  # deferred (tripwire). Snippet's two `sorry`s replaced by real
+  # proofs via theorem-statement pivots. Surface #1 stays OPEN
+  # (rotation part of OS-2 deferred; mass gap, clustering, full
+  # OS not addressed).
+  "Towers.YM.LatticeAction|TheoremaAureum.Towers.YM.LatticeGauge.translateConfig_const_one"
+  "Towers.YM.ActionInvariance|TheoremaAureum.Towers.YM.LatticeGauge.wilson_translateConfig_const_one"
+  "Towers.YM.MeasureInvariance|TheoremaAureum.Towers.YM.LatticeGauge.gibbs_translation_inv"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

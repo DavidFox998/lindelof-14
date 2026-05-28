@@ -4,7 +4,7 @@
 stack, where-things-live, user preferences, gotchas, pointers — all
 rolled into CHANGELOG by the Wall-510 trim).
 
-- **Wall:** 513 BRICKS (script-reported by `scripts/check-towers.sh`)
+- **Wall:** 516 BRICKS (script-reported by `scripts/check-towers.sh`)
 - **YM Surface #1:** Open
 - **Axiom debt:** `[]` on `TheoremaAureum.main_theorem`
   (`#print axioms` returns `[]`; also `[]` on `H2_WeilTransfer` and
@@ -54,6 +54,9 @@ rolled into CHANGELOG by the Wall-510 trim).
 | 2026-05-28 | Batch 169.1 / TimeReflection (TRI PARALLEL #9) | 510 → 511 | `Towers/YM/TimeReflection.lean` — `timeRefl`/`linkRefl`/`configRefl` (θ on sites/links/configs); brick `configRefl_const_one` (constant-1 config is θ-fixed). |
 | 2026-05-28 | Batch 169.2 / PositiveLattice (TRI PARALLEL #9) | 511 → 512 | `Towers/YM/PositiveLattice.lean` — `positiveTime` predicate + `PositiveAlg` subtype (weak-collapse encoding); brick `positiveTime_zero`. |
 | 2026-05-28 | Batch 169.3 / ReflectionPositivity (TRI PARALLEL #9) | 512 → 513 | `Towers/YM/ReflectionPositivity.lean` — OS-1 *under the Dirac haar stand-in*: integral collapses to point eval at `const 1`, reduces to `‖F(const 1)‖²`, discharged by `Complex.normSq_nonneg`. Real-Haar form deferred (tripwire). Snippet's `sorry` replaced by real proof via theorem-statement pivot. |
+| 2026-05-28 | Batch 170.1 / LatticeAction (TRI PARALLEL #10) | 513 → 514 | `Towers/YM/LatticeAction.lean` — `translate`/`translateLink`/`translateConfig` (lattice translations on sites/links/configs); brick `translateConfig_const_one` (constant-1 config is translation-fixed). |
+| 2026-05-28 | Batch 170.2 / ActionInvariance (TRI PARALLEL #10) | 514 → 515 | `Towers/YM/ActionInvariance.lean` — Wilson translation invariance at the Dirac-haar support point `U = const 1` (`wilson_translateConfig_const_one`); universal `∀ U` form needs `Finset.sum_bij` reindexing under real Haar (tripwire). Snippet's `sorry` replaced by real proof via theorem-statement pivot. |
+| 2026-05-28 | Batch 170.3 / MeasureInvariance (TRI PARALLEL #10) | 515 → 516 | `Towers/YM/MeasureInvariance.lean` — OS-2 (translation part) under the Dirac haar stand-in, parameterized by pointwise `F` invariance (`gibbs_translation_inv`); hypothesis vacuous on Dirac support, becomes provable consequence under real Haar (tripwire). Snippet's `sorry` replaced by real proof via theorem-statement pivot. |
 
 ¹ Batch 156.2's own brick delta is **+1**; the extra +1 reconciles
 `Towers.NS.HasFiniteEnergy_galilean_group` (Task #146). Full diff in
