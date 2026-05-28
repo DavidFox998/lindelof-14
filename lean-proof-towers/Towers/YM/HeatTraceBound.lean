@@ -62,6 +62,7 @@ import Towers.YM.WeylDim
 import Mathlib.Topology.Algebra.InfiniteSum.Ring
 import Mathlib.Algebra.Order.Antidiag.Prod
 import Mathlib.Data.Finset.NatAntidiagonal
+import Mathlib.MeasureTheory.Integral.Gamma
 
 namespace TheoremaAureum.Towers.YM.HeatTraceBound
 
@@ -412,5 +413,52 @@ theorem heat_trace_envelope : ∀ t : ℝ, 0 < t →
         intro k
         unfold F
         ring
+
+/-! ### Batch 156.3b — Gaussian moment and polynomial heat-trace bound -/
+
+/-- **Gaussian seventh moment.**  `∫₀^∞ x^7 · exp(-a · x²) dx = 3/a^4`
+for every `a > 0`. Direct application of mathlib's
+`integral_rpow_mul_exp_neg_mul_rpow` with `p = 2, q = 7`, evaluating
+`Γ(4) = 6` via iterated `Real.Gamma_add_one`. -/
+lemma gaussian_moment_7 (a : ℝ) (ha : 0 < a) :
+    ∫ x in Set.Ioi (0:ℝ), x^7 * Real.exp (-a * x^2) = 3 / a^4 := by
+  -- Rewrite nat-powers on x as rpows (valid since x > 0).
+  have h_eq : Set.EqOn (fun x : ℝ => x^7 * Real.exp (-a * x^2))
+                       (fun x : ℝ => x^(7:ℝ) * Real.exp (-a * x^(2:ℝ)))
+                       (Set.Ioi (0:ℝ)) := by
+    intro x _
+    have h7 : (x : ℝ)^(7:ℝ) = x^(7:ℕ) := by
+      have hcast : ((7:ℕ):ℝ) = (7:ℝ) := by norm_num
+      rw [← hcast, Real.rpow_natCast]
+    have h2 : (x : ℝ)^(2:ℝ) = x^(2:ℕ) := by
+      have hcast : ((2:ℕ):ℝ) = (2:ℝ) := by norm_num
+      rw [← hcast, Real.rpow_natCast]
+    simp only [h7, h2]
+  rw [MeasureTheory.setIntegral_congr measurableSet_Ioi h_eq]
+  rw [integral_rpow_mul_exp_neg_mul_rpow (by norm_num : (0:ℝ) < 2)
+        (by norm_num : (-1:ℝ) < 7) ha]
+  -- Now: a^(-(7+1)/2) * (1/2) * Γ((7+1)/2) = a^(-4) * (1/2) * Γ(4).
+  have hexp_arg : (-(7 + 1) / 2 : ℝ) = -4 := by norm_num
+  have hΓ_arg : ((7 + 1) / 2 : ℝ) = 4 := by norm_num
+  rw [hexp_arg, hΓ_arg]
+  -- Γ(4) = 6.
+  have hΓ4 : Real.Gamma 4 = 6 := by
+    have e1 : (4 : ℝ) = 3 + 1 := by norm_num
+    rw [e1, Real.Gamma_add_one (by norm_num : (3:ℝ) ≠ 0)]
+    have e2 : (3 : ℝ) = 2 + 1 := by norm_num
+    rw [e2, Real.Gamma_add_one (by norm_num : (2:ℝ) ≠ 0)]
+    have e3 : (2 : ℝ) = 1 + 1 := by norm_num
+    rw [e3, Real.Gamma_add_one (by norm_num : (1:ℝ) ≠ 0), Real.Gamma_one]
+    ring
+  rw [hΓ4]
+  -- a^(-4 : ℝ) = (a^4)⁻¹.
+  have ha4 : a^(-4 : ℝ) = (a^(4:ℕ))⁻¹ := by
+    have hcast : ((4:ℕ):ℝ) = (4:ℝ) := by norm_num
+    rw [show (-4:ℝ) = -((4:ℕ):ℝ) from by rw [hcast],
+        Real.rpow_neg ha.le, Real.rpow_natCast]
+  rw [ha4]
+  have ha4_ne : a^(4:ℕ) ≠ 0 := pow_ne_zero _ ha.ne'
+  field_simp
+  ring
 
 end TheoremaAureum.Towers.YM.HeatTraceBound
