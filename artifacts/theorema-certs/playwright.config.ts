@@ -64,10 +64,26 @@ const MANAGED_TEST_IGNORE = process.env
 export default defineConfig({
   testDir: "./tests/e2e",
   testIgnore: MANAGED ? MANAGED_TEST_IGNORE : [],
+  // Task #166: the specs are isolation-safe by construction — each
+  // fixture-driven spec opens its own random-port in-process express
+  // server (`.listen(0)`) over its own `mkdtempSync` tmp dir, and the
+  // mock-only specs intercept everything they assert via `page.route`.
+  // No shared filesystem state, no shared port, no shared globals.
+  // So we run files in parallel (`fullyParallel: false` + multi-worker
+  // = file-level parallelism — one worker per spec file, tests within
+  // a file still run serial, preserving any implicit ordering inside
+  // a `test.describe` block).
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: 1,
+  workers: Number(process.env.PLAYWRIGHT_WORKERS ?? "2"),
+  // Task #166: under parallel workers a few of the slower
+  // watchdog / sidecar-ack specs occasionally brush the default 30s
+  // per-test ceiling (they each wait on a 5s monitor tick + a
+  // dashboard re-poll + a forced server restart). Bumping to 45s
+  // gives the CPU-contention case headroom without masking real
+  // hangs — anything legitimately stuck still fails fast.
+  timeout: 45_000,
   reporter: "list",
   use: {
     baseURL:
@@ -86,8 +102,16 @@ export default defineConfig({
             // the specific endpoints they assert against via
             // `page.route`, so the api-server only has to be alive
             // enough to keep `/api/certificates` from 500-ing.
+            // Task #166: avoid the unconditional `build && start` of
+            // `run dev` — esbuild over the api-server takes ~5-10s and
+            // dominates managed-mode boot. Reuse `dist/index.mjs` when
+            // present (the CI wrapper `scripts/check-theorema-certs-e2e.sh`
+            // pre-builds it once); only fall back to a build when the
+            // bundle is missing (e.g. raw local `playwright test`
+            // invocations on a clean checkout). `exec` so signal
+            // handling stays clean.
             command:
-              "pnpm --filter @workspace/api-server run dev",
+              "sh -c '([ -f ../api-server/dist/index.mjs ] || pnpm --filter @workspace/api-server run build) && exec pnpm --filter @workspace/api-server run start'",
             url: `http://127.0.0.1:${MANAGED_API_PORT}/api/healthz`,
             // reuseExistingServer: true so the e2e suite works in
             // both fresh-CI (port 8080 free → boot our own) and

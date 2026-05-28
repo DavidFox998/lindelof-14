@@ -93,7 +93,19 @@ if [[ "${LAUNCH_FAILED:-0}" == "1" ]]; then
   exit 0
 fi
 
-# 4. Run the suite. PLAYWRIGHT_MANAGED_WEB_SERVER=1 tells the
+# 4. Task #166: pre-build the api-server once, so the Playwright
+#    managed webServer can `node ./dist/index.mjs` straight away
+#    instead of paying the esbuild cost on every boot. The config
+#    falls back to a build itself if the bundle is missing, so this
+#    is an optimisation, not a hard requirement — but for the CI
+#    gate we always want the warm path.
+echo "[check-theorema-certs-e2e] pre-building api-server bundle…" >&2
+pnpm --filter @workspace/api-server run build >/tmp/api-server-build.log 2>&1 || {
+  tail -n 40 /tmp/api-server-build.log >&2 || true
+  fatal "api-server build failed — cannot run e2e suite."
+}
+
+# 5. Run the suite. PLAYWRIGHT_MANAGED_WEB_SERVER=1 tells the
 #    Playwright config to boot its own Vite dev server scoped to
 #    this process, so we don't depend on the long-running dashboard
 #    workflow being up.
