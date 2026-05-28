@@ -353,6 +353,26 @@ paths:
             minimum: 1
             maximum: 100
             default: 20
+        - name: rotation
+          in: query
+          required: false
+          description: |
+            Task #168. Which forged-ack history file to read. `0`
+            (the default) reads the live
+            `data/hits.txt.lastok.forged-ack.log.jsonl`. `1` reads
+            `data/hits.txt.lastok.forged-ack.log.jsonl.1` (the most
+            recently rotated archive), `2` reads `.2`, and so on up
+            to the rotator's configured
+            `MORNINGSTAR_FORGED_ACK_HISTORY_MAX_ROTATIONS`. Rotated
+            reads are best-effort: missing or partially written
+            rotations return an empty `entries` array with
+            `logExists: false`. Mirrors the rotation paging contract
+            on `/lean/ledger-alerts` so the dashboard can render a
+            uniform "page back into archive" control.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
       responses:
         "200":
           description: Forged-ack history
@@ -1109,11 +1129,34 @@ components:
             header, or the literal `"anonymous"`. Null only on legacy
             entries written before task #139 attribution landed.
 
+    SidecarForgedAckHistoryRotation:
+      type: object
+      required: [index, path, size, mtime]
+      description: |
+        One rotated archive of the forged-ack history log on disk
+        (`data/hits.txt.lastok.forged-ack.log.jsonl.<index>`). Task #168.
+      properties:
+        index:
+          type: integer
+          minimum: 1
+          description: Rotation index. `1` is the most recently rotated archive.
+        path:
+          type: string
+          description: Absolute path to the rotated file on disk.
+        size:
+          type: integer
+          description: Size of the rotated file in bytes (for the dashboard tooltip).
+        mtime:
+          type: string
+          format: date-time
+          description: ISO-8601 mtime of the rotated file (i.e. when the rotation happened).
+
     SidecarForgedAckHistory:
       type: object
-      required: [entries, logExists, capacity]
+      required: [entries, logExists, capacity, rotation, rotations]
       description: |
-        Result of `GET /ledger/sidecar-forged-ack/history` (task #150).
+        Result of `GET /ledger/sidecar-forged-ack/history` (task #150,
+        rotation paging added by task #168).
       properties:
         entries:
           type: array
@@ -1129,6 +1172,27 @@ components:
         capacity:
           type: integer
           description: Maximum number of entries the endpoint will return per request.
+        rotation:
+          type: integer
+          minimum: 0
+          description: |
+            Which rotation file was read on this call. `0` means the
+            live `data/hits.txt.lastok.forged-ack.log.jsonl`; `N >= 1`
+            means `…log.jsonl.N`. Echoes the request param so the
+            dashboard can highlight the active page tab without a
+            second round-trip. Task #168.
+        rotations:
+          type: array
+          items:
+            $ref: "#/components/schemas/SidecarForgedAckHistoryRotation"
+          description: |
+            Snapshot of every rotated archive currently on disk
+            (`…log.jsonl.1`, `.2`, …), newest-rotated first by index.
+            Empty when no rotation has ever happened — the live file
+            is the only history surface. Lets the dashboard render
+            prev/next paging controls without polling each rotation
+            index blindly. Mirrors `LedgerAlertsResponse.rotations`.
+            Task #168.
 
     SidecarForgedAckResult:
       type: object

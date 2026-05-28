@@ -932,8 +932,20 @@ router.get("/ledger/sidecar-forged-ack/history", (req, res) => {
       limit = Math.floor(parsed);
     }
   }
+  // Task #168: rotation paging — `0` (default) reads the live history
+  // file, `N >= 1` reads the Nth archive. Clamping happens inside the
+  // checker so a hostile `?rotation=999999` query can't drive path
+  // traversal.
+  const rawRotation = req.query["rotation"];
+  let rotation: number | undefined;
+  if (typeof rawRotation === "string" && rawRotation.trim() !== "") {
+    const parsed = Number(rawRotation);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      rotation = Math.floor(parsed);
+    }
+  }
   try {
-    const result = forgedSidecarHistoryLister(limit);
+    const result = forgedSidecarHistoryLister(limit, rotation);
     res.json(result);
   } catch (err) {
     req.log.error({ err }, "Failed to read forged-ack history");

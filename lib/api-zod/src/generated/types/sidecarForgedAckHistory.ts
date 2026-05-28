@@ -6,9 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { SidecarForgedAckHistoryEntry } from './sidecarForgedAckHistoryEntry';
+import type { SidecarForgedAckHistoryRotation } from './sidecarForgedAckHistoryRotation';
 
 /**
- * Result of `GET /ledger/sidecar-forged-ack/history` (task #150).
+ * Result of `GET /ledger/sidecar-forged-ack/history` (task #150,
+rotation paging added by task #168).
 
  */
 export interface SidecarForgedAckHistory {
@@ -21,4 +23,23 @@ export interface SidecarForgedAckHistory {
   logExists: boolean;
   /** Maximum number of entries the endpoint will return per request. */
   capacity: number;
+  /**
+     * Which rotation file was read on this call. `0` means the
+  live `data/hits.txt.lastok.forged-ack.log.jsonl`; `N >= 1`
+  means `…log.jsonl.N`. Echoes the request param so the
+  dashboard can highlight the active page tab without a
+  second round-trip. Task #168.
+
+     * @minimum 0
+     */
+  rotation: number;
+  /** Snapshot of every rotated archive currently on disk
+  (`…log.jsonl.1`, `.2`, …), newest-rotated first by index.
+  Empty when no rotation has ever happened — the live file
+  is the only history surface. Lets the dashboard render
+  prev/next paging controls without polling each rotation
+  index blindly. Mirrors `LedgerAlertsResponse.rotations`.
+  Task #168.
+   */
+  rotations: SidecarForgedAckHistoryRotation[];
 }

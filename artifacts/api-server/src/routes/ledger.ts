@@ -791,6 +791,46 @@ function appendForgedAckHistory(
   }
 }
 
+/**
+ * Task #168: upper bound on how many rotated forged-ack history files
+ * we probe for. The rotator caps itself at
+ * `MORNINGSTAR_FORGED_ACK_HISTORY_MAX_ROTATIONS` (default 3), but an
+ * operator may have manually preserved older archives next to the
+ * live file; mirror the `ledger-alerts.jsonl` rotation probe so the
+ * dashboard surfaces every archive on disk.
+ */
+const FORGED_ACK_HISTORY_ROTATION_PROBE_MAX = 32;
+
+interface ForgedAckHistoryRotationInfo {
+  index: number;
+  path: string;
+  size: number;
+  mtime: string;
+}
+
+function listForgedAckHistoryRotations(
+  historyPath: string,
+): ForgedAckHistoryRotationInfo[] {
+  const out: ForgedAckHistoryRotationInfo[] = [];
+  for (let i = 1; i <= FORGED_ACK_HISTORY_ROTATION_PROBE_MAX; i++) {
+    const p = `${historyPath}.${i}`;
+    try {
+      const st = statSync(p);
+      if (st.isFile()) {
+        out.push({
+          index: i,
+          path: p,
+          size: st.size,
+          mtime: st.mtime.toISOString(),
+        });
+      }
+    } catch {
+      // Missing or unreadable rotation — skip silently.
+    }
+  }
+  return out;
+}
+
 function readForgedAckHistory(
   historyPath: string,
   limit: number,
@@ -965,7 +1005,10 @@ export interface LedgerChecker {
    * dismissed prior incidents (after the single-incident sidecar
    * has been replaced).
    */
-  listForgedAckHistory: (limit?: number) => {
+  listForgedAckHistory: (
+    limit?: number,
+    rotation?: number,
+  ) => {
     entries: Array<{
       payloadSha: string;
       acknowledgedAt: string;
@@ -973,6 +1016,25 @@ export interface LedgerChecker {
     }>;
     logExists: boolean;
     capacity: number;
+    /**
+     * Task #168: which rotation file was read. `0` = the live
+     * `data/hits.txt.lastok.forged-ack.log.jsonl`; `N >= 1` reads
+     * the `.N` archive. Echoes the request so the dashboard can
+     * highlight the active tab without a second round-trip.
+     */
+    rotation: number;
+    /**
+     * Task #168: snapshot of every rotated archive currently on
+     * disk (newest-rotated first by index). Lets the dashboard
+     * render paging controls without polling each rotation index
+     * blindly. Mirrors `/lean/ledger-alerts`'s `availableRotations`.
+     */
+    rotations: Array<{
+      index: number;
+      path: string;
+      size: number;
+      mtime: string;
+    }>;
   };
   /**
    * Task #140: rotate the sidecar HMAC secret in response to a tamper
@@ -1735,18 +1797,36 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
       return true;
     },
     acknowledgeForgedSidecar,
-    listForgedAckHistory(limit?: number) {
+    listForgedAckHistory(limit?: number, rotation?: number) {
       const cap = FORGED_ACK_HISTORY_LIST_CAPACITY;
       const n =
         typeof limit === "number" && Number.isFinite(limit) && limit > 0
           ? Math.min(Math.floor(limit), cap)
           : cap;
+      // Task #168: rotation paging. `0` (default) = live file; `N >= 1`
+      // reads `${FORGED_ACK_HISTORY_PATH}.N`. Clamp to the probe ceiling
+      // so a hostile query param can't drive arbitrary path traversal.
+      const rotNorm =
+        typeof rotation === "number" && Number.isFinite(rotation) && rotation > 0
+          ? Math.min(Math.floor(rotation), FORGED_ACK_HISTORY_ROTATION_PROBE_MAX)
+          : 0;
+      const targetPath =
+        rotNorm > 0
+          ? `${FORGED_ACK_HISTORY_PATH}.${rotNorm}`
+          : FORGED_ACK_HISTORY_PATH;
       const { entries, logExists } = readForgedAckHistory(
-        FORGED_ACK_HISTORY_PATH,
+        targetPath,
         n,
         defaultLogger,
       );
-      return { entries, logExists, capacity: cap };
+      const rotations = listForgedAckHistoryRotations(FORGED_ACK_HISTORY_PATH);
+      return {
+        entries,
+        logExists,
+        capacity: cap,
+        rotation: rotNorm,
+        rotations,
+      };
     },
     rotateSidecarSecret,
   };

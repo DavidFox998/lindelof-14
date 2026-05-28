@@ -45,6 +45,7 @@ export * from './morningstarHits';
 export * from './morningstarProbe';
 export * from './sidecarForgedAckHistory';
 export * from './sidecarForgedAckHistoryEntry';
+export * from './sidecarForgedAckHistoryRotation';
 export * from './sidecarForgedAckResult';
 export * from './sidecarSecretRotateResult';
 export * from './sidecarSecretRotateResultPersistedTo';

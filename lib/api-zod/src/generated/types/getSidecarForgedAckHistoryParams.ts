@@ -15,4 +15,21 @@ above the server cap are clamped down silently.
  * @maximum 100
  */
 limit?: number;
+/**
+ * Task #168. Which forged-ack history file to read. `0`
+(the default) reads the live
+`data/hits.txt.lastok.forged-ack.log.jsonl`. `1` reads
+`data/hits.txt.lastok.forged-ack.log.jsonl.1` (the most
+recently rotated archive), `2` reads `.2`, and so on up
+to the rotator's configured
+`MORNINGSTAR_FORGED_ACK_HISTORY_MAX_ROTATIONS`. Rotated
+reads are best-effort: missing or partially written
+rotations return an empty `entries` array with
+`logExists: false`. Mirrors the rotation paging contract
+on `/lean/ledger-alerts` so the dashboard can render a
+uniform "page back into archive" control.
+
+ * @minimum 0
+ */
+rotation?: number;
 };

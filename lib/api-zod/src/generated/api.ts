@@ -328,11 +328,20 @@ handled the earlier incidents. Read-only, no auth — mirrors
 export const getSidecarForgedAckHistoryQueryLimitDefault = 20;
 export const getSidecarForgedAckHistoryQueryLimitMax = 100;
 
+export const getSidecarForgedAckHistoryQueryRotationDefault = 0;
+export const getSidecarForgedAckHistoryQueryRotationMin = 0;
+
 
 
 export const GetSidecarForgedAckHistoryQueryParams = zod.object({
-  "limit": zod.coerce.number().min(1).max(getSidecarForgedAckHistoryQueryLimitMax).default(getSidecarForgedAckHistoryQueryLimitDefault).describe('Maximum entries to return (default = capacity). Values\nabove the server cap are clamped down silently.\n')
+  "limit": zod.coerce.number().min(1).max(getSidecarForgedAckHistoryQueryLimitMax).default(getSidecarForgedAckHistoryQueryLimitDefault).describe('Maximum entries to return (default = capacity). Values\nabove the server cap are clamped down silently.\n'),
+  "rotation": zod.coerce.number().min(getSidecarForgedAckHistoryQueryRotationMin).default(getSidecarForgedAckHistoryQueryRotationDefault).describe('Task #168. Which forged-ack history file to read. `0`\n(the default) reads the live\n`data\/hits.txt.lastok.forged-ack.log.jsonl`. `1` reads\n`data\/hits.txt.lastok.forged-ack.log.jsonl.1` (the most\nrecently rotated archive), `2` reads `.2`, and so on up\nto the rotator\'s configured\n`MORNINGSTAR_FORGED_ACK_HISTORY_MAX_ROTATIONS`. Rotated\nreads are best-effort: missing or partially written\nrotations return an empty `entries` array with\n`logExists: false`. Mirrors the rotation paging contract\non `\/lean\/ledger-alerts` so the dashboard can render a\nuniform \"page back into archive\" control.\n')
 })
+
+export const getSidecarForgedAckHistoryResponseRotationMin = 0;
+
+
+
 
 export const GetSidecarForgedAckHistoryResponse = zod.object({
   "entries": zod.array(zod.object({
@@ -341,8 +350,15 @@ export const GetSidecarForgedAckHistoryResponse = zod.object({
   "ackedBy": zod.string().nullish().describe('Attribution string for the operator who dismissed the\nbanner. Matched named token, sanitized `X-Referee-Name`\nheader, or the literal `\"anonymous\"`. Null only on legacy\nentries written before task #139 attribution landed.\n')
 }).describe('One operator-driven dismissal of a forged-sidecar banner,\nas parsed from the rotating history log.\n')).describe('Most-recent-first slice of past forged-sidecar dismissals.'),
   "logExists": zod.boolean().describe('True iff the rotating history log exists on disk. False is\nthe normal healthy state — no forged-sidecar incident has\never been acknowledged on this deploy.\n'),
-  "capacity": zod.number().describe('Maximum number of entries the endpoint will return per request.')
-}).describe('Result of `GET \/ledger\/sidecar-forged-ack\/history` (task #150).\n')
+  "capacity": zod.number().describe('Maximum number of entries the endpoint will return per request.'),
+  "rotation": zod.number().min(getSidecarForgedAckHistoryResponseRotationMin).describe('Which rotation file was read on this call. `0` means the\nlive `data\/hits.txt.lastok.forged-ack.log.jsonl`; `N >= 1`\nmeans `…log.jsonl.N`. Echoes the request param so the\ndashboard can highlight the active page tab without a\nsecond round-trip. Task #168.\n'),
+  "rotations": zod.array(zod.object({
+  "index": zod.number().min(1).describe('Rotation index. `1` is the most recently rotated archive.'),
+  "path": zod.string().describe('Absolute path to the rotated file on disk.'),
+  "size": zod.number().describe('Size of the rotated file in bytes (for the dashboard tooltip).'),
+  "mtime": zod.coerce.date().describe('ISO-8601 mtime of the rotated file (i.e. when the rotation happened).')
+}).describe('One rotated archive of the forged-ack history log on disk\n(`data\/hits.txt.lastok.forged-ack.log.jsonl.<index>`). Task #168.\n')).describe('Snapshot of every rotated archive currently on disk\n(`…log.jsonl.1`, `.2`, …), newest-rotated first by index.\nEmpty when no rotation has ever happened — the live file\nis the only history surface. Lets the dashboard render\nprev\/next paging controls without polling each rotation\nindex blindly. Mirrors `LedgerAlertsResponse.rotations`.\nTask #168.\n')
+}).describe('Result of `GET \/ledger\/sidecar-forged-ack\/history` (task #150,\nrotation paging added by task #168).\n')
 
 
 /**

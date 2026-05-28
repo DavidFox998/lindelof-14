@@ -400,17 +400,28 @@ export default function DashboardPage() {
   const [isRerollingCheckpoint, setIsRerollingCheckpoint] = useState(false);
   const [rerollLogLines, setRerollLogLines] = useState<RebuildLogLine[]>([]);
   const rerollAbortRef = useRef<AbortController | null>(null);
-  const { data: forgedAckHistory } = useGetSidecarForgedAckHistory(undefined, {
-    query: {
-      queryKey: getGetSidecarForgedAckHistoryQueryKey(),
-      // Task #150: poll alongside the integrity status so the
-      // "Recent dismissals" panel under the forged banner stays
-      // fresh after each Acknowledge click.
-      refetchInterval: 30_000,
-      refetchIntervalInBackground: false,
-      retry: false,
+  // Task #168: rotation paging for the "Recent dismissals" panel.
+  // `0` = live forged-ack history file, `N >= 1` = the Nth rotated
+  // archive. Rotated archives are immutable so we skip the poll when
+  // not on the live page, exactly like the alerts panel.
+  const [forgedAckRotation, setForgedAckRotation] = useState<number>(0);
+  const forgedAckHistoryParams = { rotation: forgedAckRotation };
+  const { data: forgedAckHistory } = useGetSidecarForgedAckHistory(
+    forgedAckHistoryParams,
+    {
+      query: {
+        queryKey: getGetSidecarForgedAckHistoryQueryKey(forgedAckHistoryParams),
+        // Task #150: poll alongside the integrity status so the
+        // "Recent dismissals" panel under the forged banner stays
+        // fresh after each Acknowledge click. Rotated archives never
+        // change once the rotator has moved on, so don't waste cycles
+        // re-fetching them.
+        refetchInterval: forgedAckRotation === 0 ? 30_000 : false,
+        refetchIntervalInBackground: false,
+        retry: false,
+      },
     },
-  });
+  );
   const { data: checkpointRerollHistory } = useGetLedgerCheckpointRerollHistory({
     query: {
       queryKey: getGetLedgerCheckpointRerollHistoryQueryKey(),
@@ -2249,18 +2260,50 @@ export default function DashboardPage() {
                 // panel is what operators investigating a repeat
                 // tamper attack rely on to see who dismissed earlier
                 // banners.
+                // Task #168: also surfaces prev/next paging into the
+                // rotated archives so a long-running tamper campaign
+                // doesn't lose its earlier dismissals once the live
+                // file rotates past the byte cap.
                 const entries = forgedAckHistory?.entries ?? [];
-                if (entries.length === 0) return null;
+                const rotations = forgedAckHistory?.rotations ?? [];
+                const currentRotation =
+                  forgedAckHistory?.rotation ?? forgedAckRotation;
+                // Hide the whole panel when there is nothing to show
+                // anywhere — neither live entries nor any rotated
+                // archive on disk.
+                if (entries.length === 0 && rotations.length === 0) {
+                  return null;
+                }
                 const capacity =
                   forgedAckHistory?.capacity ?? entries.length;
+                const maxRotationIdx = rotations.reduce(
+                  (m, r) => (r.index > m ? r.index : m),
+                  0,
+                );
+                const canGoOlder = currentRotation < maxRotationIdx;
+                const canGoNewer = currentRotation > 0;
+                const fmtSize = (n: number): string => {
+                  if (n < 1024) return `${n} B`;
+                  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+                  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+                };
                 return (
                   <div
                     className="border border-red-500/30 bg-background/40 mt-2"
                     data-testid="panel-ledger-sidecar-forged-history"
+                    data-rotation={currentRotation}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1 border-b border-red-500/20">
                       <span className="font-mono text-[10px] uppercase tracking-wider text-red-700/80 dark:text-red-300/80">
                         Recent dismissals
+                        {currentRotation > 0 ? (
+                          <span
+                            className="ml-2 normal-case tracking-normal text-red-700/60 dark:text-red-300/60"
+                            data-testid="text-ledger-sidecar-forged-history-archive-label"
+                          >
+                            (archive .{currentRotation})
+                          </span>
+                        ) : null}
                       </span>
                       <span
                         className="font-mono text-[10px] text-red-700/70 dark:text-red-300/70"
@@ -2269,6 +2312,94 @@ export default function DashboardPage() {
                         {entries.length} of last {capacity}
                       </span>
                     </div>
+                    {rotations.length > 0 ? (
+                      <div
+                        className="flex flex-wrap items-center gap-2 px-2 py-1 border-b border-red-500/20 bg-red-500/5"
+                        data-testid="panel-ledger-sidecar-forged-history-rotations"
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForgedAckRotation((r) =>
+                              Math.max(0, r - 1),
+                            )
+                          }
+                          disabled={!canGoNewer}
+                          className="font-mono text-[10px] px-2 py-0.5 border border-red-500/30 rounded-sm bg-background/40 hover:bg-background/70 disabled:opacity-40 disabled:cursor-not-allowed"
+                          data-testid="btn-ledger-sidecar-forged-history-newer"
+                          title="Page to the newer archive (or back to the live file)"
+                        >
+                          ← newer
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setForgedAckRotation(0)}
+                          className={`font-mono text-[10px] px-2 py-0.5 border rounded-sm ${
+                            currentRotation === 0
+                              ? "bg-red-500/80 text-white border-red-500"
+                              : "bg-background/40 border-red-500/30 hover:bg-background/70"
+                          }`}
+                          data-testid="btn-ledger-sidecar-forged-history-rotation-0"
+                          title="Live forged-ack history (data/hits.txt.lastok.forged-ack.log.jsonl)"
+                        >
+                          live
+                        </button>
+                        {rotations.map((r) => (
+                          <button
+                            key={`forged-ack-rot-${r.index}`}
+                            type="button"
+                            onClick={() => setForgedAckRotation(r.index)}
+                            className={`font-mono text-[10px] px-2 py-0.5 border rounded-sm ${
+                              currentRotation === r.index
+                                ? "bg-red-500/80 text-white border-red-500"
+                                : "bg-background/40 border-red-500/30 hover:bg-background/70"
+                            }`}
+                            data-testid={`btn-ledger-sidecar-forged-history-rotation-${r.index}`}
+                            title={`Rotated archive .${r.index} — ${fmtSize(r.size)}, rotated ${formatTimestamp(r.mtime)}`}
+                          >
+                            .{r.index}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForgedAckRotation((r) =>
+                              Math.min(maxRotationIdx, r + 1),
+                            )
+                          }
+                          disabled={!canGoOlder}
+                          className="font-mono text-[10px] px-2 py-0.5 border border-red-500/30 rounded-sm bg-background/40 hover:bg-background/70 disabled:opacity-40 disabled:cursor-not-allowed"
+                          data-testid="btn-ledger-sidecar-forged-history-older"
+                          title="Page to the next-older archive"
+                        >
+                          older →
+                        </button>
+                        {currentRotation > 0 ? (
+                          <span
+                            className="font-mono text-[10px] text-red-700/70 dark:text-red-300/70 ml-auto"
+                            data-testid="text-ledger-sidecar-forged-history-rotation-hint"
+                          >
+                            read-only archive
+                          </span>
+                        ) : (
+                          <span
+                            className="font-mono text-[10px] text-red-700/70 dark:text-red-300/70 ml-auto"
+                            data-testid="text-ledger-sidecar-forged-history-rotation-hint"
+                          >
+                            {rotations.length} rotated archive
+                            {rotations.length === 1 ? "" : "s"} available
+                          </span>
+                        )}
+                      </div>
+                    ) : null}
+                    {entries.length === 0 ? (
+                      <p
+                        className="px-2 py-2 font-mono text-[10px] text-red-700/60 dark:text-red-300/60"
+                        data-testid="text-ledger-sidecar-forged-history-empty"
+                      >
+                        archive empty
+                      </p>
+                    ) : null}
                     <ul className="divide-y divide-red-500/15">
                       {entries.map((entry, i) => (
                         <li
