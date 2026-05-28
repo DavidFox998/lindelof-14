@@ -440,6 +440,29 @@ BRICKS=(
   # is closure of the *placeholder* predicate under the full Galilean
   # change of inertial frame.
   "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.HasFiniteEnergy_galilean_group"
+  # Task #164 (2026-05-28): rotating-frame (Coriolis) closure of the
+  # placeholder finite-energy predicate — switching to a frame spinning
+  # at angular velocity Ω, `(t, x) ↦ (t + s, R (t + s) x + a + (t + s) • v)`,
+  # with `R : ℝ → (EuclideanSpace ℝ (Fin 3) →ₗᵢ[ℝ] EuclideanSpace ℝ (Fin 3))`
+  # a time-dependent family of linear isometries rather than the fixed
+  # rotation of Task #146. Same one-line composition trick as Task #146:
+  # the placeholder predicate inspects `u₀` only at `t = 0`, so the
+  # spinning rotation collapses to the single isometry `R s` at the
+  # evaluation point and `simpa using h (R s x + a + s • v)` closes
+  # the bound with the original witness `M`. Conditional on the same
+  # uniform spatial bound at the shifted time `s` inherited from
+  # Task #100, same witness `M` end-to-end. Completes the
+  # symmetry-group catalog the placeholder schema is honest under:
+  # rigid Euclidean motion (Task #101), spacetime rigid motion
+  # (Task #118), full inhomogeneous Galilean group (Task #146), and
+  # now the time-dependent rotating frame. NS tower status unchanged:
+  # Open (`docs/ROADMAP.md` § 3). NOT a statement about the L² energy
+  # bound or any Leray-Hopf solution, NOT real rotating-frame
+  # invariance of Navier-Stokes — the Coriolis force `2 Ω × u` and
+  # centrifugal force `Ω × (Ω × x)` are NOT present in the placeholder
+  # schema. This is closure of the *placeholder* predicate under a
+  # spinning change of reference frame, nothing more.
+  "Towers.NS.EnergyIneq|TheoremaAureum.Towers.NS.HasFiniteEnergy_rotating_frame"
   # Task #70 (2026-05-26): name the "energy never grows" predicate
   # inside the NS schema. `EnergyMonotone u u₀ : Prop` is the
   # explicit `∀ t, H1Norm u t ≤ H1Norm u₀ 0` shape named by the

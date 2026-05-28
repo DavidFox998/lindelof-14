@@ -1008,6 +1008,81 @@ theorem HasFiniteEnergy_galilean_group (u₀ : VelocityField)
     (fun (t : ℝ) (x : EuclideanSpace ℝ (Fin 3)) => u₀ t (x + t • v))
     s R a M (fun x => h (x + s • v))
 
+/-
+  ## Task #164 (2026-05-28) — rotating-frame (Coriolis) closure of the
+  placeholder finite-energy predicate.
+
+  Task #146 landed full *inhomogeneous Galilean* closure
+  (`HasFiniteEnergy_galilean_group`,
+  `(t, x) ↦ (t + s, R x + a + (t + s) • v)`) — the symmetry group
+  classical Navier-Stokes respects in inertial frames, with a fixed
+  rotation `R`. The natural next stand-in piece, completing the
+  symmetry-group catalog the placeholder schema is honest under, is
+  the **time-dependent rotating frame**
+  `(t, x) ↦ (t + s, R (t + s) x + a + (t + s) • v)` — switching to a
+  frame that *spins* at angular velocity Ω (a Coriolis / rotating
+  reference frame), via a one-parameter family
+  `R : ℝ → (EuclideanSpace ℝ (Fin 3) →ₗᵢ[ℝ] EuclideanSpace ℝ (Fin 3))`
+  rather than a fixed isometry.
+
+  **Honest scope.** Because the placeholder predicate
+  `HasFiniteEnergy u₀ := ∃ M, ∀ x, ‖u₀ 0 x‖ ≤ M` only inspects `u₀` at
+  `t = 0`, the spinning frame reduces at the evaluation point to the
+  single isometry `R s` (whichever rotation the family takes at the
+  shifted time `s`), and any linear isometry preserves norms pointwise.
+  The same one-line composition trick as Task #146 lands the brick
+  with the same witness `M`, conditional on the uniform spatial bound
+  at the shifted time `s` inherited from Task #100.
+
+  This is NOT real rotating-frame invariance of Navier-Stokes — that
+  would require the Coriolis force `2 Ω × u` and centrifugal force
+  `Ω × (Ω × x)` to appear in the momentum equation, which the
+  placeholder schema has no surface for. This is *placeholder closure
+  only*: the bounded-amplitude predicate reindexes through any family
+  of linear isometries on its single inspected time slice.
+
+  Does NOT advance the NS tower past `Status: Open` (see
+  `docs/ROADMAP.md` § 3). `HasFiniteEnergy` is still the Task #51
+  placeholder (bounded amplitude at `t = 0`), not the L² energy bound;
+  rotating-frame closure of the *placeholder* predicate is not
+  rotating-frame invariance of the real energy or of any Leray-Hopf
+  solution, and the Coriolis / centrifugal force terms are not
+  present in the schema.
+
+  Axiom-footprint contract (per `scripts/check-towers.sh`): the
+  theorem must be either axiom-free or use only the classical trio
+  `{propext, Classical.choice, Quot.sound}`.
+-/
+
+/-- **Rotating-frame (Coriolis) closure of placeholder finite-energy.**
+    Given a uniform spatial bound `∀ x, ‖u₀ s x‖ ≤ M` on `u₀` at the
+    shifted time `s`, any *time-dependent* family of linear isometries
+    `R : ℝ → (EuclideanSpace ℝ (Fin 3) →ₗᵢ[ℝ] EuclideanSpace ℝ (Fin 3))`
+    of `ℝ³`, any spatial translation `a : ℝ³`, and any boost velocity
+    `v : ℝ³`, the full *rotating-frame* change of inertial frame
+    `(t, x) ↦ u₀ (t + s) (R (t + s) x + a + (t + s) • v)` — switching
+    to a frame spinning at the (arbitrary) angular profile encoded by
+    `R` — also has finite placeholder energy with the *same* witness
+    `M`. Extends Task #146 (`HasFiniteEnergy_galilean_group`, fixed
+    rotation) by upgrading the rotation to a time-parameter family;
+    the proof reuses Task #146's witness because the placeholder
+    predicate only inspects `u₀` at `t = 0`, where the time-dependent
+    rotation degenerates to the single isometry `R s`. NOT a statement
+    about the L² energy bound or any Leray-Hopf solution, NOT real
+    rotating-frame invariance of Navier-Stokes (the Coriolis force
+    `2 Ω × u` and centrifugal force `Ω × (Ω × x)` are NOT present in
+    the placeholder schema); this is closure of the *placeholder*
+    predicate under a spinning change of reference frame. -/
+theorem HasFiniteEnergy_rotating_frame (u₀ : VelocityField)
+    (s : ℝ)
+    (R : ℝ → (EuclideanSpace ℝ (Fin 3) →ₗᵢ[ℝ] EuclideanSpace ℝ (Fin 3)))
+    (a v : EuclideanSpace ℝ (Fin 3)) (M : ℝ)
+    (h : ∀ x : EuclideanSpace ℝ (Fin 3), ‖u₀ s x‖ ≤ M) :
+    HasFiniteEnergy (fun (t : ℝ) (x : EuclideanSpace ℝ (Fin 3)) =>
+      u₀ (t + s) (R (t + s) x + a + (t + s) • v)) := by
+  refine ⟨M, fun x => ?_⟩
+  simpa using h (R s x + a + s • v)
+
 end NS
 end Towers
 end TheoremaAureum
