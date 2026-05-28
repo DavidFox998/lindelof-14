@@ -26,10 +26,6 @@ args = "kernel-numerics"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "morningstar-tamper"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "towers-build"
 
 [[workflows.workflow.tasks]]
@@ -39,6 +35,10 @@ args = "lake-recovery"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "theorema-certs-e2e"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "morningstar-tamper"
 
 [[workflows.workflow]]
 name = "lean-proof"
@@ -58,17 +58,6 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python -m pytest tests/test_kernel.py -q"
-
-[workflows.workflow.metadata]
-isValidation = true
-
-[[workflows.workflow]]
-name = "morningstar-tamper"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python -m pytest tests/test_morningstar.py -q"
 
 [workflows.workflow.metadata]
 isValidation = true
@@ -102,6 +91,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "STRICT_E2E_CHECK=1 bash scripts/check-theorema-certs-e2e.sh"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "morningstar-tamper"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python -m pytest tests/test_morningstar.py tests/test_reroll_checkpoint_script.py -q"
 
 [workflows.workflow.metadata]
 isValidation = true
