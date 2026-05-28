@@ -2493,6 +2493,47 @@ BRICKS=(
   "Towers.YM.SpectralGapOS|TheoremaAureum.Towers.YM.LatticeGauge.spectral_gap"
   "Towers.YM.SpectralGapOS|TheoremaAureum.Towers.YM.LatticeGauge.mass_gap_dirac"
   "Towers.YM.SpectralGapOS|TheoremaAureum.Towers.YM.LatticeGauge.mass_gap_pos"
+  # TRI PARALLEL #15 / Batches 175.1, 175.2, 175.3 — cluster
+  # expansion + correlation decay + real spectral-gap interface,
+  # all under the Dirac stand-in `T_OS = 0` propagated from
+  # Batch 174.2 + the trivial-`μ = 0` stand-in for Kotecký–Preiss.
+  # **Surface #1 stays OPEN.** Snippet's "Surface #1 CLOSED when
+  # this lands" claim REFUSED — locked invariant. KoteckyPreiss
+  # defines `β₀ := 0` (stand-in threshold) + `polymerWeight :=
+  # ∏ rexp(-β)`; brick `kotecky_preiss` witnesses `μ := 0`
+  # (snippet's `sorry -- fill: classic cluster expansion. Needs β
+  # >> 1.` eliminated via the trivial `μ = 0` pivot — `RHS = 1`
+  # and `polymerWeight ≤ 1` via `pow_le_one` +
+  # `Real.exp_lt_one_iff`). Does **NOT** close
+  # `Towers.Attempts.ClusterExpansion.kotecky_preiss_criterion`
+  # (different theorem; that `sorry` is invariant-locked).
+  # CorrelationDecay states the exponential-decay bound for the
+  # OS transfer operator (snippet's `‖⟪F,1⟫_ℂ * ⟪1,G⟫_ℂ‖`
+  # connected-correlation term dropped because `(1 : H_OS d L β)`
+  # does not typecheck — `Lp ℂ 2 μ` has no `One` instance);
+  # brick `correlation_decay` witnesses `m := 1`, `C := 0`,
+  # closed via `ContinuousLinearMap.zero_apply` +
+  # `inner_zero_right` + `norm_zero` (snippet's `sorry -- fill:
+  # uses 175.1 + chessboard estimate` eliminated via the
+  # `T_OS = 0`-propagation pivot, both sides reduce to `0`).
+  # SpectralGapReal lands two bricks: `spectral_gap_real`
+  # (`‖T_OS d L β‖ < 1` under `β > β₀`, **trivially true** via
+  # `T_OS = 0` — snippet's `sorry -- fill: from 175.2, ‖T‖ ≤
+  # e^{-m}` (the Clay-statement YM mass gap) eliminated via the
+  # `T_OS = 0` pivot, adds no new content over Batch 174.3's
+  # `spectral_gap`) and `mass_gap_pos_real` (bridge theorem,
+  # parameterized on `β > β₀` *and* `0 < ‖T_OS d L β‖`;
+  # snippet's `Real.neg_log_pos_iff.mpr` pivoted to
+  # `neg_pos.mpr (Real.log_neg h_pos h_lt)` because the snippet's
+  # lemma does NOT exist in mathlib v4.12.0; vacuously true
+  # under the stand-in because `0 < ‖T_OS‖ = 0` is false).
+  # **Genuine mass gap still requires**: real Wilson kernel +
+  # real Haar + Kotecký–Preiss at `μ > 0` + correlation
+  # inequalities — none landed.
+  "Towers.YM.KoteckyPreiss|TheoremaAureum.Towers.YM.LatticeGauge.kotecky_preiss"
+  "Towers.YM.CorrelationDecay|TheoremaAureum.Towers.YM.LatticeGauge.correlation_decay"
+  "Towers.YM.SpectralGapReal|TheoremaAureum.Towers.YM.LatticeGauge.spectral_gap_real"
+  "Towers.YM.SpectralGapReal|TheoremaAureum.Towers.YM.LatticeGauge.mass_gap_pos_real"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

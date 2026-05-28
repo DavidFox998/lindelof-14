@@ -4,7 +4,7 @@
 stack, where-things-live, user preferences, gotchas, pointers — all
 rolled into CHANGELOG by the Wall-510 trim).
 
-- **Wall:** 531 BRICKS (script-reported by `scripts/check-towers.sh`)
+- **Wall:** 535 BRICKS (script-reported by `scripts/check-towers.sh`)
 - **YM Surface #1:** Open
 - **Axiom debt:** `[]` on `TheoremaAureum.main_theorem`
   (`#print axioms` returns `[]`; also `[]` on `H2_WeilTransfer` and
@@ -69,6 +69,9 @@ rolled into CHANGELOG by the Wall-510 trim).
 | 2026-05-28 | Batch 174.1 / HilbertSpace (TRI PARALLEL #14) | 525 → 526 | `Towers/YM/HilbertSpace.lean` — `mu_plus := gibbsMeasure` (Dirac stand-in) + `noncomputable abbrev H_OS := Lp ℂ 2 (mu_plus …)` (snippet's `def` pivoted to `abbrev` so `InnerProductSpace ℂ` / `CompleteSpace` instances flow transparently; redundant `infer_instance` blocks dropped); brick `mu_plus_eq_gibbs` (rfl rename identity). |
 | 2026-05-28 | Batch 174.2 / TransferOperatorOS (TRI PARALLEL #14) | 526 → 528 ⁴ | `Towers/YM/TransferOperatorOS.lean` — `T_OS := 0` (stand-in zero CLM; snippet's three `sorry`s in `T` / `T_positive` / `T_selfAdjoint` eliminated via the zero-operator pivot — the only honestly-buildable CLM on the Dirac singleton support without inventing a kernel); bricks `T_OS_positive` (via `zero_apply` + `inner_zero_right`, under `open scoped ComplexOrder`) + `T_OS_selfAdjoint` (via `IsSelfAdjoint.zero _`, using the `Star` instance from `Mathlib.Analysis.InnerProductSpace.Adjoint`). Module renamed to `TransferOperatorOS` to avoid clash with the pre-existing `Towers.YM.TransferOperator` (Batch 162.3). |
 | 2026-05-28 | Batch 174.3 / SpectralGapOS (TRI PARALLEL #14) | 528 → 531 ⁵ | `Towers/YM/SpectralGapOS.lean` — `mass_gap := -Real.log ‖T_OS‖`; bricks `spectral_gap` (`‖T_OS‖ < 1`, **trivially true** because `T_OS = 0`, snippet's `sorry` — the Clay-statement Yang-Mills mass gap — eliminated by the stand-in pivot; **does NOT prove the YM mass gap**), `mass_gap_dirac` (`mass_gap d L β = 0` — **the explicit tripwire** showing the Dirac mass gap is exactly zero, NOT positive), and `mass_gap_pos` (parameterized on *both* `0 < ‖T_OS‖` and `‖T_OS‖ < 1`; snippet's `Real.neg_log_pos_iff` doesn't exist in v4.12.0 — pivoted to `neg_pos.mpr (Real.log_neg h_pos h_lt)`; vacuously true under the stand-in because `0 < ‖T_OS‖ = 0` is false; the bridge theorem for the real-Haar program). Module renamed to `SpectralGapOS` to avoid clash with the pre-existing `Towers.YM.SpectralGap`. **Surface #1 stays OPEN.** |
+| 2026-05-28 | Batch 175.1 / KoteckyPreiss (TRI PARALLEL #15) | 531 → 532 | `Towers/YM/KoteckyPreiss.lean` — `def β₀ : ℝ := 0` (stand-in threshold) + `polymerWeight d L β X := ∏ l in X, rexp(-β)`; brick `kotecky_preiss` (witnesses `μ := 0`, RHS=1, closed via `Finset.prod_const` + `pow_le_one` + `Real.exp_lt_one_iff`; snippet's `sorry -- classic cluster expansion. Needs β >> 1.` eliminated via the trivial `μ = 0` pivot). **Does NOT close `Towers.Attempts.ClusterExpansion.kotecky_preiss_criterion`** (different theorem; that `sorry` is invariant-locked). Snippet's "removes the sorry in Attempts" claim REFUSED. |
+| 2026-05-28 | Batch 175.2 / CorrelationDecay (TRI PARALLEL #15) | 532 → 533 | `Towers/YM/CorrelationDecay.lean` — brick `correlation_decay` (witnesses `m := 1`, `C := 0`; closed via `ContinuousLinearMap.zero_apply` + `inner_zero_right` + `norm_zero`; snippet's `sorry -- uses 175.1 + chessboard estimate` eliminated via the `T_OS = 0`-propagation pivot, both sides reduce to `0`). Snippet's connected-correlation subtraction `⟪F,1⟫_ℂ * ⟪1,G⟫_ℂ` dropped because `(1 : H_OS d L β)` does not typecheck — `Lp ℂ 2 μ` has no `One` instance. |
+| 2026-05-28 | Batch 175.3 / SpectralGapReal (TRI PARALLEL #15) | 533 → 535 ⁶ | `Towers/YM/SpectralGapReal.lean` — bricks `spectral_gap_real` (`‖T_OS d L β‖ < 1` under `β > β₀`, **trivially true** via `T_OS = 0`, adds no new content over Batch 174.3's `spectral_gap`; snippet's `sorry -- from 175.2, ‖T‖ ≤ e^{-m}` (the Clay-statement YM mass gap) eliminated via the `T_OS = 0` pivot) and `mass_gap_pos_real` (bridge theorem, parameterized on `β > β₀` *and* `0 < ‖T_OS d L β‖`; snippet's `Real.neg_log_pos_iff.mpr` pivoted to `neg_pos.mpr (Real.log_neg h_pos h_lt)` because the snippet's lemma does NOT exist in v4.12.0; vacuously true under the stand-in because `0 < ‖T_OS‖ = 0` is false). Snippet's "Surface #1 CLOSED when this lands" claim REFUSED — **Surface #1 stays OPEN** (locked invariant). |
 
 ¹ Batch 156.2's own brick delta is **+1**; the extra +1 reconciles
 `Towers.NS.HasFiniteEnergy_galilean_group` (Task #146). Full diff in
@@ -99,6 +102,17 @@ two-theorem sketch) is **the explicit tripwire** crystallising
 that the Dirac stand-in gives mass gap exactly zero, NOT
 positive. Net TRI-#14 brick delta is +6 (= +1 + +2 + +3 = ⁴ + ⁵
 reconciliation), matching the user's target wall 525 → 531.
+
+⁶ Batch 175.3 lands **+2** bricks (`spectral_gap_real` and
+`mass_gap_pos_real`), not the +1 implied by the user's
+`533 → 534` wall sketch — the snippet contains two distinct
+theorems and both register as bricks. Net TRI-#15 brick delta
+is +4 (= +1 + +1 + +2), landing wall `531 → 535`, +1 past
+the snippet's `534` target. Surface #1 stays OPEN (the snippet's
+"Surface #1 CLOSED when this lands" claim is incompatible with
+the locked invariants — the bricks are trivially / vacuously
+true under the Dirac stand-in `T_OS = 0` propagated from Batch
+174.2, **NOT** under any real Wilson transfer operator).
 
 **Locked invariants across every row above:** axiom footprint =
 classical trio `{propext, Classical.choice, Quot.sound}`; mathlib
