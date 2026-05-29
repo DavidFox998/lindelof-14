@@ -51,8 +51,11 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PACKAGES_DIR="$REPO_ROOT/lean-proof-towers/.lake/packages"
-TARS_DIR="$REPO_ROOT/lean-proof-towers/lake-deps"
+# PACKAGES_DIR / TARS_DIR default to the real vendored locations but
+# can be overridden via env vars so a smoke test (Task #192) can point
+# the script at a throwaway fixture instead of the ~20 MB live tars.
+PACKAGES_DIR="${RESTORE_LAKE_PACKAGES_DIR:-$REPO_ROOT/lean-proof-towers/.lake/packages}"
+TARS_DIR="${RESTORE_LAKE_TARS_DIR:-$REPO_ROOT/lean-proof-towers/lake-deps}"
 
 for tool in git tar; do
   if ! command -v "$tool" >/dev/null 2>&1; then
@@ -65,16 +68,25 @@ done
 # `lean-proof-towers/lake-manifest.json`. If the manifest pins a new
 # rev, regenerate the matching tar (see comment block at the bottom
 # of this file) and update the entry here.
-PKGS=(
-  "batteries|https://github.com/leanprover-community/batteries|4756e0fc48acce0cc808df0ad149de5973240df6"
-  "Qq|https://github.com/leanprover-community/quote4|2c8ae451ce9ffc83554322b14437159c1a9703f9"
-  "aesop|https://github.com/leanprover-community/aesop|28fa80508edc97d96ed6342c9a771a67189e0baa"
-  "proofwidgets|https://github.com/leanprover-community/ProofWidgets4|eb08eee94098fe530ccd6d8751a86fe405473d4c"
-  "Cli|https://github.com/leanprover/lean4-cli|2cf1030dc2ae6b3632c84a09350b675ef3e347d0"
-  "importGraph|https://github.com/leanprover-community/import-graph|e285a7ade149c551c17a4b24f127e1ef782e4bb1"
-  "LeanSearchClient|https://github.com/leanprover-community/LeanSearchClient|2ba60fa2c384a94735454db11a2d523612eaabff"
-  "mathlib|https://github.com/leanprover-community/mathlib4.git|809c3fb3b5c8f5d7dace56e200b426187516535a"
-)
+#
+# The set can be overridden via the `RESTORE_LAKE_PKGS` env var
+# (newline-separated `name|url|rev` entries) so a smoke test (Task
+# #192) can drive the heal path against a single throwaway fixture
+# package instead of the full 8-package vendored set.
+if [ -n "${RESTORE_LAKE_PKGS:-}" ]; then
+  mapfile -t PKGS <<< "$RESTORE_LAKE_PKGS"
+else
+  PKGS=(
+    "batteries|https://github.com/leanprover-community/batteries|4756e0fc48acce0cc808df0ad149de5973240df6"
+    "Qq|https://github.com/leanprover-community/quote4|2c8ae451ce9ffc83554322b14437159c1a9703f9"
+    "aesop|https://github.com/leanprover-community/aesop|28fa80508edc97d96ed6342c9a771a67189e0baa"
+    "proofwidgets|https://github.com/leanprover-community/ProofWidgets4|eb08eee94098fe530ccd6d8751a86fe405473d4c"
+    "Cli|https://github.com/leanprover/lean4-cli|2cf1030dc2ae6b3632c84a09350b675ef3e347d0"
+    "importGraph|https://github.com/leanprover-community/import-graph|e285a7ade149c551c17a4b24f127e1ef782e4bb1"
+    "LeanSearchClient|https://github.com/leanprover-community/LeanSearchClient|2ba60fa2c384a94735454db11a2d523612eaabff"
+    "mathlib|https://github.com/leanprover-community/mathlib4.git|809c3fb3b5c8f5d7dace56e200b426187516535a"
+  )
+fi
 
 restore_one() {
   local name="$1"
