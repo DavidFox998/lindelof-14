@@ -6,6 +6,14 @@ this file is the version history.
 
 ---
 
+## Wall 574 / [YM1] — mass-gap TARGET scaffold (2026-05-29)
+
+| Date | Task / Batch | Δ Wall | Headline |
+|---|---|---|---|
+| 2026-05-29 | Wall 574 / [YM1] mass-gap scaffold | 528 → 528 (+0) | `Towers/YM/MassGap574.lean` written. **Documentation stub, NOT a proof.** States `theorem YM_mass_gap : ∃ m > 0, spectrum_bound H m` with one `sorry`; references the **unbuilt** real Wilson transfer Hamiltonian `H` (NOT the `H = 1` stand-in of Wall 572 `hamiltonian_pos`) and the unbuilt `spectrum_bound` predicate. Does NOT elaborate; **NOT a `lakefile.lean` root, NOT in `scripts/check-towers.sh` BRICKS** (a `sorry`-bearing decl never enters the wall). INVARIANT-LOCKED: no mass-gap / μ>0 / Surface-#1-CLOSED claim — **Surface #1 OPEN**, YM Status: Open. Wall unchanged at **528** (Task #211's +7 already landed). Real `H` construction = a future task (NOT the merged Task #208). Audit this session: `lattice_positivity` re-printed live `= []` (plain `lean`); `hamiltonian_pos` / `gap_reduction` = classical trio from last green run (files byte-identical since landing) — live re-print blocked by the mathlib partial-cache recovery bug (Tasks #213/#245) + main-agent `git checkout` guard. |
+
+---
+
 ## Task #208 — Mathlib build unblock + OS-surface deferral (2026-05-29)
 
 | Date | Task / Batch | Δ Wall | Headline |

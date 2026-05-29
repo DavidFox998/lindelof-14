@@ -236,6 +236,34 @@ Resolution (user-approved, deferral path):
 
 ## Pending / in-flight (not yet landed)
 
+- **Wall 574 / [YM1] — mass-gap TARGET scaffold (2026-05-29)** —
+  `Towers/YM/MassGap574.lean` written. DOCUMENTATION STUB ONLY, **NOT a
+  proof**: states `theorem YM_mass_gap : ∃ m > 0, spectrum_bound H m`
+  carrying a single `sorry`. References two **unbuilt** symbols — `H`
+  (the real Wilson / Yang–Mills transfer Hamiltonian, NOT the `H = 1`
+  stand-in of Wall 572 `hamiltonian_pos`) and `spectrum_bound` (the
+  spectral-gap predicate). Because both are undefined, the file does
+  NOT elaborate; it is deliberately NOT a `lakefile.lean` root and
+  **NOT registered in `scripts/check-towers.sh` BRICKS** (a
+  `sorry`-bearing decl must never enter the wall). INVARIANT-LOCKED:
+  makes NO mass-gap / μ>0 / Surface-#1-CLOSED claim while the `sorry`
+  stands — **Surface #1 stays OPEN**, YM Status: Open. Script-reported
+  wall **unchanged at 528** (Task #211's +7 already landed; this stub
+  adds 0). The real `H` construction = a FUTURE task (the already-merged
+  Task #208 was the build-unblock + OS deferral, NOT the real-H build).
+  - **Drift note:** the dictated ledger line said "GREEN at 521 / real
+    H = Task #208"; corrected to the machine truth — wall = **528**
+    (post-#211), and real-H is a not-yet-created task, not #208.
+  - **Verify note:** `lattice_positivity` re-printed live this session
+    (`= []`, plain `lean`, pure-core). Live re-print of `hamiltonian_pos`
+    was BLOCKED — a `lake env lean` invocation tripped the corrupt-`.git`
+    re-clone gotcha (wiped the mathlib worktree), and the `towers-build`
+    self-heal currently FAILS on partial-cache recovery (the exact
+    in-flight bug of Tasks #213/#245); repopulating the worktree needs
+    `git checkout -f`, disallowed for the main agent. `hamiltonian_pos`
+    / `gap_reduction` = classical trio stands from the last green run
+    (files byte-identical since landing `0cd8741` / `77a53f4`).
+
 - **Wall 571-B / [YM1-LB-Core]** — `Towers/YM/LatticePositivity.lean`
   written + VERIFIED (`namespace TheoremaAureum.YM_MassGap`). Pure-core
   (no mathlib, no imports, `Int`/`Nat` only): `lattice_positivity`
