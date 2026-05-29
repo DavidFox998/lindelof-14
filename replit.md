@@ -27,14 +27,20 @@ the Wall-510 / Wall-539 / Wall-542 trims).
 ## Tower Status — 2026-05-29 12:47 PDT
 
 - **GREEN: 531 bricks** (`scripts/check-towers.sh` `BRICKS`).
-- **Registered YM walls** (tagged, landed as files — these three are
-  the lake-gated `[YM1-*]` walls, NOT counted in the 531 BRICKS array):
+- **Registered YM walls** (tagged, landed as files — the lake-gated
+  `[YM1-*]` walls, NOT counted in the BRICKS array; now FOUR after
+  Task #248 Step 5, registered in `scripts/check-towers.sh`):
   571-B `[YM1-LB-Core]` (`lattice_positivity`, axioms `[]`), 572
-  `[YM1-LB-Real]` (`hamiltonian_pos`, classical trio), 573 `[YM1-GR]`
-  (`gap_reduction`, classical trio).
-- **Wall 574 `[YM1]`** scaffolded in `Towers/YM/MassGap574.lean`.
-  INVARIANT-LOCKED. Carries `sorry`. NOT in BRICKS, not a lakefile
-  root, does not elaborate.
+  `[YM1-LB-Real]` (`hamiltonian_pos` / `hamiltonian_self_inner_eq`,
+  real `H U = wilsonAction U • ψ`, classical trio), 573 `[YM1-GR]`
+  (`gap_reduction`, classical trio), 575 `[YM1-SB]` (`spectrum_bound`
+  + `spectrum_bound_H_iff`: `spectrum_bound (H U) m ↔ m ≤
+  wilsonAction U`, classical trio).
+- **Wall 574 `[YM1]`** in `Towers/YM/MassGap574.lean` — now ELABORATES
+  against the real Step-4/5 `H` / `spectrum_bound` (Task #248 Step 5
+  wiring) and carries `(hpos : 0 < wilsonAction U)` so the statement is
+  honest (not vacuum-false). Still carries `sorry`; INVARIANT-LOCKED;
+  NOT in BRICKS, not a lakefile root. No mass-gap claim.
 - **Deferred:** 24 OS/KP modules unregistered (Task #208). `.lean`
   files kept on disk; await Wall 570+/574 with the real SU(3) `H`.
 - **Surface #1: OPEN.** No `m > 0` claim while the `sorry` stands.
@@ -52,6 +58,61 @@ the Wall-510 / Wall-539 / Wall-542 trims).
   task**, NOT Task #208 — #208 already MERGED (build-unblock + OS
   deferral). The currently in-progress task is **#214** (real
   per-plaquette polymer activity weights), a different surface.
+
+## Task #248 — Real Wilson Transfer Hamiltonian (COMPLETE, 2026-05-29)
+
+Replaced the YM mass-gap stand-ins with a genuine SU(3) transfer chain
+and **reduced the (scalar-sector) gap to a single honest inequality**.
+Six steps, all landed + architect-PASS:
+
+1. **`LatticeGauge.lean`** (BRICKS, lakefile root) — genuine SU(3) `G`
+   / `GaugeConfig`.
+2. **`WilsonAction.lean`** (BRICKS, root) — real Wilson action
+   `wilsonAction`.
+3. **`TransferOperator.lean`** (BRICKS, root) —
+   `boltzmannWeight = Real.exp (-wilsonAction U)`,
+   `TransferOperator H U = (boltzmannWeight U : ℂ) • 1` (retired the
+   zero-CLM tripwire). Steps 1–3 were green at the last build and
+   survived the Task #217 merge.
+4. **Wall 572 `[YM1-LB-Real]`** (`LatticePositivityReal.lean`,
+   lake-gated) — `H U ψ := wilsonAction U • ψ` (the `−log` of the
+   per-link transfer weight). Bricks:
+   `neg_log_boltzmannWeight_eq_wilsonAction`,
+   `hamiltonian_self_inner_eq` (UNCONDITIONAL,
+   `⟪ψ, H U ψ⟫_ℝ = wilsonAction U · ⟪ψ,ψ⟫`), `hamiltonian_pos`
+   (CONDITIONAL on `0 ≤ wilsonAction U`).
+5. **Wall 575 `[YM1-SB]`** (`SpectrumBound.lean`, lake-gated) —
+   `spectrum_bound T m := ∀ ψ, m·‖ψ‖² ≤ ⟪ψ,Tψ⟫_ℝ`; brick
+   `spectrum_bound_H_iff` (needs `[NeZero n]`):
+   `spectrum_bound (H U) m ↔ m ≤ wilsonAction U`. Wired into
+   `MassGap574.lean`, which now ELABORATES against the real
+   `H` / `spectrum_bound` and carries `(hpos : 0 < wilsonAction U)` so
+   the statement is honest (not vacuum-false) — but KEEPS its `sorry`.
+6. **Register + audit + ledger** — `[YM1-SB]` registered in
+   `scripts/check-towers.sh` (lake-gated comment registry, alongside
+   571-B / 572 / 573; NOT in the `BRICKS` array, since these modules
+   are not lakefile roots and have no olean to `lake env lean`). Static
+   axiom audit of Steps 1–5: every registered brick is `[]`-clean or
+   classical-trio only, no `sorry` (the only `sorry` is in the
+   unregistered `MassGap574.lean`), no `Classical` beyond the trio.
+   `MassGap574.lean` deliberately left out of BRICKS and roots.
+
+**Net result:** the YM mass gap is reduced to **`0 < wilsonAction U`**
+(strict Wilson action positivity off the vacuum) for the SCALAR shadow
+`H U = wilsonAction U • 𝟙`. This is NOT the full transfer operator on
+`L²(∏ SU(3), Haar)` — that is the open Wall 574 work. **Surface #1
+stays OPEN, YM Status: Open. No mass-gap / μ>0 claim.**
+
+- **Verify note:** the live `#print axioms` re-run is DEFERRED to the
+  next green `towers-build` (this session the mathlib worktree was
+  wiped; `restore-lake-git.sh` was run and now leaves mathlib's `.git`
+  at the pinned rev, priming the sanctioned `git checkout -- .` heal
+  path for the next build — repopulating the worktree directly needs a
+  `git checkout -f`, restricted to background tasks for the main
+  agent). Static analysis stands: the proofs touch only trio-clean
+  mathlib lemmas + project defs.
+- **Next task (deferred bound):** prove `0 < wilsonAction U` for
+  `U ≠ const 1` — the single inequality the gap now rests on.
 
 ## Task #217 — lift the half-cubic heat-kernel envelope bound to the whole tsum (2026-05-29)
 

@@ -8,13 +8,20 @@ this file is the version history.
 
 ## Tower Status snapshot — 2026-05-29 12:47 PDT
 
-- **GREEN: 528 bricks** (`scripts/check-towers.sh` BRICKS).
-- **Registered YM walls** (lake-gated `[YM1-*]`, NOT in the 528 array):
+- **GREEN: 531 bricks** (`scripts/check-towers.sh` BRICKS; per
+  `replit.md`. Exact reconciliation — incl. Task #248 Steps 1–3 BRICKS
+  additions — pending the next green `towers-build`).
+- **Registered YM walls** (lake-gated `[YM1-*]`, NOT in the BRICKS
+  array; FOUR after Task #248 Step 5):
   571-B `[YM1-LB-Core]` `lattice_positivity` (axioms `[]`), 572
-  `[YM1-LB-Real]` `hamiltonian_pos` (trio-only), 573 `[YM1-GR]`
-  `gap_reduction` (trio-only).
-- **Wall 574 `[YM1]`** scaffolded in `Towers/YM/MassGap574.lean` —
-  INVARIANT-LOCKED, carries `sorry`, NOT in BRICKS.
+  `[YM1-LB-Real]` `hamiltonian_pos` / `hamiltonian_self_inner_eq`
+  (trio-only), 573 `[YM1-GR]` `gap_reduction` (trio-only), 575
+  `[YM1-SB]` `spectrum_bound_H_iff`
+  (`spectrum_bound (H U) m ↔ m ≤ wilsonAction U`, trio-only).
+- **Wall 574 `[YM1]`** in `Towers/YM/MassGap574.lean` — after Task #248
+  Step 5 now ELABORATES against the real `H` / `spectrum_bound` and
+  carries `(hpos : 0 < wilsonAction U)`; INVARIANT-LOCKED, still
+  carries `sorry`, NOT in BRICKS.
 - **Deferred:** 24 OS/KP modules unregistered (Task #208); await Wall
   570+/574 with real SU(3) `H`.
 - **Surface #1: OPEN.** No `m > 0` claim while the `sorry` stands.
@@ -36,9 +43,52 @@ this file is the version history.
 
 | Date | Task / Batch | Δ Wall | Headline |
 |---|---|---|---|
-| 2026-05-29 | Wall 574 / [YM1] mass-gap scaffold | 528 → 528 (+0) | `Towers/YM/MassGap574.lean` written. **Documentation stub, NOT a proof.** States `theorem YM_mass_gap : ∃ m > 0, spectrum_bound H m` with one `sorry`; references the **unbuilt** real Wilson transfer Hamiltonian `H` (NOT the `H = 1` stand-in of Wall 572 `hamiltonian_pos`) and the unbuilt `spectrum_bound` predicate. Does NOT elaborate; **NOT a `lakefile.lean` root, NOT in `scripts/check-towers.sh` BRICKS** (a `sorry`-bearing decl never enters the wall). INVARIANT-LOCKED: no mass-gap / μ>0 / Surface-#1-CLOSED claim — **Surface #1 OPEN**, YM Status: Open. Wall unchanged at **528** (Task #211's +7 already landed). Real `H` construction = a future task (NOT the merged Task #208). Audit this session: `lattice_positivity` re-printed live `= []` (plain `lean`); `hamiltonian_pos` / `gap_reduction` = classical trio from last green run (files byte-identical since landing) — live re-print blocked by the mathlib partial-cache recovery bug (Tasks #213/#245) + main-agent `git checkout` guard. |
+| 2026-05-29 | Wall 574 / [YM1] mass-gap scaffold | 528 → 528 (+0) | `Towers/YM/MassGap574.lean` written. **Documentation stub, NOT a proof.** States `theorem YM_mass_gap : ∃ m > 0, spectrum_bound H m` with one `sorry`; references the **unbuilt** real Wilson transfer Hamiltonian `H` (NOT the `H = 1` stand-in of Wall 572 `hamiltonian_pos`) and the unbuilt `spectrum_bound` predicate. Does NOT elaborate *(at time of writing — **SUPERSEDED by Task #248 Step 5**, which built the real Step-4 `H` and the `spectrum_bound` predicate and wired them in, so `MassGap574.lean` now elaborates and carries `(hpos : 0 < wilsonAction U)`, still retaining its `sorry`)*; **NOT a `lakefile.lean` root, NOT in `scripts/check-towers.sh` BRICKS** (a `sorry`-bearing decl never enters the wall). INVARIANT-LOCKED: no mass-gap / μ>0 / Surface-#1-CLOSED claim — **Surface #1 OPEN**, YM Status: Open. Wall unchanged at **528** (Task #211's +7 already landed). Real `H` construction = a future task (NOT the merged Task #208). Audit this session: `lattice_positivity` re-printed live `= []` (plain `lean`); `hamiltonian_pos` / `gap_reduction` = classical trio from last green run (files byte-identical since landing) — live re-print blocked by the mathlib partial-cache recovery bug (Tasks #213/#245) + main-agent `git checkout` guard. |
 
 ---
+
+## Task #248 — Real Wilson Transfer Hamiltonian (COMPLETE, 2026-05-29)
+
+Replaced the YM mass-gap stand-ins with a genuine SU(3) transfer chain
+and REDUCED the (scalar-sector) gap to a single honest inequality.
+Six steps, all landed:
+
+- **Steps 1–3 (BRICKS, lakefile roots):** `LatticeGauge.lean` (genuine
+  SU(3) `G` / `GaugeConfig`), `WilsonAction.lean` (real Wilson action
+  `wilsonAction`), `TransferOperator.lean`
+  (`boltzmannWeight = Real.exp (-wilsonAction U)`,
+  `TransferOperator H U = (boltzmannWeight U : ℂ) • 1`; retired the
+  zero-CLM tripwire). Green at the last build; survived the Task #217
+  merge.
+- **Step 4 (Wall 572 `[YM1-LB-Real]`, lake-gated):**
+  `LatticePositivityReal.lean` — `H U ψ := wilsonAction U • ψ` (= the
+  `−log` of the per-link transfer weight). Bricks:
+  `neg_log_boltzmannWeight_eq_wilsonAction`,
+  `hamiltonian_self_inner_eq` (UNCONDITIONAL:
+  `⟪ψ, H U ψ⟫_ℝ = wilsonAction U · ⟪ψ,ψ⟫`), `hamiltonian_pos`
+  (CONDITIONAL on `0 ≤ wilsonAction U`).
+- **Step 5 (Wall 575 `[YM1-SB]`, lake-gated):** `SpectrumBound.lean` —
+  `spectrum_bound T m := ∀ ψ, m·‖ψ‖² ≤ ⟪ψ,Tψ⟫_ℝ`; brick
+  `spectrum_bound_H_iff` (needs `[NeZero n]`):
+  `spectrum_bound (H U) m ↔ m ≤ wilsonAction U`. Wired into
+  `MassGap574.lean`, which now ELABORATES against the real
+  `H` / `spectrum_bound` and carries `(hpos : 0 < wilsonAction U)` so
+  the statement is honest (not vacuum-false) — but KEEPS its `sorry`.
+- **Step 6 (register + audit + ledger):** `[YM1-SB]` registered in
+  `scripts/check-towers.sh` (lake-gated comment registry, alongside
+  571-B / 572 / 573). Static axiom audit of Steps 1–5: `[]` or
+  classical trio, no `sorry` in any registered brick, no `Classical`
+  beyond the trio. Live `#print axioms` re-run DEFERRED to the next
+  green `towers-build` (mathlib worktree was wiped; `restore-lake-git.sh`
+  now primes the `git checkout -- .` heal path).
+
+**NET RESULT:** the YM mass gap is reduced to `0 < wilsonAction U`
+(strict Wilson action positivity off the vacuum) for the SCALAR shadow
+`H U = wilsonAction U • 𝟙`. This is NOT the full transfer operator on
+`L²(∏ SU(3), Haar)` — that is the open Wall 574 work. `MassGap574`'s
+`YM_mass_gap` keeps its `sorry`, NOT registered, NOT in BRICKS.
+**Surface #1 stays OPEN, YM Status: Open. No mass-gap / μ>0 claim.**
+Next task (deferred bound): prove `0 < wilsonAction U` for `U ≠ const 1`.
 
 ## Task #208 — Mathlib build unblock + OS-surface deferral (2026-05-29)
 

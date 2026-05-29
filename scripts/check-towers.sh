@@ -2579,6 +2579,34 @@ BRICKS=(
   "Towers.YM.WilsonAction|TheoremaAureum.Towers.YM.LatticeGauge.wilsonAction_const_one_eq_zero"
   "Towers.YM.GibbsMeasure|TheoremaAureum.Towers.YM.LatticeGauge.partitionFn_zero_beta_eq_one"
   # ============================================================
+  # REGISTERED lake-gated YM1 walls — [YM1-*] (Task #248 + earlier).
+  # TAGGED, landed-as-files YM mass-gap-track walls. They are NOT in
+  # this BRICKS array and NOT `lakefile.lean` roots: each stands on the
+  # lake-gated real-H chain (Wall 572 `H`), so it has no olean built by
+  # this script's `lake build` and is verified BY HAND instead:
+  #   lake env lean Towers/YM/<file>.lean ; #print axioms <decl>
+  # Expected footprint: [] or the classical trio
+  # {propext, Classical.choice, Quot.sound}. NONE makes a mass-gap /
+  # mu>0 / Surface-#1 claim; Surface #1 stays OPEN, YM Status: Open.
+  #
+  #   571-B [YM1-LB-Core] LatticePositivity.lean
+  #         lattice_positivity                              (axioms [])
+  #   572   [YM1-LB-Real] LatticePositivityReal.lean   (H U = wilsonAction U • ψ)
+  #         neg_log_boltzmannWeight_eq_wilsonAction         (trio)
+  #         hamiltonian_self_inner_eq  (UNCONDITIONAL)      (trio)
+  #         hamiltonian_pos            (cond. 0 ≤ wilsonAction U) (trio)
+  #   573   [YM1-GR]      GapReduction.lean
+  #         gap_reduction                                   (trio)
+  #   575   [YM1-SB]      SpectrumBound.lean              -- Task #248 Step 5
+  #         spectrum_bound (def, no axioms)
+  #         spectrum_bound_H_iff
+  #           (spectrum_bound (H U) m ↔ m ≤ wilsonAction U) (trio)
+  #
+  # Wall 574 [YM1] MassGap574.lean carries a `sorry` (real Wilson
+  # transfer Hamiltonian unbuilt) — NOT registered anywhere, neither
+  # here nor in lakefile roots. A sorry-bearing decl must never enter
+  # the wall.
+  # ============================================================
   # DEFERRED (Wall 570+): the Osterwalder-Schrader axiom surface
   # (TRI #9-#13: OS-1 reflection positivity, OS-2 invariance,
   # OS-3 locality, OS-4 clustering) and the real Kotecky-Preiss /
