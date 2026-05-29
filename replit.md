@@ -99,6 +99,30 @@ the Wall-510 / Wall-539 / Wall-542 trims).
   mathlib cache. `lake exe cache get` succeeded on a direct foreground
   run (the backgrounded fetch had been SIGKILL'd mid cache-exe compile).
 
+## Task #220 — feed the lattice→continuum map into the mass-gap envelope (2026-05-29)
+
+Routed the headline envelope brick through Task #195's non-trivial
+`lattice_to_continuum a A` map instead of the bare `({} : YM4_Continuum)`
+literal, so the input-dependent schema (rank off `A`, dimension off `a`)
+actually flows through the mass-gap statement.
+
+- **`Towers/YM/MassGapEnvelope.lean`** —
+  `IsMassGap_mass_gap_envelope_default` now takes `(a : ℝ) (A : SU3Connection)`
+  and states `IsMassGap (lattice_to_continuum a A) mass_gap_envelope_constant`.
+  Since `IsMassGap` ignores its theory argument, the scalar-of-identity
+  witness/proof are byte-for-byte unchanged. The two sibling constant bricks
+  (`mass_gap_envelope_constant_pos`, `..._widened_pos`) take no continuum
+  object and were left untouched.
+- **No wall change** — same brick name, no new/removed BRICKS (registry comment
+  in `scripts/check-towers.sh` refreshed to note the new signature).
+- **Verified:** temporary workflow `restore-lake-git.sh` + `lake build
+  Towers.YM.MassGapEnvelope` = exit 0; `#print axioms` on all three
+  MassGapEnvelope bricks = `[propext, Classical.choice, Quot.sound]`
+  (classical trio), no `sorry`.
+- Makes NO mass-gap / μ>0 / Surface-#1/#2/#3 claim — pure plumbing of an
+  existing input-dependent placeholder schema map through the placeholder
+  mass-gap envelope. Surfaces #1/#2/#3 stay OPEN, YM **Status: Open**.
+
 ## Task #219 — carry the wider t-range through to continuum + mass-gap envelope (2026-05-29)
 
 Routed the Task #194 upper-widened strip bound

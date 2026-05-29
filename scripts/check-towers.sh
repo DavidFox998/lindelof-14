@@ -2542,12 +2542,16 @@ BRICKS=(
   #     this against the upgraded spectral `IsMassGap` predicate from
   #     `Towers/YM/Continuum.lean` (now `∃ H op, OS.HasMassGap H op Δ`,
   #     a real-part inner-product gap on a complex Hilbert-space
-  #     operator) on the default `YM4_Continuum` at
-  #     `Δ := mass_gap_envelope_constant`, using the scalar-of-identity
-  #     stand-in operator `op := ((1 - Δ : ℝ) : ℂ) • 1` on `H := ℂ`.
-  #     NOT a proof that any real 4D pure-YM theory has a mass gap; the
-  #     witnessing operator is a scalar multiple of the identity
-  #     (totally degenerate spectrum), not a continuum-YM Hamiltonian.
+  #     operator) at `Δ := mass_gap_envelope_constant`, using the
+  #     scalar-of-identity stand-in operator `op := ((1 - Δ : ℝ) : ℂ) • 1`
+  #     on `H := ℂ`. Task #220 now takes `(a : ℝ) (A : SU3Connection)`
+  #     and routes the continuum object through `lattice_to_continuum a A`
+  #     (Task #195's non-trivial input-dependent schema map) instead of
+  #     the bare `({} : YM4_Continuum)` literal; since `IsMassGap` ignores
+  #     its theory argument the witness/proof are unchanged. NOT a proof
+  #     that any real 4D pure-YM theory has a mass gap; the witnessing
+  #     operator is a scalar multiple of the identity (totally degenerate
+  #     spectrum), not a continuum-YM Hamiltonian.
   #
   # Wall: 491 → 497. YM tower stays `Status: Open` in
   # `docs/ROADMAP.md` § 2. Surfaces #1 / #2 / #3 all stay OPEN.

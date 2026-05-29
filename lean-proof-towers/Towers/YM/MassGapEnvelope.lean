@@ -120,30 +120,41 @@ theorem mass_gap_envelope_constant_pos :
   exact div_pos varadhan_C_pos htop4
 
 /-- **Final mass-gap envelope brick (re-closed against the spectral
-`IsMassGap`).** Task #196 upgraded `IsMassGap` in
-`Towers/YM/Continuum.lean` from the bare `0 < Δ` placeholder to the
-spectral statement
+`IsMassGap`, routed through the lattice→continuum map).** Task #196
+upgraded `IsMassGap` in `Towers/YM/Continuum.lean` from the bare
+`0 < Δ` placeholder to the spectral statement
 
   `∃ H op, OS.HasMassGap H op Δ`
 
 (real-part inner-product gap on a complex Hilbert-space operator).
-This brick re-closes that new predicate at the default
-`YM4_Continuum` and `Δ := mass_gap_envelope_constant`, using the
-honest scalar-of-identity stand-in operator
-`op := ((1 - Δ : ℝ) : ℂ) • 1` on `H := ℂ`. For that operator the
-real-part bound holds with equality
+This brick re-closes that new predicate at the continuum theory
+`lattice_to_continuum a A` produced from lattice data (spacing
+`a : ℝ`, SU(3) connection `A : SU3Connection`) and
+`Δ := mass_gap_envelope_constant`, using the honest
+scalar-of-identity stand-in operator `op := ((1 - Δ : ℝ) : ℂ) • 1`
+on `H := ℂ`. For that operator the real-part bound holds with
+equality
 (`(⟪x, op x⟫_ℂ).re = (1 - Δ) * ‖x‖^2 ≤ (1 - Δ) * ‖x‖^2`), exactly
 the witness pattern of `Towers/YM/NontrivialGap.lean`.
+
+Task #220: the continuum object is now `lattice_to_continuum a A`
+(Task #195 made this a non-trivial, input-dependent schema map whose
+`gauge_rank` / `spacetime_dim` fields read `(A, a)`), replacing the
+prior bare `({} : YM4_Continuum)` literal. Since `IsMassGap` ignores
+its theory argument, the witness/proof are unchanged; this only keeps
+the YM stand-in chain internally consistent by flowing the schema map
+through the mass-gap statement.
 
 **Honest scope (locked).** This is NOT a proof that any real 4D
 pure-Yang-Mills theory has a mass gap. The witnessing operator is a
 scalar multiple of the identity (spectrum `{1 - Δ}`, totally
 degenerate); it is **not** built from any continuum-YM Hamiltonian
-and the schema `T` is ignored. The gap size
+and the schema `T = lattice_to_continuum a A` is ignored by the
+predicate. The gap size
 `mass_gap_envelope_constant = varadhan_C / varadhan_t_top ^ 4`
 carries no spectral content. YM tower stays `Status: Open`. -/
-theorem IsMassGap_mass_gap_envelope_default :
-    IsMassGap ({} : YM4_Continuum) mass_gap_envelope_constant := by
+theorem IsMassGap_mass_gap_envelope_default (a : ℝ) (A : SU3Connection) :
+    IsMassGap (lattice_to_continuum a A) mass_gap_envelope_constant := by
   refine ⟨ℂ, inferInstance, inferInstance,
     ((1 - mass_gap_envelope_constant : ℝ) : ℂ) • (1 : ℂ →L[ℂ] ℂ),
     mass_gap_envelope_constant_pos, ?_⟩
