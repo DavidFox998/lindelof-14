@@ -30,10 +30,6 @@ args = "towers-build"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "lake-recovery"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "theorema-certs-e2e"
 
 [[workflows.workflow.tasks]]
@@ -73,17 +69,6 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash scripts/check-towers.sh"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow]]
-name = "lake-recovery"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd lean-proof-towers && rm -rf .lake/packages/mathlib && lake update mathlib && lake exe cache get && lake build Towers && echo '=== LAKE RECOVERY DONE ===' || echo '=== LAKE RECOVERY FAILED ==='"
 
 [workflows.workflow.metadata]
 outputType = "console"
