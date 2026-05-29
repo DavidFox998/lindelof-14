@@ -2590,6 +2590,18 @@ BRICKS=(
   "Towers.YM.WilsonAction|TheoremaAureum.Towers.YM.LatticeGauge.wilsonPlaquette_const_one"
   "Towers.YM.WilsonAction|TheoremaAureum.Towers.YM.LatticeGauge.plaquetteEnergy_const_one"
   "Towers.YM.WilsonAction|TheoremaAureum.Towers.YM.LatticeGauge.wilsonAction_const_one_eq_zero"
+  # Task #255 — strict Wilson action positivity off the vacuum. Each
+  # brick is sorry-free, classical-trio. Headline:
+  # `wilsonAction_pos_of_nontrivial`. Makes NO mass-gap / μ>0 /
+  # Surface-#1 claim — scalar-sector action positivity only; the real
+  # Wilson transfer operator (Wall 574) is untouched. Surface #1 OPEN.
+  "Towers.YM.WilsonPositivity|TheoremaAureum.Towers.YM.LatticeGauge.hsNormSq_eq_zero_iff"
+  "Towers.YM.WilsonPositivity|TheoremaAureum.Towers.YM.LatticeGauge.traceRe_le_three"
+  "Towers.YM.WilsonPositivity|TheoremaAureum.Towers.YM.LatticeGauge.traceRe_eq_three_iff"
+  "Towers.YM.WilsonPositivity|TheoremaAureum.Towers.YM.LatticeGauge.wilsonPlaquette_star_mul_self"
+  "Towers.YM.WilsonPositivity|TheoremaAureum.Towers.YM.LatticeGauge.plaquetteEnergy_nonneg"
+  "Towers.YM.WilsonPositivity|TheoremaAureum.Towers.YM.LatticeGauge.plaquetteEnergy_pos_iff"
+  "Towers.YM.WilsonPositivity|TheoremaAureum.Towers.YM.LatticeGauge.wilsonAction_pos_of_nontrivial"
   "Towers.YM.GibbsMeasure|TheoremaAureum.Towers.YM.LatticeGauge.partitionFn_zero_beta_eq_one"
   # ============================================================
   # REGISTERED lake-gated YM1 walls — [YM1-*] (Task #248 + earlier).

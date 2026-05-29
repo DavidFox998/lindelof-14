@@ -8,6 +8,26 @@ this file is the version history.
 
 ## Tower Status snapshot — 2026-05-29 12:47 PDT
 
+**Task #255 complete — 2026-05-29.** Strict Wilson action positivity.
+- NEW `Towers/YM/WilsonPositivity.lean` (namespace
+  `…YM.LatticeGauge`; imports `WilsonAction` + `PeterWeylHeatVaradhan`).
+  Registered: `lakefile.lean` root + 7 BRICKS (wall 532 → **539**).
+- Headline `wilsonAction_pos_of_nontrivial`:
+  `∀ U, (∃ x μ ν, wilsonPlaquette U x μ ν ≠ 1) → 0 < wilsonAction U`,
+  via `Finset.sum_pos'` over non-negative per-plaquette energies
+  (`plaquetteEnergy_nonneg`) with ≥1 strictly positive term
+  (`plaquetteEnergy_pos_iff`). 7 bricks: `hsNormSq_eq_zero_iff`,
+  `traceRe_le_three`, `traceRe_eq_three_iff`,
+  `wilsonPlaquette_star_mul_self`, `plaquetteEnergy_nonneg`,
+  `plaquetteEnergy_pos_iff`, `wilsonAction_pos_of_nontrivial`.
+- All sorry-free; axioms = classical trio
+  `[propext, Classical.choice, Quot.sound]` (verified live via
+  `lake build Towers.YM.WilsonPositivity` + `#print axioms`).
+- INVARIANT-LOCKED: scalar-sector ACTION positivity only — NOT the
+  real Wilson transfer Hamiltonian. `MassGap574.lean` UNTOUCHED (keeps
+  its `sorry`). No mass-gap / μ>0 claim. Surface #1 OPEN, YM Status:
+  Open.
+
 **Task #248 complete — 2026-05-29 14:40 PDT.**
 - YM mass gap reduced to strict action positivity:
   `∃ m>0, spectrum_bound (H U) m ↔ 0 < wilsonAction U`.
@@ -16,9 +36,10 @@ this file is the version history.
 - Next: prove `0 < wilsonAction U` for `U ≠ const 1`.
 - Axioms: all new bricks trio-only. Only `sorry` in `MassGap574.lean`.
 
-- **GREEN: 532 bricks** (`scripts/check-towers.sh` BRICKS; per
-  `replit.md`. Exact reconciliation — incl. Task #248 Steps 1–3 BRICKS
-  additions — pending the next green `towers-build`).
+- **GREEN: 539 bricks** (`scripts/check-towers.sh` BRICKS; per
+  `replit.md`; +7 from Task #255 — strict Wilson action positivity.
+  Exact reconciliation — incl. Task #248 Steps 1–3 BRICKS additions —
+  pending the next green `towers-build`).
 - **Registered YM walls** (lake-gated `[YM1-*]`, NOT in the BRICKS
   array; FOUR after Task #248 Step 5):
   571-B `[YM1-LB-Core]` `lattice_positivity` (axioms `[]`), 572

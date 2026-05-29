@@ -6,10 +6,11 @@ sketches, drift footnotes, env var docs, stack, where-things-live,
 user preferences, gotchas, pointers — all rolled into CHANGELOG by
 the Wall-510 / Wall-539 / Wall-542 trims).
 
-- **Wall:** 532 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`;
-  528 + 3 from **Task #217** + 1 from **Task #218** below. Was 545
-  pre-deferral — prior `543` headline was stale by 2. See **Task #208**
-  below for the −29-entry / 24-module deferral.)
+- **Wall:** 539 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`;
+  528 + 3 from **Task #217** + 1 from **Task #218** + 7 from **Task
+  #255** below. Was 545 pre-deferral — prior `543` headline was stale
+  by 2. See **Task #208** below for the −29-entry / 24-module
+  deferral.)
   - Rebase note (Task #208): the `LatticeGauge.lean` `G`/`GaugeConfig`
     substrate was kept RESTORED (mathlib imports + defs) rather than
     left trimmed — additive, wall unchanged at 516; the deferred
@@ -26,7 +27,8 @@ the Wall-510 / Wall-539 / Wall-542 trims).
 
 ## Tower Status — 2026-05-29 12:47 PDT
 
-- **GREEN: 532 bricks** (`scripts/check-towers.sh` `BRICKS`).
+- **GREEN: 539 bricks** (`scripts/check-towers.sh` `BRICKS`; +7 from
+  Task #255 — strict Wilson action positivity, see section below).
 - **Registered YM walls** (tagged, landed as files — the lake-gated
   `[YM1-*]` walls, NOT counted in the BRICKS array; now FOUR after
   Task #248 Step 5, registered in `scripts/check-towers.sh`):
@@ -62,6 +64,38 @@ the Wall-510 / Wall-539 / Wall-542 trims).
 - Next: prove `0 < wilsonAction U` for `U ≠ const 1`.
 - Axioms: all new bricks trio-only. Only `sorry` in `MassGap574.lean`.
 - **Full per-step detail + Tasks #208–#218 →** `docs/CHANGELOG.md`.
+
+## Task #255 — Strict Wilson Action Positivity (COMPLETE — 2026-05-29)
+
+- NEW file `Towers/YM/WilsonPositivity.lean` (namespace
+  `TheoremaAureum.Towers.YM.LatticeGauge`; imports `Towers.YM.WilsonAction`
+  + `Towers.YM.PeterWeylHeatVaradhan`). Registered: `lakefile.lean` root
+  + 7 BRICKS in `scripts/check-towers.sh` (wall 532 → **539**).
+- Headline brick `wilsonAction_pos_of_nontrivial`:
+  `∀ U, (∃ x μ ν, wilsonPlaquette U x μ ν ≠ 1) → 0 < wilsonAction U`.
+  The bare ordered-pair SU(3) Wilson plaquette action is strictly
+  positive off the vacuum — a finite triple sum of non-negative
+  per-plaquette energies (`plaquetteEnergy_nonneg`) with ≥1 strictly
+  positive term (`plaquetteEnergy_pos_iff`), via `Finset.sum_pos'` at
+  each level.
+- 7 bricks (all sorry-free, axioms = classical trio
+  `[propext, Classical.choice, Quot.sound]`, verified live via
+  `lake build` + `#print axioms`): `hsNormSq_eq_zero_iff`,
+  `traceRe_le_three`, `traceRe_eq_three_iff`,
+  `wilsonPlaquette_star_mul_self`, `plaquetteEnergy_nonneg`,
+  `plaquetteEnergy_pos_iff`, `wilsonAction_pos_of_nontrivial`.
+- INVARIANT-LOCKED: makes NO mass-gap / μ>0 / Surface-#1 claim. This is
+  scalar-sector ACTION positivity only — `wilsonAction : GaugeConfig → ℝ`,
+  NOT the real Wilson transfer Hamiltonian. Wall 574 / `MassGap574.lean`
+  UNTOUCHED (still carries its `sorry`). Surface #1 stays OPEN, YM
+  Status: Open.
+- Verify-note gotcha (logged for next session): the Towers oleans on
+  disk were STALE after the env-wipe + `restore-lake-git.sh` recovery
+  (`WilsonAction.olean` predated the Task #248 genuine-SU(3) defs).
+  `lake build Towers.YM.WilsonPositivity` rebuilt the stale chain
+  (LatticeGauge/WilsonAction) from source against the freshly-fetched
+  mathlib cache. `lake exe cache get` succeeded on a direct foreground
+  run (the backgrounded fetch had been SIGKILL'd mid cache-exe compile).
 
 ## Locked invariants (every batch must hold these)
 
