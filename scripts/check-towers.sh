@@ -2526,6 +2526,8 @@ BRICKS=(
   # v4.12.0 does not export). None promotes YM past `Status: Open`.
   # Surface #1 stays OPEN. See per-file docstrings for full drift.
   "Towers.YM.LatticeGauge|TheoremaAureum.Towers.YM.LatticeGauge.Lattice_def"
+  "Towers.YM.LatticeGauge|TheoremaAureum.Towers.YM.LatticeGauge.G_eq_SU3"
+  "Towers.YM.LatticeGauge|TheoremaAureum.Towers.YM.LatticeGauge.GaugeConfig_eq_parametric"
   "Towers.YM.WilsonAction|TheoremaAureum.Towers.YM.LatticeGauge.wilsonAction_zero_beta"
   "Towers.YM.GibbsMeasure|TheoremaAureum.Towers.YM.LatticeGauge.partitionFn_zero_beta_eq_one"
   # ============================================================

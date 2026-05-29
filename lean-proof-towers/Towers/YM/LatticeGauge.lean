@@ -1,51 +1,51 @@
 /-
 ================================================================
-Towers / YM / LatticeGauge (Batch 168.1 / TRI PARALLEL #8, file 1 of 3)
+Towers / YM / LatticeGauge — parametric gauge group, canonical SU(3)
+(Task #248, Step 1; generalizes Batch 168.1 / TRI PARALLEL #8)
 
 **Definition module.** Introduces the carrier types for finite
-lattice gauge theory with gauge group `G = SU(2)`:
+lattice gauge theory, now **parametric over the gauge group**:
 
-  * `G` — `Matrix.SpecialUnitaryGroup (Fin 2) ℂ`, the gauge group.
-  * `Lattice d L` — sites of a `d`-dimensional periodic lattice of
-    side length `L`. Encoded as `Fin d → Fin L` (the `d`-fold
-    product of `Fin L`).
-  * `Link d L` — an oriented link, parameterised by a site and a
-    direction.
-  * `GaugeConfig d L` — a gauge configuration: a `G`-valued
-    function on links.
+  * `SU N`            — `Matrix.specialUnitaryGroup (Fin N) ℂ`, the
+                        special-unitary gauge group family.
+  * `G`              — the canonical Yang–Mills gauge group `SU 3`
+                        (was `SU 2` in Batch 168.1; generalized to
+                        SU(3) for the real-transfer-Hamiltonian work).
+  * `Lattice d L`    — sites of a `d`-dimensional periodic lattice of
+                        side length `L`. Encoded as `Fin d → Fin L`.
+  * `Link d L`       — an oriented link: a site plus a direction.
+  * `GaugeConfigOf 𝒢 d L` — a `𝒢`-valued function on links, parametric
+                        in the gauge-group type `𝒢`.
+  * `GaugeConfig d L` — the canonical SU(3) configuration
+                        `= Link d L → G`, definitionally equal to
+                        `GaugeConfigOf G d L`. Signature kept stable so
+                        every downstream consumer in the
+                        `TheoremaAureum.Towers.YM.LatticeGauge` namespace
+                        is unchanged and now resolves to SU(3).
 
 ## Honest scope (locked)
-* This file declares **definitions only** (one trivial sanity
-  theorem `Lattice_def` for brick registration). It says nothing
-  about dynamics, the Wilson action (that is Batch 168.2), or any
-  measure (that is Batch 168.3).
+* This file declares **definitions only** (plus trivial `rfl`
+  registration bricks). It says nothing about dynamics, the Wilson
+  action (`WilsonAction`), or any measure (`GibbsMeasure`).
 * Does **NOT** prove the continuum limit, OS axioms, or any
-  Yang-Mills statement. Surface #1 stays OPEN.
-* `G := SU(2)` is the simplest non-abelian gauge group — chosen to
-  match the user-supplied snippet. The existing
-  `Towers.YM.PlaquetteAction` / `Towers.YM.Wilson` infrastructure
-  uses SU(3); this batch is independent of those.
+  Yang–Mills statement. Surface #1 stays OPEN; YM Status: Open.
+* The SU(2) → SU(3) flip is a carrier-type change only; every
+  downstream brick in this namespace is a group-agnostic vacuous /
+  `rfl` stand-in, so the flip changes no proof.
 
-## Drift from snippet
-* (1) Snippet wrote `def Lattice (d : ℕ) (L : ℕ) := Fin L ^ d`,
-  but `Fin L ^ d` as a *type-level* `HPow` does not exist in
-  mathlib v4.12.0 (the only `HPow Type _ _` instance is on
-  monoids via `Monoid.npow`, which is for elements, not types).
-  Honest pivot: `Lattice d L := Fin d → Fin L`, the
-  `d`-fold cartesian product encoded as a function space. This is
-  the same shape `Geometry.Lattice4D n := Fin n × Fin n × Fin n
-  × Fin n` uses for the fixed-`d=4` case; the function-space form
-  generalises to arbitrary `d`.
-* (2) Snippet's import `Mathlib.Data.Finset.Lattice` is not
-  required for any of the carrier types here (those are
-  `Mathlib.LinearAlgebra.Matrix.SpecialUnitaryGroup` only).
-  Kept the import positionally to record the snippet edge; it
-  does no harm.
+## Generalization from Batch 168.1
+* Batch 168.1 fixed `G := SU(2)` ("simplest non-abelian, matched the
+  user snippet"). This module makes the gauge group a first-class
+  parameter via `GaugeConfigOf` and fixes the canonical `G := SU 3`,
+  the physical Yang–Mills gauge group, as the real transfer-operator
+  work requires SU(3).
+* `Lattice`/`Link` are gauge-group-independent and unchanged.
+  `GaugeConfig d L` keeps its `(d L : Nat)` signature; only the gauge
+  group it points at moved from SU(2) to SU(3).
 
 ## Axiom footprint
-Should depend only on the classical trio
-`{propext, Classical.choice, Quot.sound}` — every brick is `rfl`
-or a `Fintype`/`Nonempty` instance lookup.
+Every brick is `rfl`; `#print axioms` is expected to be the strictly
+empty set `[]` (no classical trio needed for these type-level `rfl`s).
 ================================================================
 -/
 
@@ -55,28 +55,49 @@ import Mathlib.Data.Complex.Basic
 
 namespace TheoremaAureum.Towers.YM.LatticeGauge
 
-/-- The gauge group: `SU(2)`. -/
-abbrev G : Type := Matrix.specialUnitaryGroup (Fin 2) ℂ
+/-- The special-unitary gauge-group family `SU(N) = specialUnitaryGroup (Fin N) ℂ`. -/
+abbrev SU (N : ℕ) : Type := Matrix.specialUnitaryGroup (Fin N) ℂ
 
-/-- Sites of a `d`-dimensional periodic lattice of side length `L`.
+/-- The canonical Yang–Mills gauge group: `SU(3)`.
 
-    Encoded as the function space `Fin d → Fin L`, i.e. each
-    `x : Lattice d L` is a `d`-tuple of components in `Fin L`.
-    `Fin L`'s native modular `+` gives the periodic-boundary
-    structure for free (when `[NeZero L]` is in scope, used in
-    Batch 168.2). -/
+    Generalized from the Batch 168.1 `SU(2)` stand-in. The lattice
+    carriers below are parametric over any gauge-group type via
+    `GaugeConfigOf`; `G` fixes the canonical instance at SU(3). -/
+abbrev G : Type := SU 3
+
+/-- Sites of a `d`-dimensional periodic lattice of side length `L`,
+    encoded as the function space `Fin d → Fin L` (the `d`-fold product
+    of `Fin L`). `Fin L`'s native modular `+` supplies periodic
+    boundaries when `[NeZero L]` is in scope. -/
 def Lattice (d L : Nat) : Type := Fin d → Fin L
 
 /-- An oriented link: a site plus a direction. -/
 def Link (d L : Nat) : Type := Lattice d L × Fin d
 
-/-- A gauge configuration: a `G`-valued function on links. -/
+/-- Gauge-group-parametric configuration: a `𝒢`-valued function on
+    links, for an arbitrary gauge-group type `𝒢`. -/
+def GaugeConfigOf (𝒢 : Type _) (d L : Nat) : Type := Link d L → 𝒢
+
+/-- A gauge configuration: a `G`(= SU(3))-valued function on links.
+    Definitionally `GaugeConfigOf G d L`; signature kept stable so every
+    downstream consumer is unchanged. -/
 def GaugeConfig (d L : Nat) : Type := Link d L → G
 
 /-- **Brick (`Lattice_def`).** Definitional unfolding of the
-    `Lattice d L` carrier. Useful as a `rfl` rewrite target for
-    any downstream code that needs `Fin d → Fin L` directly. -/
+    `Lattice d L` carrier. `rfl` rewrite target for downstream code that
+    needs `Fin d → Fin L` directly. -/
 theorem Lattice_def (d L : Nat) :
     Lattice d L = (Fin d → Fin L) := rfl
+
+/-- **Brick (`G_eq_SU3`).** The canonical gauge group is `SU(3)`.
+    Certifies the SU(2) → SU(3) generalization at the type level. -/
+theorem G_eq_SU3 : G = SU 3 := rfl
+
+/-- **Brick (`GaugeConfig_eq_parametric`).** The canonical SU(3)
+    configuration is the `G`-instance of the gauge-group-parametric
+    `GaugeConfigOf`. Ties the stable `GaugeConfig` signature to the new
+    parametric carrier. -/
+theorem GaugeConfig_eq_parametric (d L : Nat) :
+    GaugeConfig d L = GaugeConfigOf G d L := rfl
 
 end TheoremaAureum.Towers.YM.LatticeGauge
