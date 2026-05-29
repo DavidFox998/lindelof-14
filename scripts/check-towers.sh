@@ -27,6 +27,20 @@
 # "soft skip" mode — the towers-build workflow is the canonical place
 # to surface mathlib-availability problems.
 #
+# Corrupt-cache resilience (Task #213): the olean fetch is delegated to
+# `scripts/fetch-mathlib-oleans.sh`, which guarantees mathlib oleans are
+# on disk before `lake build Towers` WITHOUT ever silently falling back
+# to a from-source mathlib compile. It (1) never skips the download on a
+# heuristic — it always runs `lake exe cache get` (idempotent + hash-based:
+# a no-op on a complete cache, a top-up of only the missing oleans
+# otherwise), so a partial/incomplete cache can never slip through into a
+# from-source compile, (2) heals a stale 0-byte / non-executable mathlib `cache` exe via
+# `scripts/ensure-mathlib-cache-bin.sh` so `lake exe cache get` can
+# rebuild + run it, (3) exits non-zero with a clear message when
+# `cache get` itself fails (genuinely unreachable CDN / broken toolchain)
+# instead of proceeding into a multi-hour source build, and (4) asserts
+# both the cache exe and the oleans are actually populated afterwards.
+#
 # Adding a new brick:
 #   1. Add a `lean_lib` root in `lean-proof-towers/lakefile.lean`.
 #   2. Append a pair `"<Towers module>|<fully-qualified theorem>"` to
@@ -81,27 +95,25 @@ done
 echo ">> lake update (resolve manifest)" >&2
 lake update
 
-# `lake exe cache get` fetches prebuilt mathlib oleans from the Lean
-# community CDN. With real `.git/` directories in place this is now
-# safe — Lake no longer sees the packages as URL-changed and will not
-# re-clone them. A fast-path skip kept for the common warm-cache case
-# (mathlib oleans already populated on disk).
-MATHLIB_OLEAN_PRESENT=0
-if [ -d ".lake/packages/mathlib/.lake/build/lib/Mathlib" ] && {
-     [ -f ".lake/packages/mathlib/.lake/build/lib/Mathlib.olean" ] \
-  || [ -f ".lake/packages/mathlib/.lake/build/lib/Mathlib/Init.olean" ] \
-  || [ -f ".lake/packages/mathlib/.lake/build/lib/Mathlib/Tactic.olean" ] \
-  || [ -f ".lake/packages/mathlib/.lake/build/lib/Mathlib/Logic/Basic.olean" ]; }; then
-  MATHLIB_OLEAN_PRESENT=1
-fi
-
-if [ "$MATHLIB_OLEAN_PRESENT" = "1" ]; then
-  echo ">> lake exe cache get: SKIPPED (mathlib oleans already on disk;" >&2
-  echo "   .lake/packages/mathlib/.lake/build/lib/ is populated)." >&2
-else
-  echo ">> lake exe cache get (fetch ~2 GB prebuilt mathlib oleans)" >&2
-  lake exe cache get
-fi
+# Ensure the prebuilt mathlib oleans are on disk before `lake build Towers`,
+# WITHOUT ever silently falling back to compiling mathlib from source (Task
+# #213 + lead-wall hardening). `fetch-mathlib-oleans.sh`:
+#   - never skips the download on a heuristic — it always runs `lake exe cache
+#     get` (idempotent + hash-based: a no-op on a complete cache, a top-up of
+#     only the missing oleans otherwise), so a partial/incomplete cache can no
+#     longer slip through into a from-source compile the way the old
+#     sentinel-file heuristic allowed;
+#   - heals a corrupt (0-byte / non-executable) mathlib `cache` exe up front via
+#     `ensure-mathlib-cache-bin.sh` so `lake exe cache get` can rebuild + run it;
+#   - on `cache get` failure (genuinely unreachable CDN / broken toolchain)
+#     exits non-zero with a clear message rather than proceeding into a
+#     multi-hour from-source build;
+#   - asserts both the cache exe AND the oleans are actually populated after a
+#     successful fetch.
+# With real `.git/` directories in place (restore step above) `cache get` is
+# safe — Lake no longer sees the packages as URL-changed and will not re-clone.
+echo ">> fetch-mathlib-oleans.sh (ensure mathlib oleans; never fall back to source)" >&2
+"$REPO_ROOT/scripts/fetch-mathlib-oleans.sh"
 
 echo ">> lake build Towers" >&2
 lake build Towers

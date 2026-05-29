@@ -99,12 +99,12 @@ isValidation = true
 name = "lake-recovery-test"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python -m pytest tests/test_restore_lake_git_script.py -q"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python -m pytest tests/test_restore_lake_git_script.py tests/test_ensure_mathlib_cache_bin_script.py tests/test_fetch_mathlib_oleans_script.py -q"
 
 [agent]
 stack = "PNPM_WORKSPACE"
