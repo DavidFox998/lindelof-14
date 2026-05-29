@@ -684,6 +684,18 @@ describe("GET /api/ledger/integrity", () => {
       expect(live.rotations[0]?.index).toBe(1);
       expect(live.rotations[0]?.path).toBe(rot1);
 
+      // Task #207: the fullness hint surfaces the live-file size and the
+      // env-resolved caps so the dashboard can render "live: X / Y" and
+      // flag the next-to-be-dropped archive. We forced the byte cap to
+      // 200 and the rotation cap to 2 above.
+      expect(live.maxBytes).toBe(200);
+      expect(live.maxRotations).toBe(2);
+      // After rotation the live file has not been repopulated, so its
+      // size is 0 (it exists empty) or null (rename removed it).
+      expect(
+        live.liveSize === null || live.liveSize === 0,
+      ).toBe(true);
+
       // Paged read: rotation=1 returns the archived entries (both
       // alice and bob, newest-first) and echoes rotation=1.
       const archived = reader.listForgedAckHistory(undefined, 1);

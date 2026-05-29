@@ -343,6 +343,8 @@ export const getSidecarForgedAckHistoryResponseRotationMin = 0;
 
 
 
+
+
 export const GetSidecarForgedAckHistoryResponse = zod.object({
   "entries": zod.array(zod.object({
   "payloadSha": zod.string().describe('sha256 hex of the forged sidecar payload the ack was bound to.'),
@@ -357,7 +359,10 @@ export const GetSidecarForgedAckHistoryResponse = zod.object({
   "path": zod.string().describe('Absolute path to the rotated file on disk.'),
   "size": zod.number().describe('Size of the rotated file in bytes (for the dashboard tooltip).'),
   "mtime": zod.coerce.date().describe('ISO-8601 mtime of the rotated file (i.e. when the rotation happened).')
-}).describe('One rotated archive of the forged-ack history log on disk\n(`data\/hits.txt.lastok.forged-ack.log.jsonl.<index>`). Task #168.\n')).describe('Snapshot of every rotated archive currently on disk\n(`…log.jsonl.1`, `.2`, …), newest-rotated first by index.\nEmpty when no rotation has ever happened — the live file\nis the only history surface. Lets the dashboard render\nprev\/next paging controls without polling each rotation\nindex blindly. Mirrors `LedgerAlertsResponse.rotations`.\nTask #168.\n')
+}).describe('One rotated archive of the forged-ack history log on disk\n(`data\/hits.txt.lastok.forged-ack.log.jsonl.<index>`). Task #168.\n')).describe('Snapshot of every rotated archive currently on disk\n(`…log.jsonl.1`, `.2`, …), newest-rotated first by index.\nEmpty when no rotation has ever happened — the live file\nis the only history surface. Lets the dashboard render\nprev\/next paging controls without polling each rotation\nindex blindly. Mirrors `LedgerAlertsResponse.rotations`.\nTask #168.\n'),
+  "liveSize": zod.number().nullable().describe('Current size in bytes of the live forged-ack history file\n(`data\/hits.txt.lastok.forged-ack.log.jsonl`), or null when\nthe live file does not exist yet. Paired with `maxBytes` this\ndrives the dashboard\'s \"live: 84 KB \/ 256 KB\" fullness hint\nso operators can predict when the next rotation — and the\ndrop of the oldest archive under the rotation cap — is about\nto happen. Task #207.\n'),
+  "maxBytes": zod.number().min(1).describe('Byte cap the live file is rotated at, resolved from\n`MORNINGSTAR_FORGED_ACK_HISTORY_MAX_BYTES` (default 262144 =\n256 KiB). The denominator of the fullness hint. Task #207.\n'),
+  "maxRotations": zod.number().min(1).describe('Rotation cap resolved from\n`MORNINGSTAR_FORGED_ACK_HISTORY_MAX_ROTATIONS` (default 3).\nThe archive at this index is the next to be dropped on the\nnext rotation, so the dashboard can flag it as evidence at\nrisk. Task #207.\n')
 }).describe('Result of `GET \/ledger\/sidecar-forged-ack\/history` (task #150,\nrotation paging added by task #168).\n')
 
 

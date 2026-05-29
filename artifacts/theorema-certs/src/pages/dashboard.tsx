@@ -2529,6 +2529,27 @@ export default function DashboardPage() {
                   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
                   return `${(n / (1024 * 1024)).toFixed(2)} MB`;
                 };
+                // Task #207: how full the live log is before it rotates,
+                // and which archive the next rotation would drop. Once the
+                // live file passes `maxBytes` it rotates to `.1`, every
+                // archive shifts up an index, and the archive at
+                // `maxRotations` is unlinked — so during an active tamper
+                // campaign that archive is the evidence most at risk.
+                const liveSize = forgedAckHistory?.liveSize ?? null;
+                const maxBytes = forgedAckHistory?.maxBytes ?? null;
+                const maxRotations = forgedAckHistory?.maxRotations ?? null;
+                const livePct =
+                  liveSize != null && maxBytes != null && maxBytes > 0
+                    ? Math.min(100, (liveSize / maxBytes) * 100)
+                    : null;
+                // The next rotation drops whichever archive is currently
+                // at the rotation cap index. If the live file is already
+                // at/over that cap, that archive is on the chopping block.
+                const nextDropIdx =
+                  maxRotations != null &&
+                  rotations.some((r) => r.index === maxRotations)
+                    ? maxRotations
+                    : null;
                 return (
                   <div
                     className="border border-red-500/30 bg-background/40 mt-2"
@@ -2547,13 +2568,52 @@ export default function DashboardPage() {
                           </span>
                         ) : null}
                       </span>
-                      <span
-                        className="font-mono text-[10px] text-red-700/70 dark:text-red-300/70"
-                        data-testid="text-ledger-sidecar-forged-history-count"
-                      >
-                        {entries.length} of last {capacity}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {liveSize != null && maxBytes != null ? (
+                          <span
+                            className="font-mono text-[10px] text-red-700/70 dark:text-red-300/70"
+                            data-testid="text-ledger-sidecar-forged-history-live-fullness"
+                            data-live-size={liveSize}
+                            data-max-bytes={maxBytes}
+                            title={
+                              livePct != null
+                                ? `Live log is ${livePct.toFixed(0)}% of the way to its ${fmtSize(maxBytes)} rotation cap. When it rotates, archive .${maxRotations ?? "N"} is dropped.`
+                                : undefined
+                            }
+                          >
+                            live: {fmtSize(liveSize)} / {fmtSize(maxBytes)}
+                            {livePct != null
+                              ? ` (${livePct.toFixed(0)}%)`
+                              : ""}
+                          </span>
+                        ) : null}
+                        <span
+                          className="font-mono text-[10px] text-red-700/70 dark:text-red-300/70"
+                          data-testid="text-ledger-sidecar-forged-history-count"
+                        >
+                          {entries.length} of last {capacity}
+                        </span>
+                      </div>
                     </div>
+                    {livePct != null ? (
+                      <div
+                        className="px-2 py-1 border-b border-red-500/20"
+                        data-testid="meter-ledger-sidecar-forged-history-live"
+                      >
+                        <div className="h-1 w-full rounded-sm bg-red-500/15 overflow-hidden">
+                          <div
+                            className={`h-full rounded-sm ${
+                              livePct >= 90
+                                ? "bg-red-500"
+                                : livePct >= 60
+                                  ? "bg-amber-500"
+                                  : "bg-red-500/50"
+                            }`}
+                            style={{ width: `${livePct}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
                     {rotations.length > 0 ? (
                       <div
                         className="flex flex-wrap items-center gap-2 px-2 py-1 border-b border-red-500/20 bg-red-500/5"
@@ -2586,22 +2646,41 @@ export default function DashboardPage() {
                         >
                           live
                         </button>
-                        {rotations.map((r) => (
-                          <button
-                            key={`forged-ack-rot-${r.index}`}
-                            type="button"
-                            onClick={() => setForgedAckRotation(r.index)}
-                            className={`font-mono text-[10px] px-2 py-0.5 border rounded-sm ${
-                              currentRotation === r.index
-                                ? "bg-red-500/80 text-white border-red-500"
-                                : "bg-background/40 border-red-500/30 hover:bg-background/70"
-                            }`}
-                            data-testid={`btn-ledger-sidecar-forged-history-rotation-${r.index}`}
-                            title={`Rotated archive .${r.index} — ${fmtSize(r.size)}, rotated ${formatTimestamp(r.mtime)}`}
-                          >
-                            .{r.index}
-                          </button>
-                        ))}
+                        {rotations.map((r) => {
+                          const isNextDrop = r.index === nextDropIdx;
+                          return (
+                            <button
+                              key={`forged-ack-rot-${r.index}`}
+                              type="button"
+                              onClick={() => setForgedAckRotation(r.index)}
+                              className={`font-mono text-[10px] px-2 py-0.5 border rounded-sm ${
+                                currentRotation === r.index
+                                  ? "bg-red-500/80 text-white border-red-500"
+                                  : isNextDrop
+                                    ? "bg-amber-500/10 border-amber-500/60 hover:bg-amber-500/20"
+                                    : "bg-background/40 border-red-500/30 hover:bg-background/70"
+                              }`}
+                              data-testid={`btn-ledger-sidecar-forged-history-rotation-${r.index}`}
+                              data-next-drop={isNextDrop ? "true" : undefined}
+                              title={`Rotated archive .${r.index} — ${fmtSize(r.size)}, rotated ${formatTimestamp(r.mtime)}${
+                                isNextDrop
+                                  ? " — NEXT TO BE DROPPED on the next rotation (at the rotation cap). Off-box it to preserve this evidence."
+                                  : ""
+                              }`}
+                            >
+                              .{r.index}
+                              {isNextDrop ? (
+                                <span
+                                  className="ml-1 text-amber-600 dark:text-amber-400"
+                                  aria-label="next to be dropped"
+                                  data-testid={`badge-ledger-sidecar-forged-history-next-drop-${r.index}`}
+                                >
+                                  ⚠
+                                </span>
+                              ) : null}
+                            </button>
+                          );
+                        })}
                         <button
                           type="button"
                           onClick={() =>

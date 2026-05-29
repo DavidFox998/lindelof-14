@@ -1244,6 +1244,27 @@ export interface LedgerChecker {
       size: number;
       mtime: string;
     }>;
+    /**
+     * Task #207: current size in bytes of the live forged-ack history
+     * file on disk (`null` when the live file does not exist yet). Lets
+     * the dashboard render a "live: 84 KB / 256 KB" fullness hint so
+     * operators can predict when the next rotation — and the drop of
+     * the oldest archive under the rotation cap — is about to happen.
+     */
+    liveSize: number | null;
+    /**
+     * Task #207: byte cap the live file is rotated at, resolved from
+     * `MORNINGSTAR_FORGED_ACK_HISTORY_MAX_BYTES` (default 256 KiB). The
+     * denominator of the fullness hint.
+     */
+    maxBytes: number;
+    /**
+     * Task #207: rotation cap resolved from
+     * `MORNINGSTAR_FORGED_ACK_HISTORY_MAX_ROTATIONS` (default 3). The
+     * archive at this index is the next to be dropped on the next
+     * rotation, so the dashboard can flag it as evidence at risk.
+     */
+    maxRotations: number;
   };
   /**
    * Task #140: rotate the sidecar HMAC secret in response to a tamper
@@ -2228,12 +2249,25 @@ export function createLedgerChecker(opts: LedgerRouterOptions): LedgerChecker {
         defaultLogger,
       );
       const rotations = listForgedAckHistoryRotations(FORGED_ACK_HISTORY_PATH);
+      // Task #207: surface how full the live file is so operators can
+      // predict the next rotation (and the oldest-archive drop it would
+      // trigger under the rotation cap). Best-effort stat: a missing or
+      // unreadable live file reports `null` rather than throwing.
+      let liveSize: number | null = null;
+      try {
+        liveSize = statSync(FORGED_ACK_HISTORY_PATH).size;
+      } catch {
+        liveSize = null;
+      }
       return {
         entries,
         logExists,
         capacity: cap,
         rotation: rotNorm,
         rotations,
+        liveSize,
+        maxBytes: forgedAckHistoryMaxBytes(),
+        maxRotations: forgedAckHistoryMaxRotations(),
       };
     },
     rotateSidecarSecret,

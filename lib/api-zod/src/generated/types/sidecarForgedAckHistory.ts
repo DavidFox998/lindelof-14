@@ -42,4 +42,34 @@ export interface SidecarForgedAckHistory {
   Task #168.
    */
   rotations: SidecarForgedAckHistoryRotation[];
+  /**
+     * Current size in bytes of the live forged-ack history file
+  (`data/hits.txt.lastok.forged-ack.log.jsonl`), or null when
+  the live file does not exist yet. Paired with `maxBytes` this
+  drives the dashboard's "live: 84 KB / 256 KB" fullness hint
+  so operators can predict when the next rotation — and the
+  drop of the oldest archive under the rotation cap — is about
+  to happen. Task #207.
+
+     * @nullable
+     */
+  liveSize: number | null;
+  /**
+     * Byte cap the live file is rotated at, resolved from
+  `MORNINGSTAR_FORGED_ACK_HISTORY_MAX_BYTES` (default 262144 =
+  256 KiB). The denominator of the fullness hint. Task #207.
+
+     * @minimum 1
+     */
+  maxBytes: number;
+  /**
+     * Rotation cap resolved from
+  `MORNINGSTAR_FORGED_ACK_HISTORY_MAX_ROTATIONS` (default 3).
+  The archive at this index is the next to be dropped on the
+  next rotation, so the dashboard can flag it as evidence at
+  risk. Task #207.
+
+     * @minimum 1
+     */
+  maxRotations: number;
 }

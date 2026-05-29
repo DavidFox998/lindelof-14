@@ -1315,7 +1315,17 @@ components:
 
     SidecarForgedAckHistory:
       type: object
-      required: [entries, logExists, capacity, rotation, rotations]
+      required:
+        [
+          entries,
+          logExists,
+          capacity,
+          rotation,
+          rotations,
+          liveSize,
+          maxBytes,
+          maxRotations,
+        ]
       description: |
         Result of `GET /ledger/sidecar-forged-ack/history` (task #150,
         rotation paging added by task #168).
@@ -1355,6 +1365,32 @@ components:
             prev/next paging controls without polling each rotation
             index blindly. Mirrors `LedgerAlertsResponse.rotations`.
             Task #168.
+        liveSize:
+          type: ["integer", "null"]
+          description: |
+            Current size in bytes of the live forged-ack history file
+            (`data/hits.txt.lastok.forged-ack.log.jsonl`), or null when
+            the live file does not exist yet. Paired with `maxBytes` this
+            drives the dashboard's "live: 84 KB / 256 KB" fullness hint
+            so operators can predict when the next rotation — and the
+            drop of the oldest archive under the rotation cap — is about
+            to happen. Task #207.
+        maxBytes:
+          type: integer
+          minimum: 1
+          description: |
+            Byte cap the live file is rotated at, resolved from
+            `MORNINGSTAR_FORGED_ACK_HISTORY_MAX_BYTES` (default 262144 =
+            256 KiB). The denominator of the fullness hint. Task #207.
+        maxRotations:
+          type: integer
+          minimum: 1
+          description: |
+            Rotation cap resolved from
+            `MORNINGSTAR_FORGED_ACK_HISTORY_MAX_ROTATIONS` (default 3).
+            The archive at this index is the next to be dropped on the
+            next rotation, so the dashboard can flag it as evidence at
+            risk. Task #207.
 
     SidecarForgedAckResult:
       type: object
