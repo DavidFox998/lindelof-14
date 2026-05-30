@@ -1402,6 +1402,63 @@ describe("GET /api/lean/ledger-alerts — corrupt log resilience", () => {
     expect(normalized!.expectedSize).toBeNull();
   });
 
+  it("backfills a not_configured placeholder for a legacy line missing one delivery transport", async () => {
+    // Legacy entry that carries a `delivery` object but omits the `email`
+    // transport entirely (the exact shape task #203 patched around purely
+    // client-side). The server must heal it so the response always satisfies
+    // the OpenAPI `LedgerAlertEntryDelivery` contract (both transports present).
+    const missingEmail = {
+      timestamp: "2026-05-21T10:00:00Z",
+      message: "legacy alert with webhook but no email transport",
+      workflow: "zeta-sieve-2718-100000",
+      delivery: {
+        webhook: { status: "failed", error: "connect ECONNREFUSED" },
+      },
+    };
+    // And the mirror case: an entry that omits the `webhook` transport.
+    const missingWebhook = {
+      timestamp: "2026-05-21T10:05:00Z",
+      message: "legacy alert with email but no webhook transport",
+      workflow: "zeta-sieve-2718-100000",
+      delivery: {
+        email: { status: "ok", error: null },
+      },
+    };
+    writeFileSync(
+      fixturePath,
+      JSON.stringify(missingEmail) + "\n" + JSON.stringify(missingWebhook) + "\n",
+    );
+    __testing.setAlertsLogPath(fixturePath);
+
+    const r = await call({ path: "/api/lean/ledger-alerts" });
+    expect(r.status).toBe(200);
+    expect(r.json.alerts).toHaveLength(2);
+
+    // Alerts are returned newest-first.
+    const [webhookMissing, emailMissing] = r.json.alerts as Array<{
+      message: string;
+      delivery: { webhook: unknown; email: unknown };
+    }>;
+    expect(webhookMissing.message).toBe(missingWebhook.message);
+    expect(webhookMissing.delivery).toEqual({
+      webhook: { status: "not_configured", error: null },
+      email: { status: "ok", error: null },
+    });
+    expect(emailMissing.message).toBe(missingEmail.message);
+    expect(emailMissing.delivery).toEqual({
+      webhook: { status: "failed", error: "connect ECONNREFUSED" },
+      email: { status: "not_configured", error: null },
+    });
+
+    // Pin the exported normalizer shape directly for the partial-transport case.
+    const normalized = __testing.normalizeAlertEntry(missingEmail);
+    expect(normalized).not.toBeNull();
+    expect(normalized!.delivery).toEqual({
+      webhook: { status: "failed", error: "connect ECONNREFUSED" },
+      email: { status: "not_configured", error: null },
+    });
+  });
+
   it("GCs ack entries whose alerts have rolled off the log", async () => {
     // Step 1: write a log that includes an old entry, dismiss it.
     const oldEntry = {
