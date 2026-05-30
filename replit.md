@@ -196,21 +196,27 @@ history. Roadmap → `docs/ROADMAP.md`.
     (the Helmholtz identification `(divFreeSubmodule)ᗮ = gradSubmodule`); NOT a
     brick.
   - `Towers/NS/Stokes.lean` — the Stokes operator `stokes_op = -PΔ :
-    Hdiv_free (s+2) →L[ℂ] Hdiv_free s` as the `‖ξ‖²` Fourier multiplier.
-    Exactly ONE documented `sorry` = `stokes_eLpNorm_le` (lifts the PROVED
-    pointwise `symbol_pow_weight_le` through the `withDensity`/`eLpNorm`
-    integrals); NOT a brick.
-    - **Genuinely `sorry`-free + classical-trio (verified live, independent of
-      the deferred lift):** `symbol_pow_weight_le` (the `-Δ` symbol/weight
-      estimate `‖ξ‖⁴·⟨ξ⟩^{2s} ≤ ⟨ξ⟩^{2(s+2)}`), `stokesSymbol_re_nonneg`,
-      `continuous_stokesSymbol`, `stokes_aestronglyMeasurable`.
-    - **Downstream operator declarations are NOT trio-clean — they inherit
-      `sorryAx` transitively from `stokes_eLpNorm_le`** (their `#print axioms`
-      reports `sorryAx`): `stokesMemℒp`, `stokesₗ`, `stokes_mult`, `stokes_op`,
+    Hdiv_free (s+2) →L[ℂ] Hdiv_free s` as the `‖ξ‖²` Fourier multiplier. **NOW
+    FULLY `sorry`-free + classical-trio (the former lone `stokes_eLpNorm_le`
+    `sorry` is CLOSED)** — `#print axioms` returns the classical trio on EVERY
+    declaration, including the operator `stokes_op` and the bound
+    `stokes_op_norm_le` (verified live). NOT a brick / not a lakefile root.
+    - **The closed lift:** `stokes_eLpNorm_le` (`‖ξ‖²•û` has `L²(μ_s)`-norm `≤`
+      the `L²(μ_{s+2})`-norm of `û`) is genuinely PROVED. Route: both `eLpNorm`s
+      → `(∫⁻ ‖·‖₊²)^{1/2}` (`eLpNorm_eq_lintegral_rpow_nnnorm`), pushed onto
+      `volume` via `lintegral_withDensity_eq_lintegral_mul₀'`, then compared
+      pointwise by the NEW helper `stokes_weight_pointwise` (the `ℝ≥0∞`
+      repackaging `weight s ξ · ‖stokesSymbol ξ‖₊² ≤ weight (s+2) ξ` of the real
+      `symbol_pow_weight_le`). `ENNReal`/`rpow` plumbing only, no new math.
+    - **Also `sorry`-free + classical-trio (as before):** `symbol_pow_weight_le`
+      (the `-Δ` symbol/weight estimate `‖ξ‖⁴·⟨ξ⟩^{2s} ≤ ⟨ξ⟩^{2(s+2)}`),
+      `stokesSymbol_re_nonneg`, `continuous_stokesSymbol`,
+      `stokes_aestronglyMeasurable`.
+    - **The operator declarations are now trio-clean (NO `sorryAx`):**
+      `stokesMemℒp`, `stokesₗ`, `stokes_mult`, `stokes_op`,
       `stokes_preserves_divFree`, `stokes_mult_norm_le`, `stokes_op_norm_le`
-      (the `‖A u‖ ≤ ‖u‖` bound). They are written as the genuine operator
-      (linear, div-free-preserving, contractive) but stay PROVISIONAL until
-      `stokes_eLpNorm_le` is discharged.
+      (the `‖A u‖ ≤ ‖u‖` bound) — the genuine operator (linear,
+      div-free-preserving, contractive), no longer provisional.
     HONEST scope: it NAMES and BOUNDS the operator —
     NO self-adjointness / sectoriality / analytic-semigroup claim (that theory
     is absent from mathlib v4.12.0; deliberately NOT fabricated as sorries).

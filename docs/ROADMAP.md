@@ -189,19 +189,22 @@ Status legend:
     identification `(divFree)ᗮ = grad`).
   - **Phase 2B** `Towers/NS/Stokes.lean` — the Stokes operator
     `stokes_op = -PΔ : Hdiv_free (s+2) →L Hdiv_free s`, the `‖ξ‖²`
-    Fourier multiplier. PROVED `sorry`-free + classical trio
-    (independent of the deferred lift): the `-Δ` symbol estimate
-    `‖ξ‖⁴⟨ξ⟩^{2s} ≤ ⟨ξ⟩^{2(s+2)}`, symbol positivity, symbol
-    continuity, and a.e.-strong-measurability. The single documented
-    `sorry` (`stokes_eLpNorm_le`) is only the lift of that proved
-    pointwise estimate through the `withDensity`/`eLpNorm` integrals.
-    The operator-level declarations (`stokes_op`, linearity, div-free
-    preservation, the `‖A u‖ ≤ ‖u‖` bound) are written as the genuine
-    operator but inherit `sorryAx` transitively from
-    `stokes_eLpNorm_le` — PROVISIONAL, NOT trio-clean, until that lemma
-    is discharged. NO self-adjointness / sectoriality /
-    analytic-semigroup claim (absent from mathlib v4.12.0). Stokes does
-    NOT import Leray.
+    Fourier multiplier. **NOW FULLY `sorry`-free + classical trio** —
+    the former lone `sorry` (`stokes_eLpNorm_le`) is CLOSED, so
+    `#print axioms` returns the classical trio on EVERY declaration,
+    including the operator `stokes_op` and the bound
+    `stokes_op_norm_le` (verified live). Proved content: the `-Δ`
+    symbol estimate `‖ξ‖⁴⟨ξ⟩^{2s} ≤ ⟨ξ⟩^{2(s+2)}`, symbol positivity,
+    symbol continuity, a.e.-strong-measurability, the NEW pointwise
+    `ℝ≥0∞` density bound `stokes_weight_pointwise`, and the lift
+    `stokes_eLpNorm_le` (the `‖ξ‖²•û` `L²` bound) carried through the
+    `withDensity`/`eLpNorm` integrals
+    (`lintegral_withDensity_eq_lintegral_mul₀'`). The operator-level
+    declarations (`stokes_op`, linearity, div-free preservation, the
+    `‖A u‖ ≤ ‖u‖` bound) are now trio-clean (no `sorryAx`) — the
+    genuine operator, no longer provisional. NO self-adjointness /
+    sectoriality / analytic-semigroup claim (absent from mathlib
+    v4.12.0). Stokes does NOT import Leray.
   - HONEST scope: these build spaces and name/bound operators; they prove
     NO NS existence/uniqueness/regularity result. NS stays `Status:
     Open`; Surface #2 stays OPEN.

@@ -13,44 +13,43 @@ IS multiplication by `‖ξ‖²`, mapping `Hˢ⁺²_div` into `Hˢ_div`
 (it costs exactly two Sobolev derivatives).
 
 ------------------------------------------------------------------
-## What is PROVED here, genuinely `sorry`-free + classical-trio
-   (independent of the deferred lift; `#print axioms` = trio)
+## What is PROVED here — EVERYTHING is `sorry`-free + classical-trio
+   The file carries **no `sorry`/`admit`/`sorryAx`**. `#print axioms`
+   on every declaration below (including the operator `stokes_op`
+   and the bound `stokes_op_norm_le`) returns exactly the classical
+   trio `[propext, Classical.choice, Quot.sound]`.
 
   * `symbol_pow_weight_le` — **the real mathematical content**: the
     `-Δ` symbol estimate `‖ξ‖⁴ · ⟨ξ⟩^{2s} ≤ ⟨ξ⟩^{2(s+2)}`, i.e.
     multiplication by `‖ξ‖²` costs exactly two derivatives, so
     `-Δ : Hˢ⁺² → Hˢ` is bounded. Pure real analysis (`Real.rpow_add`
-    + base `≥ 1`), `sorry`-free.
+    + base `≥ 1`).
   * `stokesSymbol_re_nonneg` — the symbol `‖ξ‖²` is real and `≥ 0`
     (the `-Δ ≥ 0` positivity that makes `A` a candidate sectorial
     generator).
   * `continuous_stokesSymbol` — the symbol is continuous.
   * `stokes_aestronglyMeasurable` — the multiplied field is
     a.e.-strongly-measurable for `μ_s`.
+  * `stokes_weight_pointwise` — the pointwise `ℝ≥0∞` density bound
+    `weight s ξ · ‖‖ξ‖²‖₊² ≤ weight (s+2) ξ`, the `ENNReal`
+    repackaging of `symbol_pow_weight_le`.
+  * `stokes_eLpNorm_le` — **now genuinely PROVED** (was deferred):
+    `‖ξ‖² • û` has `L²(μ_s)`-norm `≤` the `L²(μ_{s+2})`-norm of `û`.
+    The pointwise content is `stokes_weight_pointwise`; the lift
+    through the two `withDensity` integrals
+    (`lintegral_withDensity_eq_lintegral_mul₀'`) and the
+    `eLpNorm = (∫⁻ ‖·‖₊²)^{1/2}` bookkeeping is carried out in full
+    (`ENNReal`/`rpow` plumbing — long but routine, no new math).
 
 ------------------------------------------------------------------
-## The ONE deferred `sorry` (measure-theoretic lift)
+## Operator-level declarations — trio-clean (NO `sorryAx`)
+   Because `stokes_eLpNorm_le` is proved, the operator and all of its
+   structure are classical-trio. (NONE is a brick / lakefile root.)
 
-  * `stokes_eLpNorm_le` — `‖ξ‖² • û` has `L²(μ_s)`-norm `≤` the
-    `L²(μ_{s+2})`-norm of `û`. The POINTWISE content is exactly the
-    PROVED `symbol_pow_weight_le`; what is deferred is only the
-    lift of that pointwise bound through the two `withDensity`
-    integrals (`lintegral_withDensity_eq_lintegral_mul₀`) and the
-    `eLpNorm = (∫⁻ ‖·‖₊²)^{1/2}` bookkeeping — real but long
-    `ℝ≥0∞`/`rpow` plumbing, not new mathematics. Deferred, NOT a
-    brick.
-
-------------------------------------------------------------------
-## Operator-level declarations — PROVISIONAL (inherit `sorryAx`)
-   These are written as the genuine operator, but every one routes
-   its `L²` finiteness/bound through `stokes_eLpNorm_le`, so until
-   that lemma is discharged their `#print axioms` reports `sorryAx`
-   — they are NOT trio-clean and must not be reported as proved.
-
-  * `stokesMemℒp` — `‖ξ‖² • û ∈ L²(μ_s)` (uses the deferred bound).
+  * `stokesMemℒp` — `‖ξ‖² • û ∈ L²(μ_s)`.
   * `stokesₗ` — the `‖ξ‖²` Fourier multiplier as a **linear** map
-    `Hˢ⁺² →ₗ[ℂ] Hˢ` (additivity + `ℂ`-homogeneity proved a.e. from
-    the `Lp` coe-fn calculus, but built on `stokesMemℒp`).
+    `Hˢ⁺² →ₗ[ℂ] Hˢ` (additivity + `ℂ`-homogeneity from the `Lp`
+    coe-fn calculus).
   * `stokes_mult` — the multiplier as a **bounded** map
     `Hˢ⁺² →L[ℂ] Hˢ`, operator norm `≤ 1`.
   * `stokes_preserves_divFree` — `A` maps divergence-free fields to
@@ -130,13 +129,55 @@ theorem stokes_aestronglyMeasurable (s : ℝ) (f : Hsv (s + 2)) :
     (Lp.aestronglyMeasurable f).mono_measure (mu_mono (by linarith : s ≤ s + 2))
   exact (continuous_stokesSymbol.aestronglyMeasurable).smul hf
 
-/-- **DEFERRED (1 documented `sorry`) — the integral lift.** The
+/-- **The pointwise `ℝ≥0∞` density estimate.** `weight s ξ ·
+    ‖stokesSymbol ξ‖₊² ≤ weight (s+2) ξ` — the `ENNReal` repackaging
+    of the real estimate `symbol_pow_weight_le`. `sorry`-free. -/
+theorem stokes_weight_pointwise (s : ℝ) (ξ : Freq) :
+    weight s ξ * (↑‖stokesSymbol ξ‖₊ : ℝ≥0∞) ^ (2 : ℝ) ≤ weight (s + 2) ξ := by
+  have hcoe : (↑‖stokesSymbol ξ‖₊ : ℝ≥0∞) = ENNReal.ofReal (‖ξ‖ ^ 2) := by
+    rw [← ofReal_norm_eq_coe_nnnorm, stokesSymbol]
+    congr 1
+    simp [abs_of_nonneg (sq_nonneg ‖ξ‖)]
+  simp only [weight]
+  rw [hcoe, ENNReal.ofReal_rpow_of_nonneg (by positivity) (by norm_num),
+      Real.rpow_two, ← ENNReal.ofReal_mul (by positivity)]
+  apply ENNReal.ofReal_le_ofReal
+  rw [mul_comm]
+  exact symbol_pow_weight_le s ξ
+
+/-- **The integral lift — now genuinely PROVED (`sorry`-free).** The
     `L²(μ_s)` norm of `‖ξ‖² • û` is bounded by the `L²(μ_{s+2})` norm
-    of `û`. The pointwise content is the PROVED `symbol_pow_weight_le`;
-    only the `withDensity`/`eLpNorm` lift is deferred. NOT a brick. -/
+    of `û`. Both `eLpNorm`s are rewritten as `(∫⁻ ‖·‖₊²)^{1/2}`, pushed
+    onto `volume` via `lintegral_withDensity_eq_lintegral_mul₀'`, and
+    compared pointwise via `stokes_weight_pointwise`. NOT a brick. -/
 theorem stokes_eLpNorm_le (s : ℝ) (f : Hsv (s + 2)) :
     eLpNorm (fun ξ => stokesSymbol ξ • f ξ) 2 (mu s) ≤ eLpNorm (⇑f) 2 (mu (s + 2)) := by
-  sorry
+  have hws : Measurable (weight s) :=
+    ENNReal.measurable_ofReal.comp
+      ((continuous_const.add (continuous_norm.pow 2)).rpow_const
+        (fun _ => Or.inl (by positivity))).measurable
+  have hws2 : Measurable (weight (s + 2)) :=
+    ENNReal.measurable_ofReal.comp
+      ((continuous_const.add (continuous_norm.pow 2)).rpow_const
+        (fun _ => Or.inl (by positivity))).measurable
+  have hg1 : AEMeasurable
+      (fun ξ => (↑‖stokesSymbol ξ • f ξ‖₊ : ℝ≥0∞) ^ (2 : ℝ)) (mu s) :=
+    ((stokes_aestronglyMeasurable s f).nnnorm.aemeasurable.coe_nnreal_ennreal).pow_const _
+  have hg2 : AEMeasurable
+      (fun ξ => (↑‖f ξ‖₊ : ℝ≥0∞) ^ (2 : ℝ)) (mu (s + 2)) :=
+    ((Lp.aestronglyMeasurable f).nnnorm.aemeasurable.coe_nnreal_ennreal).pow_const _
+  rw [eLpNorm_eq_lintegral_rpow_nnnorm (by norm_num) (by norm_num),
+      eLpNorm_eq_lintegral_rpow_nnnorm (by norm_num) (by norm_num)]
+  simp only [ENNReal.toReal_ofNat]
+  refine ENNReal.rpow_le_rpow ?_ (by norm_num)
+  simp only [mu]
+  rw [lintegral_withDensity_eq_lintegral_mul₀' hws.aemeasurable hg1,
+      lintegral_withDensity_eq_lintegral_mul₀' hws2.aemeasurable hg2]
+  refine lintegral_mono (fun ξ => ?_)
+  simp only [Pi.mul_apply]
+  rw [nnnorm_smul, ENNReal.coe_mul,
+      ENNReal.mul_rpow_of_nonneg _ _ (by norm_num : (0 : ℝ) ≤ 2), ← mul_assoc]
+  exact mul_le_mul_right' (stokes_weight_pointwise s ξ) _
 
 /-- The multiplied field is in `L²(μ_s)`: a.e.-strongly-measurable
     with finite `L²` norm (bounded by `‖f‖_{H^{s+2}} < ∞`). -/
