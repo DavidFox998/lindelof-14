@@ -1,2 +1,3 @@
 - [SU(3) Haar instances (Lean4 mathlib v4.12.0)](su3-haar-instances.md) — what haarMeasure actually requires + how to make SU(3) compact when Matrix has no metric.
 - [Lean star vs starRingEnd rfl gap](lean-star-defeq.md) — `rw` can't bridge `star z` / `(starRingEnd ℂ) z`; finish with `exact` (defeq), not `rw`.
+- [Durable long-running commands](durable-long-commands.md) — bash-tool background procs die at the call's systemd-scope teardown (looks like OOM, isn't); run >2min commands as workflows.

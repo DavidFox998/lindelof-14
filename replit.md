@@ -28,6 +28,16 @@ history. Roadmap → `docs/ROADMAP.md`.
   on disk, await Wall 570+/574 with the real SU(3) `H`.
 - **Infra:** mathlib cache self-heal landed (`scripts/fetch-mathlib-oleans.sh`:
   authoritative `lake exe cache get`, no from-source fallback).
+- **Honest measure infra (NOT a brick, not in BRICKS):**
+  `Towers/YM/SU3Instances.lean` carries the real `SU(3)` instance stack
+  (`Group` / `TopologicalGroup` / `CompactSpace` / `BorelSpace`), `haarSU3 =
+  haarMeasure ⊤`, and now `haarN n := Measure.pi (fun _ : Fin n => haarSU3)` —
+  the product Haar measure on `Fin n → SU(3)` link configurations — plus
+  `IsProbabilityMeasure` instances for both. `#print axioms` on `haarSU3` /
+  `haarN` = classical trio (`[propext, Classical.choice, Quot.sound]`), verified
+  live. This is measure-theoretic scaffolding ONLY: built on the *real* Haar
+  measure (NOT the Dirac stand-in), but it makes **no** `m > 0` / mass-gap /
+  `μ > 0` claim and does **not** touch Surface #1 (stays OPEN).
 
 ## Locked invariants (every batch must hold these)
 
@@ -47,7 +57,17 @@ history. Roadmap → `docs/ROADMAP.md`.
 - **Do NOT run `towers-build` / `lake update` casually.** Both re-clone the
   vendored mathlib checkout and wipe its oleans, requiring a `lake-recovery`
   (`lake exe cache get`) pass. Verify bricks via direct `lake env lean <file>`
-  + `#print axioms` instead.
+  + `#print axioms` — **but `lake env` is ALSO destructive when the
+  `v4.12.0` tag is missing.** `lake env` re-resolves `inputRev: v4.12.0` from
+  the mathlib git; if the tag does not resolve it fetches from remote and wipes
+  the oleans, exactly like `lake update` (confirmed 2026-05-30). So BEFORE any
+  `lake env lean`, assert `git -C lean-proof-towers/.lake/packages/mathlib
+  rev-parse v4.12.0` succeeds. Recovery if wiped: `scripts/restore-lake-git.sh`
+  (run it TWICE — first run restores `.git` at the pinned rev, second run
+  rehydrates the empty worktree via its `git checkout -- .` heal), then recreate
+  the tag (`git -C lean-proof-towers/.lake/packages/mathlib tag -f v4.12.0
+  809c3fb3b5c8f5d7dace56e200b426187516535a`), then run
+  `scripts/fetch-mathlib-oleans.sh` to re-download the oleans.
 - The destructive mathlib re-clone is triggered when the restore-tar's vendored
   mathlib `.git` lacks the `v4.12.0` tag (lake fetches from remote to resolve
   `inputRev: v4.12.0`). Fix: recreate the tag locally after any

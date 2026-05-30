@@ -138,4 +138,36 @@ noncomputable def haarSU3 : MeasureTheory.Measure SU3 :=
 -- `[propext, Classical.choice, Quot.sound]`.
 #print axioms haarSU3
 
+/-- `haarSU3` is a **probability measure**: `haarMeasure ⊤` assigns the whole
+(compact) group `SU(3)` total mass `1` (`haarMeasure_self`, since the carrier of
+`⊤ : PositiveCompacts` is `univ`). -/
+instance instIsProbabilityMeasureHaarSU3 : IsProbabilityMeasure haarSU3 where
+  measure_univ := by
+    rw [haarSU3, ← TopologicalSpace.PositiveCompacts.coe_top (α := SU3)]
+    exact MeasureTheory.Measure.haarMeasure_self
+
+/-- The (normalized) **product Haar measure** on the lattice gauge configuration
+space `Fin n → SU(3)`: the independent product of the `SU(3)` Haar measure over
+all `n` links. This is the measure with respect to which gauge configurations are
+averaged — the `haarN` of the lattice programme, here built honestly from the
+real `SU(3)` Haar measure rather than any Dirac stand-in.
+
+INVARIANT NOTE: this is genuine measure-theoretic infrastructure. `haarN n` is
+the *measure* on configurations; it makes **no** Yang–Mills mass-gap claim, no
+`μ > 0` spectral claim, and does **not** touch Surface #1 (which stays OPEN). It
+is exactly the finite product of `haarSU3`, nothing more. -/
+noncomputable def haarN (n : ℕ) : MeasureTheory.Measure (Fin n → SU3) :=
+  MeasureTheory.Measure.pi (fun _ : Fin n => haarSU3)
+
+/-- `haarN n` is a probability measure on the configuration space `Fin n → SU(3)`:
+a finite product of probability measures is a probability measure. -/
+instance instIsProbabilityMeasureHaarN (n : ℕ) : IsProbabilityMeasure (haarN n) := by
+  unfold haarN
+  infer_instance
+
+-- Axiom audit for the product measure (transitive: certifies `haarN` and its
+-- probability-measure instance are `sorry`/`sorryAx`-free). Expected:
+-- `[propext, Classical.choice, Quot.sound]`.
+#print axioms haarN
+
 end TheoremaAureum.Towers.YM.SU3Instances
