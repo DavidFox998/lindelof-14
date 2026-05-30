@@ -560,4 +560,224 @@ test.describe("dashboard: ledger sidecar tamper / stale-binding banners", () => 
       await fixture.close();
     }
   });
+
+  /**
+   * Task #233: clicking "Acknowledge" on the amber stale-binding panel
+   * persists the ack and lights the acknowledged badge.
+   *
+   * Mirrors the rotate-secret test above: instead of the read-only
+   * `createLedgerRouter` we boot the full `createLedgerChecker` so we
+   * have its `acknowledgeStaleBinding()` handle, mount the integrity
+   * router AND a token-gated POST wrapper at
+   * `/api/ledger/sidecar-stale-binding-ack` (matching the real
+   * `lean.ts:checkRebuildAuth` shape so the dashboard's outbound
+   * `Authorization: Bearer <token>` header does not need a special
+   * case), seed a referee token in localStorage so the Acknowledge
+   * button renders, then drive the button. After the POST resolves and
+   * TanStack Query invalidates the integrity key, the next poll must
+   * report a non-null `lastOkSidecarStatusAcknowledgedAt` so the panel
+   * carries `data-acknowledged="true"` and the
+   * `badge-ledger-sidecar-stale-binding-acknowledged` badge appears.
+   *
+   * The stale binding is sticky (no re-verify), so the panel itself
+   * stays visible across the ack — only the badge transitions in. This
+   * is the React-side counterpart to the server-side ack-persistence
+   * test in `ledger.integration.test.ts` ("acknowledges a
+   * stale-checkpoint-binding incident…").
+   */
+  test("clicking 'Acknowledge' on the amber stale-binding panel persists the ack and renders the acknowledged badge on the next /integrity poll", async ({
+    page,
+  }) => {
+    const ACK_TOKEN = "fixture-stale-binding-ack-token";
+    const REBUILD_TOKEN_STORAGE_KEY = "lean-rebuild-token";
+
+    const tmpDir = mkdtempSync(path.join(tmpdir(), "ledger-stale-ack-e2e-"));
+    const hitsPath = path.join(tmpDir, "hits.txt");
+    const checkpointPath = path.join(tmpDir, "hits.txt.checkpoint");
+    const lastOkPath = path.join(tmpDir, "hits.txt.lastok");
+    const secretPath = path.join(tmpDir, "hits.txt.lastok.key");
+    const ackPath = `${lastOkPath}.stale-binding-ack`;
+
+    // Same fixture recipe as the stale-binding render test: a healthy
+    // sealed prefix + matching checkpoint, a known HMAC secret, and a
+    // sidecar whose MAC verifies but whose bound checkpoint (size 999 /
+    // all-zero sha) does not match the on-disk checkpoint. Finally break
+    // the live ledger so the first /integrity check returns `mismatch` —
+    // a successful `ok` verify would re-seal the sidecar against the
+    // current checkpoint and clear the sticky stale-binding flag before
+    // we can observe / acknowledge it.
+    const sealed = "line1\nline2\nline3\n";
+    const buf = Buffer.from(sealed, "utf-8");
+    writeFileSync(hitsPath, buf);
+    writeFileSync(checkpointPath, `${buf.length} ${sha256(buf)}\n`);
+    const secretHex = "cd".repeat(32);
+    writeFileSync(secretPath, secretHex + "\n");
+    const stalePast = new Date(Date.now() - 30_000).toISOString();
+    writeFileSync(
+      lastOkPath,
+      sealSidecar(secretHex, {
+        lastOkAt: stalePast,
+        lastCheckedAt: stalePast,
+        boundCheckpointSize: 999,
+        boundCheckpointSha: "0".repeat(64),
+      }),
+    );
+    writeFileSync(hitsPath, "X");
+
+    const checker = createLedgerChecker({
+      hitsPath,
+      checkpointPath,
+      lastOkPath,
+      secretPath,
+    });
+    const app = express();
+    app.use(express.json());
+    app.use("/api", checker.router);
+    app.post("/api/ledger/sidecar-stale-binding-ack", (req, res) => {
+      const auth = req.headers["authorization"] ?? "";
+      const match = /^Bearer\s+(.+)$/i.exec(
+        Array.isArray(auth) ? (auth[0] ?? "") : auth,
+      );
+      const provided = match ? match[1]?.trim() : "";
+      if (!provided || provided !== ACK_TOKEN) {
+        res
+          .status(401)
+          .json({ ok: false, error: "Unauthorized: bad referee token." });
+        return;
+      }
+      const result = checker.acknowledgeStaleBinding("e2e-operator");
+      if (!result.ok) {
+        res.status(409).json({
+          ok: false,
+          error: "No stale-checkpoint-binding incident to acknowledge.",
+        });
+        return;
+      }
+      res.json({
+        ok: true,
+        acknowledgedAt: result.acknowledgedAt,
+        alreadyAcknowledged: result.alreadyAcknowledged,
+        boundCheckpointSha: result.boundCheckpointSha,
+        ackedBy: result.ackedBy,
+      });
+    });
+    const srv = http.createServer(app);
+    await new Promise<void>((resolve) => srv.listen(0, "127.0.0.1", resolve));
+    const port = (srv.address() as AddressInfo).port;
+    const baseUrl = `http://127.0.0.1:${port}`;
+
+    try {
+      const forward = async (
+        route: Route,
+        request: Request,
+        suffix: string,
+      ) => {
+        const upstream = new URL(request.url());
+        const forwarded = `${baseUrl}${suffix}${upstream.search}`;
+        const res = await fetch(forwarded, {
+          method: request.method(),
+          headers: request.headers(),
+          body: request.postData() ?? undefined,
+        });
+        const body = Buffer.from(await res.arrayBuffer());
+        const headers: Record<string, string> = {};
+        res.headers.forEach((v, k) => {
+          const lk = k.toLowerCase();
+          if (
+            lk === "content-encoding" ||
+            lk === "content-length" ||
+            lk === "transfer-encoding"
+          ) {
+            return;
+          }
+          headers[k] = v;
+        });
+        await route.fulfill({ status: res.status, headers, body });
+      };
+      await page.route(LEDGER_INTEGRITY_URL, (route, request) =>
+        forward(route, request, "/api/ledger/integrity"),
+      );
+      await page.route(
+        "**/api/ledger/sidecar-stale-binding-ack",
+        (route, request) =>
+          forward(route, request, "/api/ledger/sidecar-stale-binding-ack"),
+      );
+
+      // Seed the referee token in localStorage so the dashboard sends
+      // `Authorization: Bearer <token>` on the ack POST AND so the
+      // Acknowledge button renders (gated on rebuildToken).
+      await page.addInitScript(
+        ([key, token]) => {
+          window.localStorage.setItem(key as string, token as string);
+        },
+        [REBUILD_TOKEN_STORAGE_KEY, ACK_TOKEN],
+      );
+
+      await page.goto("/");
+
+      const stalePanel = page.locator(
+        '[data-testid="panel-ledger-sidecar-stale-binding"]',
+      );
+      await expect(stalePanel).toBeVisible();
+      // Un-acknowledged at boot.
+      await expect(stalePanel).toHaveAttribute("data-acknowledged", "false");
+      await expect(
+        page.locator(
+          '[data-testid="badge-ledger-sidecar-stale-binding-acknowledged"]',
+        ),
+      ).toHaveCount(0);
+
+      const ackBtn = page.locator(
+        '[data-testid="button-ack-ledger-sidecar-stale-binding"]',
+      );
+      await expect(ackBtn).toBeVisible();
+      await expect(ackBtn).toBeEnabled();
+      await expect(ackBtn).toHaveText(/^Acknowledge$/);
+
+      await ackBtn.click();
+
+      // After the POST resolves + the integrity query invalidates, the
+      // next poll reports a non-null acknowledged timestamp: the panel
+      // stays (the binding is still stale) but flips to
+      // data-acknowledged="true" and the badge appears.
+      await expect(stalePanel).toHaveAttribute("data-acknowledged", "true");
+      const ackBadge = page.locator(
+        '[data-testid="badge-ledger-sidecar-stale-binding-acknowledged"]',
+      );
+      await expect(ackBadge).toBeVisible();
+      await expect(ackBadge).toContainText("acknowledged");
+      await expect(ackBadge).toHaveAttribute("data-acked-by", "e2e-operator");
+
+      // The button is now disabled and reads "Acknowledged".
+      await expect(ackBtn).toBeDisabled();
+      await expect(ackBtn).toHaveText(/^Acknowledged$/);
+
+      // No ack error surfaced.
+      await expect(
+        page.locator(
+          '[data-testid="text-ack-ledger-sidecar-stale-binding-error"]',
+        ),
+      ).toHaveCount(0);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        srv.close((err) => (err ? reject(err) : resolve())),
+      );
+      try {
+        unlinkSync(lastOkPath);
+      } catch {
+        /* ignore */
+      }
+      try {
+        unlinkSync(secretPath);
+      } catch {
+        /* ignore */
+      }
+      try {
+        unlinkSync(ackPath);
+      } catch {
+        /* ignore */
+      }
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
 });
