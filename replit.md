@@ -60,8 +60,54 @@ history. Roadmap → `docs/ROADMAP.md`.
     inputs; they prove NO NS existence/uniqueness/regularity result. NS stays
     `Status: Open`; Surface #1/#2 stay OPEN; YM untouched.
 
-- **Wall:** 614 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`). The
+- **Wall:** 624 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`). The
   source of truth for the count is the script, not this file.
+- **Wall257_RateLowerBound — HONEST MODELED single-site rate that clears the
+  entropy threshold (bricks, in BRICKS):**
+  `Towers/YM/Wall257_RateLowerBound.lean` (namespace `Wall257Rate`; the `Wall257`
+  namespace is taken by `Wall257_StrongCoupling`). Exhibits a CONCRETE rate `I_E`
+  clearing `log 7`, but for a MODELED single-site cgf `cgfModel t := t²`, NOT the
+  SU(N) plaquette log-MGF. **GENUINE/UNCONDITIONAL:** `bddAbove_slopes` (the
+  Legendre slope family `t·x−t²` is bounded above by `x²/4` via `(t−x/2)²≥0`),
+  `quarter_sq_le_I_E` (`x²/4 ≤ I_E x`, from `Wall256Rate.le_rateFn` at the optimal
+  slope `t=x/2`), `I_E_unbounded` (`∀ M, ∃ x₀, M < I_E x₀` — the modeled rate
+  clears ANY bar), `exists_rate_gt_log_seven` (`∃ x₀, log 7 < I_E x₀`),
+  `rate_gap_single_site_vs_polymer` (the Gap Lemma `∃ iE iP, log7<iE ∧ ¬log7<iP`:
+  clearing `log 7` at one site is NOT the polymer rate clearing it; reuses
+  `Wall256Rate.mean_rate_fails_criterion`). 5 public theorems; all `sorry`-free,
+  `#print axioms` = classical trio (verified live, raw `lean` v4.12.0, EXIT=0).
+  HONEST: `cgfModel` is a MODELED Gaussian-type cgf whose Legendre transform
+  `x²/4` clears any threshold — the model proves NOTHING about the real SU(N)
+  rate (needs Cramér/Varadhan + the SU(N) character integral, absent from mathlib
+  v4.12.0). Establishes NO KP convergence, makes NO mass-gap / μ>0 / Surface-#1
+  claim, does NOT discharge `kotecky_preiss_criterion`. YM stays `Status: Open`.
+- **Wall258_DependenceDefect — HONEST CONDITIONAL inter-polymer dependence-defect
+  combinator (bricks, in BRICKS):** `Towers/YM/Wall258_DependenceDefect.lean`
+  (namespace `Wall258`). Polymers sharing a lattice link are NOT independent;
+  passing from a single-site rate `I_E` to the polymer rate costs a defect `D`, so
+  the effective rate is `I_E−D` and beating the `7ⁿ` entropy needs the single-site
+  rate to clear the RAISED threshold `log(7·C)`. **GENUINE/UNCONDITIONAL:**
+  `linkIncidence_four` (`2(d−1)=6` at `d=4`, the ℤ⁴ link incidence; by `decide`),
+  `rate_clears_after_defect` (`D≤log C ∧ log(7·C)<iE ⟹ log7<iE−D`, via
+  `log(7·C)=log7+log C`), `threshold_mono` (`log(7·C)` strictly increasing in `C`
+  — the requested "lower the numbers" lever; pins that below `log 42` needs `C<6`,
+  which ℤ⁴ does NOT provide — each link lies in exactly `2(d−1)=6` plaquettes).
+  **CONDITIONAL:** `dependence_defect_kp_summable` (general `C>0`) and
+  `dependence_defect_kp_summable_Z4` (`C=6`, threshold `log 42`) route the genuine
+  `EntropyBound` polymer count weighted by `exp(−(iE−D))ⁿ` through
+  `Wall256Rate.kp_polymer_rate_summable`, CONDITIONAL on the NAMED OPEN hypotheses
+  `h_entropy` (connective-constant count), `h_defect : D≤log C` (the
+  cluster-expansion convergence input) and `h_rate : log(7·C)<iE` (the genuine
+  SU(N) large-deviation rate). All three are HYPOTHESES, NOT `axiom`/`by sorry` —
+  so NO `sorryAx` and no new axioms. 5 public theorems; all `sorry`-free, `#print
+  axioms` = classical trio (`linkIncidence_four` = no axioms; verified live, raw
+  `lean` v4.12.0, EXIT=0). HONEST: `D≤log C` is a NAMED OPEN hypothesis NOT a Lean
+  `axiom`; `linkIncidence` is the incidence FORMULA (full `Finset.card` count left
+  as genuine combinatorial content); "lower the numbers" is a lever, not a free
+  lunch — ℤ⁴ pins `C=6` so the honest threshold is `log 42`, and a smaller `C` is
+  a DIFFERENT geometry (H4/120-cell motivation, deferred). Establishes NO KP
+  convergence, makes NO mass-gap / μ>0 / Surface-#1 claim, does NOT discharge
+  `kotecky_preiss_criterion`. YM stays `Status: Open`.
 - **Wall256_RateFunction — HONEST CONDITIONAL large-deviation RATE FUNCTION
   criterion (bricks, in BRICKS):** `Towers/YM/Wall256_RateFunction.lean` is the
   sequel to `Wall255_JensenObstruction` (mean no-go) + `Wall255_KP_Entropy`

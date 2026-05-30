@@ -3222,6 +3222,57 @@ BRICKS=(
   "Towers.YM.Wall256_RateFunction|TheoremaAureum.Towers.YM.Wall256Rate.mean_rate_fails_criterion"
   "Towers.YM.Wall256_RateFunction|TheoremaAureum.Towers.YM.Wall256Rate.kp_rate_summable"
   "Towers.YM.Wall256_RateFunction|TheoremaAureum.Towers.YM.Wall256Rate.kp_polymer_rate_summable"
+  # Wall257_RateLowerBound: a single-site large-deviation rate that clears the
+  # entropy threshold log 7 — HONEST MODELED brick (namespace Wall257Rate; the
+  # Wall257 namespace is taken by Wall257_StrongCoupling). GENUINE/UNCONDITIONAL:
+  # bddAbove_slopes (the Legendre slope family t·x−t² is bounded above by x²/4 via
+  # (t−x/2)²≥0), quarter_sq_le_I_E (x²/4 ≤ I_E x, from Wall256Rate.le_rateFn at the
+  # optimal slope t=x/2), I_E_unbounded (∀ M, ∃ x₀, M < I_E x₀ — the modeled rate
+  # clears ANY bar), exists_rate_gt_log_seven (∃ x₀, log 7 < I_E x₀),
+  # rate_gap_single_site_vs_polymer (the Gap Lemma: ∃ iE iP, log7<iE ∧ ¬log7<iP —
+  # clearing log 7 at one site is NOT the polymer rate clearing it; reuses
+  # Wall256Rate.mean_rate_fails_criterion). All sorry-free, #print axioms =
+  # classical trio (verified by hand: raw lean Towers/YM/Wall257_RateLowerBound.lean
+  # + #print axioms, EXIT=0). HONEST: cgfModel t := t² is a MODELED Gaussian-type
+  # cgf, NOT the SU(N) plaquette log-MGF; its Legendre transform x²/4 clears any
+  # threshold, so the model proves NOTHING about the real SU(N) rate (needs Cramér/
+  # Varadhan + the SU(N) character integral, absent from mathlib v4.12.0).
+  # Establishes NO KP convergence, makes NO mass-gap / μ>0 / Surface-#1 claim, does
+  # NOT discharge kotecky_preiss_criterion. YM stays Status: Open.
+  "Towers.YM.Wall257_RateLowerBound|TheoremaAureum.Towers.YM.Wall257Rate.bddAbove_slopes"
+  "Towers.YM.Wall257_RateLowerBound|TheoremaAureum.Towers.YM.Wall257Rate.quarter_sq_le_I_E"
+  "Towers.YM.Wall257_RateLowerBound|TheoremaAureum.Towers.YM.Wall257Rate.I_E_unbounded"
+  "Towers.YM.Wall257_RateLowerBound|TheoremaAureum.Towers.YM.Wall257Rate.exists_rate_gt_log_seven"
+  "Towers.YM.Wall257_RateLowerBound|TheoremaAureum.Towers.YM.Wall257Rate.rate_gap_single_site_vs_polymer"
+  # Wall258_DependenceDefect: the inter-polymer dependence defect — HONEST
+  # CONDITIONAL combinator. Polymers sharing a lattice link are NOT independent;
+  # passing from a single-site rate I_E to the polymer rate costs a defect D, so
+  # the effective rate is I_E−D and beating the 7^n entropy needs the single-site
+  # rate to clear the RAISED threshold log(7·C). GENUINE/UNCONDITIONAL:
+  # linkIncidence_four (2(d−1)=6 at d=4, the ℤ⁴ link incidence; by decide),
+  # rate_clears_after_defect (D≤log C ∧ log(7·C)<iE ⟹ log7<iE−D, via
+  # log(7·C)=log7+log C), threshold_mono (log(7·C) strictly increasing in C — the
+  # requested "lower the numbers" lever; pins that below log 42 needs C<6 which ℤ⁴
+  # does NOT provide). CONDITIONAL: dependence_defect_kp_summable (general C>0) and
+  # dependence_defect_kp_summable_Z4 (C=6, threshold log 42) route the genuine
+  # EntropyBound polymer count weighted by exp(−(iE−D))^n through
+  # Wall256Rate.kp_polymer_rate_summable, CONDITIONAL on NAMED OPEN hypotheses
+  # h_entropy (connective-constant count), h_defect : D≤log C (the cluster-expansion
+  # convergence input), h_rate : log(7·C)<iE (the genuine SU(N) rate). All
+  # hypotheses, NOT axiom/sorry — so NO sorryAx and no new axioms. All sorry-free,
+  # #print axioms = classical trio (linkIncidence_four = no axioms; verified by
+  # hand: raw lean Towers/YM/Wall258_DependenceDefect.lean + #print axioms, EXIT=0).
+  # HONEST: D≤log C is a NAMED OPEN hypothesis NOT a Lean axiom; linkIncidence is
+  # the incidence FORMULA (full Finset.card count left as genuine combinatorial
+  # content); "lower the numbers" is a lever, not a free lunch — ℤ⁴ pins C=6 so the
+  # honest threshold is log 42, and a smaller C is a DIFFERENT geometry. Establishes
+  # NO KP convergence, makes NO mass-gap / μ>0 / Surface-#1 claim, does NOT
+  # discharge kotecky_preiss_criterion. YM stays Status: Open.
+  "Towers.YM.Wall258_DependenceDefect|TheoremaAureum.Towers.YM.Wall258.linkIncidence_four"
+  "Towers.YM.Wall258_DependenceDefect|TheoremaAureum.Towers.YM.Wall258.rate_clears_after_defect"
+  "Towers.YM.Wall258_DependenceDefect|TheoremaAureum.Towers.YM.Wall258.threshold_mono"
+  "Towers.YM.Wall258_DependenceDefect|TheoremaAureum.Towers.YM.Wall258.dependence_defect_kp_summable"
+  "Towers.YM.Wall258_DependenceDefect|TheoremaAureum.Towers.YM.Wall258.dependence_defect_kp_summable_Z4"
 )
 
 VERIFIER_DIR="$(mktemp -d)"
