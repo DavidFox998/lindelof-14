@@ -60,8 +60,33 @@ history. Roadmap → `docs/ROADMAP.md`.
     inputs; they prove NO NS existence/uniqueness/regularity result. NS stays
     `Status: Open`; Surface #1/#2 stay OPEN; YM untouched.
 
-- **Wall:** 624 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`). The
+- **Wall:** 629 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`). The
   source of truth for the count is the script, not this file.
+- **Wall259_DependenceBound — HONEST CONDITIONAL dependence-defect REDUCTION
+  (bricks, in BRICKS):** `Towers/YM/Wall259_DependenceBound.lean` (namespace
+  `Wall259`). The honest conditional version of the "dependence defect" reduction:
+  it makes the decomposition a FIRST-CLASS object `polymerRate I_E Defect :=
+  I_E − Defect` (`I_polymer = I_E − Defect`: the genuine per-polymer rate equals
+  the single-site rate minus the inter-polymer dependence defect) and records the
+  reduction "single-site bound ⇒ polymer-rate criterion" as a clean conditional
+  combinator. **GENUINE/UNCONDITIONAL:** `polymerRate_eq` (the decomposition
+  identity, by `rfl`), `defect_eq` (dual reading `Defect = I_E − I_polymer`),
+  `polymer_criterion_of_single_site` (`log 7 + Defect < I_E ⟹ log 7 < I_polymer`),
+  `polymer_criterion_of_threshold` (`Defect ≤ log C ∧ log(7·C) < I_E ⟹
+  log 7 < I_polymer`, via `log(7·C)=log7+log C`). **CONDITIONAL:**
+  `dependence_bound_kp_summable` routes the genuine `EntropyBound` polymer count
+  weighted by `exp(−I_polymer)ⁿ` through `Wall256Rate.kp_polymer_rate_summable`,
+  CONDITIONAL on the NAMED OPEN hypotheses `h_entropy` (connective-constant count),
+  `h_defect : Defect ≤ log C` (the cluster-expansion convergence input) and
+  `h_rate : log(7·C) < I_E` (the genuine SU(N) large-deviation rate) — all
+  HYPOTHESES, NOT `axiom`/`by sorry`, so NO `sorryAx` and no new axioms. 5 public
+  theorems; all `sorry`-free, `#print axioms` = classical trio (verified live, raw
+  `lean` v4.12.0, EXIT=0). HONEST: this is a REDUCTION, NOT a proof — `I_polymer`
+  is the DEFINED surrogate `I_E − Defect`, NOT a constructed SU(N) polymer-rate
+  functional; `Defect ≤ log C` is a NAMED OPEN hypothesis NOT a Lean `axiom`,
+  proved nowhere. Establishes NO KP convergence, makes NO mass-gap / μ>0 /
+  Surface-#1 claim, discharges NO open surface, does NOT touch
+  `kotecky_preiss_criterion`. YM stays `Status: Open`.
 - **Wall257_RateLowerBound — HONEST MODELED single-site rate that clears the
   entropy threshold (bricks, in BRICKS):**
   `Towers/YM/Wall257_RateLowerBound.lean` (namespace `Wall257Rate`; the `Wall257`

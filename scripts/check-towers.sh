@@ -3273,6 +3273,34 @@ BRICKS=(
   "Towers.YM.Wall258_DependenceDefect|TheoremaAureum.Towers.YM.Wall258.threshold_mono"
   "Towers.YM.Wall258_DependenceDefect|TheoremaAureum.Towers.YM.Wall258.dependence_defect_kp_summable"
   "Towers.YM.Wall258_DependenceDefect|TheoremaAureum.Towers.YM.Wall258.dependence_defect_kp_summable_Z4"
+  # Wall259_DependenceBound: the dependence-defect REDUCTION as an HONEST
+  # CONDITIONAL combinator (namespace Wall259). Makes the decomposition a
+  # first-class object: polymerRate I_E Defect := I_E − Defect (the genuine
+  # per-polymer rate = single-site rate minus inter-polymer dependence defect),
+  # and records "single-site bound ⇒ polymer-rate criterion" as a clean reduction.
+  # GENUINE/UNCONDITIONAL: polymerRate_eq (the decomposition identity
+  # I_polymer = I_E − Defect, by rfl), defect_eq (dual reading Defect = I_E −
+  # I_polymer), polymer_criterion_of_single_site (log 7 + Defect < I_E ⟹
+  # log 7 < I_polymer), polymer_criterion_of_threshold (Defect ≤ log C ∧
+  # log(7·C) < I_E ⟹ log 7 < I_polymer, via log(7·C)=log7+logC). CONDITIONAL:
+  # dependence_bound_kp_summable routes the genuine EntropyBound polymer count
+  # weighted by exp(−I_polymer)^n through Wall256Rate.kp_polymer_rate_summable,
+  # CONDITIONAL on NAMED OPEN hypotheses h_entropy (connective-constant count),
+  # h_defect : Defect ≤ log C (the cluster-expansion convergence input) and
+  # h_rate : log(7·C) < I_E (the genuine SU(N) rate). All hypotheses, NOT
+  # axiom/sorry — so NO sorryAx and no new axioms. All sorry-free, #print axioms
+  # = classical trio (verified by hand: raw lean Towers/YM/Wall259_DependenceBound
+  # .lean + #print axioms, EXIT=0). HONEST: this is a REDUCTION not a proof —
+  # I_polymer is the DEFINED surrogate I_E − Defect, NOT a constructed SU(N)
+  # polymer-rate functional; Defect ≤ log C is a NAMED OPEN hypothesis NOT a Lean
+  # axiom, proved nowhere. Establishes NO KP convergence, makes NO mass-gap / μ>0
+  # / Surface-#1 claim, discharges NO open surface, does NOT touch
+  # kotecky_preiss_criterion. YM stays Status: Open.
+  "Towers.YM.Wall259_DependenceBound|TheoremaAureum.Towers.YM.Wall259.polymerRate_eq"
+  "Towers.YM.Wall259_DependenceBound|TheoremaAureum.Towers.YM.Wall259.defect_eq"
+  "Towers.YM.Wall259_DependenceBound|TheoremaAureum.Towers.YM.Wall259.polymer_criterion_of_single_site"
+  "Towers.YM.Wall259_DependenceBound|TheoremaAureum.Towers.YM.Wall259.polymer_criterion_of_threshold"
+  "Towers.YM.Wall259_DependenceBound|TheoremaAureum.Towers.YM.Wall259.dependence_bound_kp_summable"
 )
 
 VERIFIER_DIR="$(mktemp -d)"
