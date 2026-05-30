@@ -280,6 +280,7 @@ dependencies = [
     { name = "pillow" },
     { name = "pytesseract" },
     { name = "pytest" },
+    { name = "sympy" },
 ]
 
 [package.metadata]
@@ -290,4 +291,17 @@ requires-dist = [
     { name = "pillow", specifier = ">=12.2.0" },
     { name = "pytesseract", specifier = ">=0.3.13" },
     { name = "pytest", specifier = ">=9.0.3" },
+    { name = "sympy", specifier = ">=1.12" },
+]
+
+[[package]]
+name = "sympy"
+version = "1.12"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "mpmath" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e5/57/3485a1a3dff51bfd691962768b14310dae452431754bfc091250be50dd29/sympy-1.12.tar.gz", hash = "sha256:ebf595c8dac3e0fdc4152c51878b498396ec7f30e7a914d6071e674d49420fb8", size = 6722203, upload-time = "2023-05-10T18:23:00.378Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d2/05/e6600db80270777c4a64238a98d442f0fd07cc8915be2a1c16da7f2b9e74/sympy-1.12-py3-none-any.whl", hash = "sha256:c3588cd4295d0c0f603d0f2ae780587e64e2efeedb3521e46b9bb1d08d184fa5", size = 5742435, upload-time = "2023-05-10T18:22:14.76Z" },
 ]
