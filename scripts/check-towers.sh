@@ -3351,6 +3351,29 @@ BRICKS=(
   "Towers.YM.Wall261_H4Defect|TheoremaAureum.Towers.YM.Wall261.h4_threshold_lt_z4"
   "Towers.YM.Wall261_H4Defect|TheoremaAureum.Towers.YM.Wall261.h4_defect_beats_z4"
   "Towers.YM.Wall261_H4Defect|TheoremaAureum.Towers.YM.Wall261.h4_clay_reduction"
+  # Wall262_ConnectiveRatio: the connective-ratio defect bound → SU(2) polymer-rate
+  # win — HONEST CONDITIONAL combinator (namespace Wall262). Sequel to Wall261:
+  # encodes the "ratio of two expansion rates" R := μ_Z4/φ and lands BOTH requested
+  # theorems (defect_bound via h_defect, and su2_wins) over one genuine arithmetic
+  # core. GENUINE/UNCONDITIONAL: phi_lt (φ<32361/20000 from √5<2.2361); exp_lower
+  # (12053/5000 ≤ e^0.88 via degree-7 Real.exp_bound — degree ≤6 misses the margin);
+  # defect_bound_arith (0≤R≤1743/2000 ⟹ log(1+φR)<22/25, via log_lt_iff_lt_exp);
+  # threshold_factorization (1743=3·7·83, 2000=2^4·5^3 — 0.8715 terminates).
+  # CONDITIONAL (NAMED OPEN hyps, NOT axioms/sorry): defect_lt (h_defect ⟹
+  # Defect<0.88); su2_wins (+ h_rate: log7+0.88≤I_E ⟹ log7<I_E−Defect, the polymer
+  # criterion I_polymer=I_E−Defect). All sorry-free, #print axioms = classical trio
+  # (verified live, raw lean v4.12.0 Towers/YM/Wall262_ConnectiveRatio.lean, EXIT=0).
+  # HONEST: proves NO YM result; R/Defect/I_E/μ_Z4 abstract; hR/h_defect/h_rate are
+  # NAMED OPEN hypotheses proved NOWHERE; μ_Z4 numeric value asserted nowhere (real
+  # ≈3 ⟹ R>1 fails hR); Ursell series NOT encoded (0.8715 is the reverse-engineered
+  # break-even, not a series output). Makes NO mass-gap/μ>0/Surface-#1 claim, does
+  # NOT touch kotecky_preiss_criterion. YM stays Status: Open.
+  "Towers.YM.Wall262_ConnectiveRatio|TheoremaAureum.Towers.YM.Wall262.phi_lt"
+  "Towers.YM.Wall262_ConnectiveRatio|TheoremaAureum.Towers.YM.Wall262.exp_lower"
+  "Towers.YM.Wall262_ConnectiveRatio|TheoremaAureum.Towers.YM.Wall262.defect_bound_arith"
+  "Towers.YM.Wall262_ConnectiveRatio|TheoremaAureum.Towers.YM.Wall262.threshold_factorization"
+  "Towers.YM.Wall262_ConnectiveRatio|TheoremaAureum.Towers.YM.Wall262.defect_lt"
+  "Towers.YM.Wall262_ConnectiveRatio|TheoremaAureum.Towers.YM.Wall262.su2_wins"
 )
 
 VERIFIER_DIR="$(mktemp -d)"

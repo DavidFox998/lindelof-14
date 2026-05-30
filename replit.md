@@ -60,8 +60,44 @@ history. Roadmap → `docs/ROADMAP.md`.
     inputs; they prove NO NS existence/uniqueness/regularity result. NS stays
     `Status: Open`; Surface #1/#2 stay OPEN; YM untouched.
 
-- **Wall:** 639 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`). The
+- **Wall:** 645 BRICKS (`${#BRICKS[@]}` in `scripts/check-towers.sh`). The
   source of truth for the count is the script, not this file.
+- **Wall262_ConnectiveRatio — HONEST CONDITIONAL connective-ratio defect bound →
+  SU(2) polymer-rate win (bricks, in BRICKS):**
+  `Towers/YM/Wall262_ConnectiveRatio.lean` (namespace `Wall262`). Sequel to
+  `Wall261_H4Defect`. Encodes the requested "ratio of two expansion rates"
+  `R := μ_Z4 / φ` (`μ_Z4` the ℤ⁴ plaquette connective constant, ABSTRACT; `φ` the
+  H4 rate `(1+√5)/2`, reused from `Wall261.phi`) and lands BOTH requested
+  theorems over ONE genuine arithmetic core: the cluster/Ursell `defect_bound`
+  (here the NAMED OPEN `h_defect : Defect ≤ log(1 + φ·R)`) and `su2_wins`
+  (`log 7 < I_E − Defect`, the polymer rate `I_polymer = I_E − Defect` clearing
+  the bare entropy threshold `log 7`). **GENUINE/UNCONDITIONAL:** `phi_lt`
+  (`φ < 32361/20000 = 1.61805`, from `√5 < 2.2361`); `exp_lower`
+  (`12053/5000 ≤ e^{0.88}`, i.e. `2.4106 ≤ e^0.88` (true `2.41090`), via the
+  degree-7 Taylor remainder `Real.exp_bound` — a degree-2 bound gives only
+  `2.2672` and a degree-6 only `2.4094 < 2.41013`, so order 7 is genuinely
+  required for the margin); `defect_bound_arith` (`0 ≤ R ≤ 1743/2000 ⟹
+  log(1 + φ·R) < 22/25`, via `Real.log_lt_iff_lt_exp` then
+  `1 + φ·R < 12053/5000 ≤ e^{0.88}`); `threshold_factorization`
+  (`1743 = 3·7·83`, `2000 = 2^4·5^3` — the honest record that `0.8715 = 1743/2000`
+  is a TERMINATING rational; the "endless 9s" reading was floating-point noise).
+  **CONDITIONAL (h_defect/h_rate/hR — hypotheses, NOT axioms):** `defect_lt`
+  (from `h_defect` + `R ≤ 1743/2000`, `Defect < 22/25`); `su2_wins` (additionally
+  `h_rate : log 7 + 22/25 ≤ I_E`, the SU(2) large-deviation rate clearing the
+  defect-raised threshold — same family as Wall256/258/259 — ⟹
+  `log 7 < I_E − Defect`). 6 public theorems; all `sorry`-free, `#print axioms` =
+  classical trio (`threshold_factorization` only `propext`; verified live, raw
+  `lean` v4.12.0, EXIT=0). HONEST: proves NO YM result — a REDUCTION/IMPROVEMENT
+  in the Wall259/260/261 family. `R`, `Defect`, `I_E`, `μ_Z4` are abstract reals;
+  `hR : R ≤ 1743/2000` (the ρ<1 ratio test), `h_defect` (cluster/Ursell bound),
+  and `h_rate` (genuine SU(2) rate) are all NAMED OPEN hypotheses proved NOWHERE.
+  NO numeric `μ_Z4` is asserted — the real plaquette connective constant `≈ 3`
+  gives `R > 1` and FAILS `hR`, so the bound stays abstract precisely because it
+  is not established for the real model. The Ursell power series is NOT encoded
+  (`0.8715` is the reverse-engineered break-even of `log(1+φ·R) = 0.88`, not a
+  series output). Makes NO mass-gap / μ>0 / Surface-#1 / RH / BSD claim,
+  discharges NO open surface, does NOT touch `kotecky_preiss_criterion`. YM stays
+  `Status: Open`.
 - **Wall261_H4Defect — HONEST CONDITIONAL H4 / 120-cell defect improvement
   (bricks, in BRICKS):** `Towers/YM/Wall261_H4Defect.lean` (namespace `Wall261`).
   Sequel to `Wall260_ClayReduction`: where Wall260 pins the ℤ⁴ link incidence
