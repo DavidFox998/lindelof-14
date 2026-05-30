@@ -43,6 +43,26 @@ fi
 # can run safely. Task #76 (follow-up to Task #66).
 ./scripts/restore-lake-git.sh
 
+# Re-establish the mathlib `v4.12.0` git tag that lake resolves `inputRev`
+# against. restore-lake-git.sh rebuilds the vendored `.git/` at the
+# manifest-pinned rev, but the *tag* is NOT carried in the restore tar, so it
+# vanishes on every merge. Without it, the next `lake env` / `lake update`
+# re-resolves `inputRev: v4.12.0` from the mathlib remote, re-clones, and
+# wipes the olean cache (the recurring pin-wipe documented in replit.md).
+# Recreate it idempotently at the pinned rev (== current HEAD after restore).
+# Non-fatal: a missing mathlib checkout must never block the merge.
+_MATHLIB_DIR="lean-proof-towers/.lake/packages/mathlib"
+if [ -d "$_MATHLIB_DIR/.git" ]; then
+  _MATHLIB_REV="$(git -C "$_MATHLIB_DIR" rev-parse HEAD 2>/dev/null || true)"
+  if [ -n "$_MATHLIB_REV" ]; then
+    if git -C "$_MATHLIB_DIR" tag -f v4.12.0 "$_MATHLIB_REV" >/dev/null 2>&1; then
+      echo ">> re-established mathlib tag v4.12.0 -> ${_MATHLIB_REV}" >&2
+    else
+      echo ">> WARN: could not recreate mathlib tag v4.12.0 (non-fatal)" >&2
+    fi
+  fi
+fi
+
 # Guard against silent Lean proof drift. Fails the merge if `lean-proof/**`
 # changed in a way that breaks the axiom-debt check or leaves VERIFY.txt stale.
 # When `lake` is unavailable the check prints a visible warning and exits 0
