@@ -241,6 +241,57 @@ history. Roadmap → `docs/ROADMAP.md`.
     classical-trio axiom footprint, 0 `sorry`, and the explicit scope disclaimer
     (no YM / mass-gap / RH claim; edge minimality + 720-edge structure deferred).
 
+## Hodge X₅ — Zoe Comparison Test (HONEST conditional reduction; NOT a brick)
+
+- **`Towers/Hodge/ZoeComparisonTest.lean`** (2026-05-31, new `Towers/Hodge/`
+  dir) — an honesty-locked Hodge leaf for `X₅ = Jac(y² = x¹¹ − x)` centered on
+  the **Zoe Comparison Test** generating function
+  `𝔗(ω,s) = Σ_{n≥0} Z(ω)ⁿ/(n!)² · ⟨ω, Frobⁿ ω⟩ · q^{ns}`. Standalone (imports
+  only `Mathlib.Analysis.SpecificLimits.Normed` +
+  `Mathlib.Data.Nat.Choose.Basic`). NOT a brick / NOT in BRICKS / NOT a lakefile
+  root / touches NO YM or NS surface. **HODGE_STATUS: OPEN.**
+  - **Machine-checked (classical trio, 0 sorry):**
+    - **Combinatorics (`choose_5_2`=10, `choose_5_4`=5, `hankelRankX5_eq`=15,
+      `rank_gt_test`: 10<15).** The `15` is the **Hankel rank** (Paper-2 input
+      datum), a DIFFERENT quantity from the Zoe invariant. `Z_le_two`: the Zoe
+      bound `1 ≤ Z ≤ p` with `p = 2` caps **Z = 2, NOT 15** — never conflate.
+    - **`𝔗` is ENTIRE (R = ∞)** (`summable_pow_div_factorial_sq`,
+      `summable_abs_zoeTerm`): for any `Z, b = q^s ≥ 0` and ANY Frobenius pairing
+      obeying the geometric Weil bound `|⟨ω,Frobⁿω⟩| ≤ C·Bⁿ`, the term sequence
+      is absolutely summable — the `(n!)²` denominator overwhelms any geometric
+      growth. This **REFUTES the earlier "radius 0 / pole at s=1" claim**: `𝔗`
+      as literally defined supplies NO divergence and hence NO obstruction. (The
+      Weil bound is a carried hypothesis, not proved.)
+    - **`step3_degenerate`** (`Nat.choose 1 2 = 0`): a Wall263-style axiom-free
+      refutation of Lemma 7.6 Step 3 — the literal bound `Z ≤ C(dim NS, p)` gives
+      `C(1,2)=0`, degenerate; Step 3 conflates wedge-of-NS dimension with tensor
+      rank. Refutes the *step*, not the Hodge conjecture.
+  - **`hodge_obstruction_conditional` (CONDITIONAL, SORRY: 0, axiom-free).** The
+    "divergence ⇒ transcendence ⇒ Hodge" step appears ONLY as a combinator over
+    a SINGLE named-open `Prop` hypothesis (`hDivToTrans`), closed by `exact`
+    (Wall256/Wall300 pattern), never `by sorry`. It is **VACUOUS for the actual
+    object**: T3 shows `𝔗` is entire, so the divergence antecedent is never met
+    — it proves transcendence of NO actual class. `Cls`/`Transcendental`/
+    `Diverges`/`pairing` are ABSTRACT.
+  - **Verified live (direct-lean bypass, NOT `lake`):** the mathlib `v4.12.0`
+    git tag is currently unresolved, so `lake env` would wipe the oleans; oleans
+    intact ⟹ compile with a hand-built `LEAN_PATH` over the 7
+    `.lake/packages/*/.lake/build/lib` dirs and invoke `lean` v4.12.0 directly.
+    EXIT=0; `#print axioms` = classical trio on `summable_*`, axiom-free on the
+    conditional / arithmetic theorems; 0 `sorry`/`sorryAx`.
+
+### Appendix A — superseded / uncertified Hodge prior work
+
+- **Lemma 7.6 (the "M.S. bound")** — Muse-Spark-generated, **uncertified; proof
+  unsound; SUPERSEDED.** Never machine-stamped as an obstruction.
+- **The M\* Transform** (`M*(ω) := (12/11)·(1/Z)`) — a **bijection of `Z`**
+  (`M* = 4/55 ⟺ Z = 15`), so "M\* ⇒ Hodge fails" is Lemma 7.6's contrapositive
+  renamed: it carries **no independent proof content**. Circular; SUPERSEDED.
+- The earlier **"200 classes transcendental via Lemma 7.6"** claim is RETRACTED
+  / never landed in docs or dashboard; replaced by the honest machine-checked
+  statements above. The divergence⇒transcendence step is a NAMED OPEN analytic
+  hypothesis; Hodge stays OPEN (Clay / CMI).
+
 ## theorema-certs dashboard
 
 Web artifact (`artifacts/theorema-certs`) — the certificate-ledger dashboard.

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Database, FileText, Activity, Box, ScrollText, Sigma, Landmark } from "lucide-react";
+import { Database, FileText, Activity, Box, ScrollText, Sigma, Landmark, Infinity } from "lucide-react";
 import { useHealthCheck } from "@workspace/api-client-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -49,6 +49,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <Link href="/foundations" className={`flex items-center gap-3 px-3 py-2 text-sm font-mono transition-colors ${location === "/foundations" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`} data-testid="link-foundations">
             <Sigma className="w-4 h-4" />
             <span>Foundations</span>
+          </Link>
+          <Link href="/hodge" className={`flex items-center gap-3 px-3 py-2 text-sm font-mono transition-colors ${location === "/hodge" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`} data-testid="link-hodge">
+            <Infinity className="w-4 h-4" />
+            <span>Hodge X₅</span>
           </Link>
           <Link href="/lineage" className={`flex items-center gap-3 px-3 py-2 text-sm font-mono transition-colors ${location === "/lineage" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`} data-testid="link-lineage">
             <Landmark className="w-4 h-4" />

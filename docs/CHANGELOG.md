@@ -6,6 +6,47 @@ this file is the version history.
 
 ---
 
+## Hodge X₅ — Zoe Comparison Test (honest conditional reduction) (2026-05-31)
+
+New `Towers/Hodge/` leaf `ZoeComparisonTest.lean` for `X₅ = Jac(y² = x¹¹ − x)`,
+centered on the Zoe Comparison Test
+`𝔗(ω,s) = Σ_{n≥0} Z(ω)ⁿ/(n!)² · ⟨ω, Frobⁿ ω⟩ · q^{ns}`. Standalone (imports only
+`Mathlib.Analysis.SpecificLimits.Normed` + `Mathlib.Data.Nat.Choose.Basic`). NOT
+a brick / NOT in BRICKS / NOT a lakefile root; touches NO YM/NS surface.
+**HODGE_STATUS: OPEN; YM/NS: OPEN.** Verified via the direct-lean bypass (tag
+`v4.12.0` unresolved ⟹ `lake` is destructive; oleans intact): EXIT=0,
+`#print axioms` = classical trio on the analytic theorems and axiom-free on the
+conditional/arithmetic ones, 0 `sorry`/`sorryAx`.
+
+- **The reduction in one line.** Hodge-for-X₅ is reduced to ONE named-open
+  analytic hypothesis (`hDivToTrans : Diverges ω → Transcendental ω`); every
+  arithmetic fact around it is machine-checked. This documents exactly where the
+  arithmetic stops and the analytic hypothesis begins.
+- **Z ≠ 15 (honesty boundary).** `Z_le_two` transcribes Paper 3's `1 ≤ Z ≤ p`
+  with `p = 2` ⟹ **Z = 2**. The `15` (`hankelRankX5_eq`, `rank_gt_test`: 10<15)
+  is the Paper-2 **Hankel rank** — a different quantity, never conflated.
+- **`𝔗` is ENTIRE (R = ∞).** `summable_pow_div_factorial_sq` +
+  `summable_abs_zoeTerm`: for any `Z, b = q^s ≥ 0` and ANY Frobenius pairing with
+  the geometric Weil bound `|⟨ω,Frobⁿω⟩| ≤ C·Bⁿ`, the term sequence is absolutely
+  summable — `(n!)²` dominates any geometric growth (comparison to
+  `Real.summable_pow_div_factorial`). This **REFUTES the prior "radius 0 / pole
+  at s=1" framing**: `𝔗` as defined supplies NO divergence and NO obstruction.
+  The Weil bound is a carried hypothesis (not proved); `pairing` abstract.
+- **`hodge_obstruction_conditional` (SORRY: 0).** The divergence⇒transcendence
+  step is a conditional combinator over the single named-open Prop, closed by
+  `exact` (Wall256/Wall300 pattern). **Vacuous for the real object** (the series
+  converges ⟹ antecedent never met); proves transcendence of NO actual class.
+- **`step3_degenerate`** (`Nat.choose 1 2 = 0`): a Wall263-style axiom-free
+  refutation of Lemma 7.6 Step 3 — the literal `Z ≤ C(dim NS, p)` gives `C(1,2)=0`
+  (degenerate); Step 3 conflates wedge-of-NS dimension with tensor rank.
+- **Appendix A (superseded/uncertified).** Lemma 7.6 (M.S. bound) =
+  Muse-Spark-generated, unsound, SUPERSEDED; the M\* Transform = a bijection of
+  `Z` (`M*=4/55 ⟺ Z=15`), circular, no independent content, SUPERSEDED. The old
+  "200 classes transcendental via Lemma 7.6" claim is RETRACTED (never landed) and
+  replaced by the honest machine-checked statements above. Hodge stays OPEN (CMI).
+
+---
+
 ## YM wall series Wall251b–Wall263 + Wall262a (consolidated from live-ops doc) (2026-05-30)
 
 Full prose for the YM "wall" bricks (Wall251b_H4, Wall252_KP,

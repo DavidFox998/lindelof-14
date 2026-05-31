@@ -324,6 +324,33 @@ Status legend:
 
 ---
 
+## Addendum. Hodge conjecture — X₅ Zoe Comparison Test
+
+**Status: Open — honest conditional reduction to ONE named analytic
+hypothesis (no Hodge instance proved or disproved; CMI).**
+
+- The Hodge conjecture is not one of the five towers above; this is an
+  additive, honesty-locked leaf prompted by the "Zoe invariant" trilogy.
+- Honest formal leaf: `lean-proof-towers/Towers/Hodge/ZoeComparisonTest.lean`
+  for `X₅ = Jac(y² = x¹¹ − x)`, centered on the Zoe Comparison Test
+  `𝔗(ω,s) = Σ Z(ω)ⁿ/(n!)² · ⟨ω, Frobⁿ ω⟩ · q^{ns}`. NOT a brick, not in
+  `BRICKS`, not a lakefile root; touches no YM/NS surface; axiom footprint =
+  classical core `{propext, Classical.choice, Quot.sound}`, 0 `sorry`/`sorryAx`.
+- Machine-checked: the combinatorics (`C(5,2)=10`, `C(5,2)+C(5,4)=15`,
+  `15 > 10`) and the Zoe bound `1 ≤ Z ≤ p = 2` ⟹ **Z = 2** (the `15` is the
+  Hankel rank, a *different* quantity — never "Z = 15"); and that `𝔗` is
+  **entire (R = ∞)** under the geometric Weil bound `|⟨ω,Frobⁿω⟩| ≤ C·Bⁿ`
+  (the `(n!)²` dominates), which **refutes the prior "radius 0 / pole at s=1"
+  framing**: `𝔗` as defined supplies no divergence / no obstruction.
+- The "divergence ⇒ transcendence ⇒ Hodge" step is the OPEN analytic input,
+  carried as a single named-open `Prop` in a SORRY-free conditional combinator
+  (vacuous for the actual entire series). Lemma 7.6 (M.S. bound) and the M\*
+  Transform are recorded as uncertified / superseded (see `replit.md`
+  § "Appendix A"); the old "200 classes transcendental" claim is retracted.
+- Honest note: nothing about Hodge is closed or refuted here. Proving the named
+  analytic hypothesis (or constructing a genuine obstruction) is research-grade
+  work; the statement stays **Open**.
+
 ## Shared infrastructure
 
 All five towers share:
