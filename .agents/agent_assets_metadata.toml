@@ -294,3 +294,15 @@ id = "Jq3hMqssM1KpHYVw1yW3s"
 uri = "file://lean-proof-towers/exports/hOS_Plan.md"
 type = "text"
 title = "hOS Dependency Map — 2026-06-01 (Wall256 leaf D5, IN-TOWER, map only)"
+
+[[outputs]]
+id = "ih8u9rMfq2QlXhxGINvkD"
+uri = "file://lean-proof-towers/exports/Final_Bundle_2026-06-01.zip"
+type = "unspecified"
+title = "Final Bundle — 2026-06-01 (8 artifacts, EXPORT-ONLY)"
+
+[[outputs]]
+id = "LgSk3YexXNsO4WcZk4FIj"
+uri = "file://lean-proof-towers/exports/Bundle_Manifest_2026-06-01.md"
+type = "text"
+title = "Bundle Manifest — 2026-06-01 (SHA-256 table + honesty locks)"
