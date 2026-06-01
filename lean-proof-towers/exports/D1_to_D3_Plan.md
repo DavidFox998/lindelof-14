@@ -33,7 +33,7 @@ the summability premise of `h_bridge` consumes. In the parent KP taxonomy
 
 | User label here | KP-plan leaf | Object |
 | --- | --- | --- |
-| `hw1`      | **D4** | strict single-site weight bound `w1 < 1/7` (TESTED NEGATIVE at β=0.86; see CERT_Arb) |
+| `hw1`      | **D4** | strict single-site weight bound `w1 < 1/7` (TESTED_NEGATIVE_CERTIFIED at β=0.86; CERT_Arb β₀∈[2.079416880123, 2.079416880124], so requires **β > 2.07941688**) |
 | `hOS`      | **D5** | Osterwalder–Seiler Ursell/cluster step |
 | `h_bridge` | **D6** | Brydges–Federbush KP-summability ⟹ geometric clustering |
 | feeders    | **D1 / D2 / D3** | polymer counting / activity bound / KP summability that produce the `Summable …` premise `h_bridge` consumes |
@@ -54,8 +54,12 @@ the summability premise of `h_bridge` consumes. In the parent KP taxonomy
   ```
 - **Consumes:** `hw1 : w1 < 1/7` — the strict single-site weight bound
   (KP leaf D4 / out-of-tower input E1). Per CERT_Arb this needs
-  **β > β₀ ≈ 2.07942** under the repo action `S = (3 − Re tr U)/3`
-  (NOT the stale `β > 0.85`, which was for the un-normalized action).
+  **β > β₀** under the repo action `S = (3 − Re tr U)/3`, with β₀ now CERTIFIED
+  (CERT_Arb rigorous interval enclosure) in `[2.079416880123, 2.079416880124]`,
+  i.e. the conservative formal requirement is **β > 2.079416880124** (the certified
+  upper endpoint); `2.07941688` appears only as a rounded planning shorthand and is
+  NOT a safe strict bound. (NOT the stale `β > 0.85`, which was for the
+  un-normalized action.)
 - **Produces:** `TruncatedActivityBound a` — a per-polymer connected/truncated
   activity bound with rate `I > log 7`, the input KP summability needs. The
   **strict** `I > log 7` is essential: at `I = log 7` the entropy-weighted series
@@ -104,7 +108,7 @@ chain and from `MassGap574` Surface #1. Each is **OPEN**; none discharged.
 
 | # | Object | Location | Statement (abridged) | Tag |
 | --- | --- | --- | --- | --- |
-| 1 | `hw1` (= D4) | `Wall256_Scaffold.lean:79` | `w1 < 1/7` | OPEN · OUT_OF_TOWER (E1); CERT_Arb: needs **β > 2.07942**, refined β₀∈[2.079416880123, 2.079416880124] |
+| 1 | `hw1` (= D4) | `Wall256_Scaffold.lean:79` | `w1 < 1/7` | OPEN · OUT_OF_TOWER (E1); D4 TESTED_NEGATIVE_CERTIFIED; CERT_Arb: needs **β > 2.07941688**, certified β₀∈[2.079416880123, 2.079416880124] |
 | 2 | `hOS` (= D5) | `Wall256_Scaffold.lean:80` | `w1 < 1/7 → TruncatedActivityBound a` | OPEN · OUT_OF_TOWER (E4) · in_mathlib:false |
 | 3 | `h_bridge` (= D6) | `Wall256_Scaffold.lean:81` | `Summable (Σ N n·a n) → ρ∈(0,1) clustering` | OPEN · OUT_OF_TOWER (E3) · in_mathlib:false |
 | 4 | `kotecky_preiss_criterion_Surface` | `Transfer.lean:409` | `∃ β₀>0, ∀ β>β₀, ∃ gap>0, ∀ L f, (∫f=0) → ‖T_L L β f‖ ≤ exp(−(β·gap))·‖f‖` | OPEN · genuine open combinatorics (D1/E2); non-vacuous (strictly stronger than the proven `‖T_L‖≤1`) |
@@ -115,7 +119,7 @@ chain and from `MassGap574` Surface #1. Each is **OPEN**; none discharged.
 
 | E | For | Need | mathlib v4.12.0 |
 | --- | --- | --- | --- |
-| E1 | D4 (`hw1`) | verified `∫_{SU(3)} exp(−β·S) dHaar < 1/7` for β>β₀≈2.07942 | absent (CERT_Arb supplies a rigorous interval enclosure of β₀ out-of-tower; still NOT Lean) |
+| E1 | D4 (`hw1`) | verified `∫_{SU(3)} exp(−β·S) dHaar < 1/7` for β > β₀ (β₀∈[2.079416880123, 2.079416880124], op. β>2.07941688) | absent in Lean (CERT_Arb supplies the rigorous interval enclosure of β₀ out-of-tower, status VERIFIED_OUT_OF_TOWER; still NOT a Lean object) |
 | E2 | D1 | explicit C,α for the 4D-lattice connected-polymer count w/ SU(3) small-energy constraint | absent |
 | E3 | D6 (`h_bridge`) | geometric clustering ρ<1 from KP summability (Brydges–Federbush) | absent |
 | E4 | D5 (`hOS`) | Osterwalder–Seiler Ursell/cluster activity bound (1978 Thm 2.1) | absent |

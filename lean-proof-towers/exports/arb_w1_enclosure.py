@@ -311,6 +311,8 @@ plan:
   parent_leaf: D4_w1_strict_bound
   date: "{TODAY}"
   scope: OUT_OF_TOWER_NUMERICAL
+  status: VERIFIED_OUT_OF_TOWER
+  beta0_certified_interval: ["{mpmath.nstr(mpmath.mpf(beta0_lo.numerator)/beta0_lo.denominator, 13)}", "{mpmath.nstr(mpmath.mpf(beta0_hi.numerator)/beta0_hi.denominator, 13)}"]
 tooling:
   python_fractions: exact
   mpmath_version: "{mpmath.__version__}"
