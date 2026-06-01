@@ -131,7 +131,11 @@ def count_real_sorry(text: str) -> int:
 
 
 def extract_def(text: str, name: str):
-    """Extract a `def NAME ...` block (signature through body) as raw text."""
+    """Extract a `def NAME ...` block (signature through body) as VERBATIM text.
+
+    Returns (definition_text, start_line) so callers can keep the contract field
+    strictly verbatim while recording the source line separately in the sidecar.
+    """
     lines = text.split("\n")
     pat = re.compile(r"^\s*(noncomputable\s+)?(def|abbrev)\s+" + re.escape(name) + r"\b")
     start = None
@@ -140,7 +144,7 @@ def extract_def(text: str, name: str):
             start = i
             break
     if start is None:
-        return None
+        return None, None
     # capture until the first blank line after we've seen a `:=` (the body),
     # or the next top-level declaration / comment opener.
     seen_assign = False
@@ -156,7 +160,7 @@ def extract_def(text: str, name: str):
         nxt = lines[j + 1] if j + 1 < len(lines) else ""
         if seen_assign and re.match(r"^\s*(/--|/-|theorem|lemma|def |noncomputable|instance|end\b)", nxt):
             break
-    return "\n".join(out).rstrip() + ("\n  (line %d)" % (start + 1))
+    return "\n".join(out).rstrip(), start + 1
 
 
 def extract_theorem(text: str, name: str):
@@ -249,8 +253,8 @@ def main():
     #     is_scalar_shadow/proven_bound ONLY. T_L + notes go to the sidecar. ---
     lpr = read(os.path.join(YM_DIR, "LatticePositivityReal.lean"))
     transfer_src = read(os.path.join(YM_DIR, "Transfer.lean"))
-    H_def = extract_def(lpr, "H")
-    T_L_def = extract_def(transfer_src, "T_L")
+    H_def, H_line = extract_def(lpr, "H")
+    T_L_def, T_L_line = extract_def(transfer_src, "T_L")
     transfer_operator = {
         "file": "%s/LatticePositivityReal.lean" % REL,
         "definition_H": H_def,
@@ -360,7 +364,8 @@ def main():
             "Stub (*Stub.lean) content is null by design.",
         ],
         "transfer_operator_notes": {
-            "H_real_location": "%s/LatticePositivityReal.lean (line 73)" % REL,
+            "H_real_location": "%s/LatticePositivityReal.lean (line %s)" % (REL, H_line),
+            "definition_H_line": H_line,
             "H_note": (
                 "H is the SCALAR / Perron-sector shadow `H U = wilsonAction U \u2022 \U0001D7D9`, "
                 "NOT the real Wilson transfer operator on L\u00b2(\u220f SU(3), Haar). Defined in "
@@ -371,6 +376,7 @@ def main():
             "T_L": {
                 "file": "%s/Transfer.lean" % REL,
                 "definition_T_L": T_L_def,
+                "definition_T_L_line": T_L_line,
                 "proven_bound": "\u2016T_L\u2016 \u2264 1 (sub-Markov contraction; transfer_operator_norm_le)",
                 "note": (
                     "Genuine integral operator over the REAL product Haar measure. Only the "

@@ -2,7 +2,7 @@
   "_about": "Sidecar for ym-audit-export.json. The contract JSON follows the user's AUDIT_EXPORT schema EXACTLY (no extra keys). This file holds the provenance, the second (T_L) operator, and honesty annotations that did not fit the strict schema. Nothing here weakens the contract data; it only explains it.",
   "task": "Project Task #316 — YM tower audit export",
   "scope": "lean-proof-towers/Towers/YM/*.lean (142 files, 26 stubs)",
-  "generated_utc": "2026-06-01T10:48:35Z",
+  "generated_utc": "2026-06-01T10:51:43Z",
   "generator": "scripts/build_ym_audit_export.py",
   "honesty_notes": [
     "TRUE repo state only. No mass-gap / μ>0 / Surface-#1-closed / Clay claim.",
@@ -13,10 +13,12 @@
   ],
   "transfer_operator_notes": {
     "H_real_location": "Towers/YM/LatticePositivityReal.lean (line 73)",
+    "definition_H_line": 73,
     "H_note": "H is the SCALAR / Perron-sector shadow `H U = wilsonAction U • 𝟙`, NOT the real Wilson transfer operator on L²(∏ SU(3), Haar). Defined in LatticePositivityReal.lean and consumed downstream by the Step-5 spectral predicates (e.g. SpectrumBound.lean) and the MassGap574 scaffold. The schema example named Transfer.lean; the true definition site is reported.",
     "T_L": {
       "file": "Towers/YM/Transfer.lean",
-      "definition_T_L": "noncomputable def T_L (L : ℕ) (β : ℝ) (f : Lp ℝ 2 (haarN (4 * L ^ 4))) :\n    Lp ℝ 2 (haarN (4 * L ^ 4)) :=\n  Memℒp.toLp _ (memℒp_intOp L β f)\n  (line 296)",
+      "definition_T_L": "noncomputable def T_L (L : ℕ) (β : ℝ) (f : Lp ℝ 2 (haarN (4 * L ^ 4))) :\n    Lp ℝ 2 (haarN (4 * L ^ 4)) :=\n  Memℒp.toLp _ (memℒp_intOp L β f)",
+      "definition_T_L_line": 296,
       "proven_bound": "‖T_L‖ ≤ 1 (sub-Markov contraction; transfer_operator_norm_le)",
       "note": "Genuine integral operator over the REAL product Haar measure. Only the UPPER bound ‖T_L‖ ≤ 1 is proven — NOT a spectral gap, NOT a strict contraction, NO `m > 0` / mass-gap claim. The spectral gap stays OPEN as Transfer.kotecky_preiss_criterion."
     }

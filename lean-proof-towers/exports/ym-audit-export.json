@@ -1,7 +1,7 @@
 {
   "transfer_operator": {
     "file": "Towers/YM/LatticePositivityReal.lean",
-    "definition_H": "noncomputable def H {d L : ℕ} [NeZero L] (U : GaugeConfig d L)\n    (ψ : PiLp 2 (fun _ : Fin n => ℝ)) : PiLp 2 (fun _ : Fin n => ℝ) :=\n  wilsonAction U • ψ\n  (line 73)",
+    "definition_H": "noncomputable def H {d L : ℕ} [NeZero L] (U : GaugeConfig d L)\n    (ψ : PiLp 2 (fun _ : Fin n => ℝ)) : PiLp 2 (fun _ : Fin n => ℝ) :=\n  wilsonAction U • ψ",
     "is_scalar_shadow": true,
     "proven_bound": null
   },
