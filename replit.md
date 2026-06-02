@@ -7,6 +7,27 @@ history. Roadmap → `docs/ROADMAP.md`.
 
 ## Current status — 2026-06-02
 
+- **MODULE D — `Towers/YM/H4_Derivation.lean` (2026-06-02): boundary law stays
+  OPEN, NOT proven.** The proposed `C13_law : ∀ p, p.Prime → digit_len p ≥ 13 →
+  symOf p = 1` is **REFUSED as a theorem** — recorded as the NAMED OPEN `Prop`
+  `C13_Law_Open` (no `theorem` discharges it). Three independent blockers: (1)
+  infinite/undecidable ∀ over all primes — no finite computation settles it and
+  no general structural lemma is established (may be false for some large prime);
+  (2) `symOf` is NOT kernel-checkable — kernel `decide` overflows `maxRecDepth`
+  on a single `symOf 191` (confirmed), so even one prime is unprovable by
+  `decide`/`rfl` (that is why A/B/C use `#eval`); (3) `p.Prime` / `Nat.log10`
+  need mathlib, absent from the mathlib-free direct-compile line. Leaf carries a
+  mathlib-free `isPrime` (to state the Prop), the `#eval` sample evidence
+  `boundary_proven : Bool` (`[1000000001119,1000000001357,1000000001511,
+  1000000001723,1000000001831,1000000002111]` all `(digit_len,symOf)=(13,1)` →
+  `true`, SAMPLE ONLY), and the axiom-free `C13_val` (`#print axioms` = none).
+  `data.json` (`Towers/YM/H4_Derivation.data.json`) records
+  `{theorem_name:"C13_law", status:"OPEN_UNPROVEN", proved:false,
+  lean_file_hash_sha256:
+  e21ae1ba9990fdb560fd851c56964b4439aefeeab217f5c5fc48ddd50a2ee2b2}`. NO
+  `sorry`/`admit`/`sorryAx`/axiom; NOT a brick; compiled direct (EXIT 0). Proves
+  NOTHING new; `symOf 19 = 2` still. **The "boundary law" is a sample pattern,
+  NOT a proved universal law.**
 - **MODULE C LANDED — `Towers/YM/H4_TimeBound.lean` (2026-06-02).** Magnitude
   comparison over the Module-A decode; imports `Towers.YM.H4Core`, mathlib-FREE,
   `sorry`/`admit`/`sorryAx`/`native_decide`-free, NOT a brick, NOT in BRICKS, NOT
