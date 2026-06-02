@@ -7,6 +7,23 @@ history. Roadmap → `docs/ROADMAP.md`.
 
 ## Current status — 2026-06-02
 
+- **BUILD_MANIFEST v2.3 VERIFIED (2026-06-02; author D. Fox, ORCID
+  0009-0008-1290-6105).** All four H4 modules re-verified in order A → A.1 → E →
+  D: core builds, every leaf compiles EXIT 0, no forbidden terms, `axioms=0`,
+  `sorry=0`, mathlib OFF. Per-module `data.json` now carries `author: "D. Fox"`.
+
+  | Module | File | Status | SHA-256 (file) | Key #eval |
+  |---|---|---|---|---|
+  | A `H4Core` | `H4Core.lean` / `H4_Strata_Ztau.lean` | PROVEN | `aa8c1180…a6ce` / `69bdcd6c…ca34` | `symOf[2,3,19,191,1000000001119]=[120,20,2,2,1]` |
+  | A.1 `H4Boundary` | `H4_Boundary.lean` | EMPIRICAL | `05bf6022…c871a` | `digit_len 1000000001119=13`, `sym=1`; 9 samples, 0 ctrex |
+  | E `H4TimeBound` | `H4_TimeBound.lean` | EMPIRICAL | `5f172143…f8a7` | `10^12<3^40=true`; 6×13-digit `sym=1` |
+  | D `H4Derivation` | `H4_Derivation.lean` | CONJECTURE | `e21ae1ba…e2b2` | `C13_Law_Open` UNPROVEN; empirical 6/6 = true |
+
+  **SHA notes:** D file hash matches the manifest exactly (`e21ae1ba…e2b2`). The
+  manifest's A SHA `48536d9d…ba997` is the prose milestone RECORD hash, NOT a
+  file hash — the real file hashes are tabled above (recorded honestly in
+  `H4Core.data.json`). **`C13_Law_Open` stays a CONJECTURE (empirical 6/6), NOT
+  asserted as a theorem.** No `∀`-law claimed; no YM/mass-gap/Surface-#1 result.
 - **MODULE D — `Towers/YM/H4_Derivation.lean` (2026-06-02): boundary law stays
   OPEN, NOT proven.** The proposed `C13_law : ∀ p, p.Prime → digit_len p ≥ 13 →
   symOf p = 1` is **REFUSED as a theorem** — recorded as the NAMED OPEN `Prop`

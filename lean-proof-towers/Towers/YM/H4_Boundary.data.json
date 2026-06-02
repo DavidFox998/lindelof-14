@@ -1,5 +1,8 @@
 {
-  "module": "H4_Boundary",
+  "module": "A1_H4Boundary",
+  "task": 325,
+  "author": "D. Fox",
+  "status": "EMPIRICAL",
   "engine": "Towers.YM.H4Core",
   "decode": "natAbs-euclidean-remainder",
   "source": "computed by H4Core.symOf and (toString p).length; NOT hardcoded",

@@ -1,5 +1,8 @@
 {
-  "module": "H4_TimeBound",
+  "module": "E_TimeBound",
+  "task": 326,
+  "author": "D. Fox",
+  "status": "EMPIRICAL",
   "engine": "Towers.YM.H4Core",
   "decode": "natAbs-euclidean-remainder",
   "source": "computed by H4Core.symOf and (toString p).length; NOT hardcoded",
