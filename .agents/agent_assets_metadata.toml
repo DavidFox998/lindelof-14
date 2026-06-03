@@ -318,3 +318,9 @@ id = "0gSeF06u7fvq3Gu4aoOPp"
 uri = "file://experiments/z-metastability/Z_MEASURE.csv"
 type = "table"
 title = "Z_MEASURE.csv — 5000 trials (50 inputs × 100)"
+
+[[outputs]]
+id = "J15aAC-FuJJ-POckQkV5J"
+uri = "file://experiments/bessel-z/BesselI_Z_MEASURE.csv"
+type = "table"
+title = "BesselI_Z_MEASURE.csv — 96 rows (48 cases × 2 methods)"
