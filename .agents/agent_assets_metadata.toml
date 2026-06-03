@@ -306,3 +306,9 @@ id = "LgSk3YexXNsO4WcZk4FIj"
 uri = "file://lean-proof-towers/exports/Bundle_Manifest_2026-06-01.md"
 type = "text"
 title = "Bundle Manifest — 2026-06-01 (SHA-256 table + honesty locks)"
+
+[[outputs]]
+id = "RdOAJlpXGlbxXfqTrH2Ue"
+uri = "file://TOWERS_YM_v2.3.pdf"
+type = "pdf"
+title = "TOWERS_YM_v2.3.pdf"

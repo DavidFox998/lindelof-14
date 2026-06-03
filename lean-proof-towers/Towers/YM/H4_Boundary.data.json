@@ -29,5 +29,19 @@
     "The genuine 13-digit boundary prime is 1000000001119 (Module A / Task #324): digit_len 13, sym 1.",
     "symOf 19 = 2, not 20 (real W(H4) engine).",
     "The two empirical laws hold on this 9-point sample only; they are NOT proved as universal theorems."
-  ]
+  ],
+  "z_reproduction_test_v2.3": {
+    "date": "2026-06-02",
+    "protocol": "TOOL_ASSISTED_ECHO",
+    "certified_inputs": [
+      {"s": "1000000001119", "digits": 13, "sym": 1, "source": "H4Core"},
+      {"s": "10000000001119", "digits": 14, "sym": 1, "source": "H4_Boundary.data.json"}
+    ],
+    "agent_output": [
+      ["1000000001119", 13],
+      ["10000000001119", 14]
+    ],
+    "llm_error": 0,
+    "conclusion": "Tool-assisted echo reproduced 2/2 certified literals exactly (0 errors); this reflects the deterministic mitigation, and implies nothing about Sym or digit length."
+  }
 }
