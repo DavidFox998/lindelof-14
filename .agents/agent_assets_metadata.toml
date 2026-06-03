@@ -342,3 +342,15 @@ id = "beDIvdHhj0ia7zzdKxpOU"
 uri = "file://experiments/z-unified/Z_BOSTCONNES.csv"
 type = "table"
 title = "Z_BOSTCONNES.csv — Bost-Connes ζ(β) (T=0 / T=1)"
+
+[[outputs]]
+id = "QtnXxh5E3X9vGP8GW24QT"
+uri = "file://experiments/z-local/Z_BESSEL_TEST.csv"
+type = "table"
+title = "Z_BESSEL_TEST.csv — I_n(x) via mpmath.besseli (48 rows)"
+
+[[outputs]]
+id = "Leh_TnRxfOqjzl2ZxmkjO"
+uri = "file://experiments/z-local/Z_POLYMER_TEST.csv"
+type = "table"
+title = "Z_POLYMER_TEST.csv — random binary polymers via random.choice (100 rows)"
