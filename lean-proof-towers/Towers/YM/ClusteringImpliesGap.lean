@@ -60,22 +60,17 @@ namespace TheoremaAureum.Towers.YM.OS
 
 open scoped InnerProductSpace
 
-/-- Exponential clustering at rate `m` (for the constant-zero witness
-    from Batch 163.2) implies the existence of a Hilbert space with
-    a CLM satisfying `HasMassGap _ T m`, for `m ∈ (0, 1]`. Honest
-    stand-in — the witness operator is `0` and the clustering
-    hypothesis is consumed only to record the 163.2 → 165.1
-    dependency. Does NOT prove "clustering ⇒ mass gap" for any real
-    YM correlator. -/
-theorem clustering_implies_gap (m : ℝ) (hm : 0 < m) (hm1 : m ≤ 1)
-    (_h : hasExponentialClustering (fun _ => (0 : ℝ)) m) :
+/- CLAY_GRADE: OPEN 2026-06-03
+   Witness-collapse NOT resolvable under Clay rules. The named proposition
+   below is the as-written shape; its antecedent witness (constant-zero
+   correlator) and consequent witness (zero CLM on ℂ) are degenerate, so as
+   written it is trivially satisfiable and the genuine YM surface (a real
+   "clustering ⇒ spectral gap" implication) is unreachable in mathlib
+   v4.12.0. De-registered from BRICKS. This names the proposition; it does
+   NOT prove it, and does NOT close Surface #1. No sorry / no axiom. -/
+def clustering_implies_gap_OPEN : Prop :=
+  ∀ (m : ℝ), 0 < m → m ≤ 1 → hasExponentialClustering (fun _ => (0 : ℝ)) m →
     ∃ (H : Type) (_ : NormedAddCommGroup H) (_ : InnerProductSpace ℂ H)
-      (T : H →L[ℂ] H), HasMassGap H T m := by
-  refine ⟨ℂ, inferInstance, inferInstance, 0, hm, ?_⟩
-  intro x
-  have hlhs : (⟪x, (0 : ℂ →L[ℂ] ℂ) x⟫_ℂ).re = 0 := by
-    rw [ContinuousLinearMap.zero_apply, inner_zero_right]; rfl
-  rw [hlhs]
-  exact mul_nonneg (sub_nonneg.mpr hm1) (sq_nonneg _)
+      (T : H →L[ℂ] H), HasMassGap H T m
 
 end TheoremaAureum.Towers.YM.OS

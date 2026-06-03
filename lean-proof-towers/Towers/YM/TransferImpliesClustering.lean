@@ -53,17 +53,16 @@ namespace TheoremaAureum.Towers.YM.OS
 
 open Real
 
-/-- A universally-quantified `transferGapBound` hypothesis (positional)
-    implies exponential clustering of the constant-zero function at
-    rate `m`. Honest stand-in — the witness function is zero and the
-    hypothesis is unused; only records the 163.1 → 165.2 dep edge.
-    Does NOT prove any real YM correlator clusters. -/
-theorem transfer_implies_clustering (m L : ℝ) (_hm : 0 < m)
-    (_h : ∀ T P₀ : ℂ →L[ℂ] ℂ, transferGapBound T P₀ m L) :
-    hasExponentialClustering (fun _ => (0 : ℝ)) m := by
-  refine ⟨1, one_pos, ?_⟩
-  intro t
-  simp
-  positivity
+/- CLAY_GRADE: OPEN 2026-06-03
+   Witness-collapse NOT resolvable under Clay rules. The named proposition
+   below is the as-written shape; its consequent witness is the constant-zero
+   function (|0| ≤ 1·exp, hypothesis unused), so as written it is trivially
+   satisfiable and the genuine YM surface (a real "transfer gap ⇒ clustering"
+   implication) is unreachable in mathlib v4.12.0. De-registered from BRICKS.
+   This names the proposition; it does NOT prove it, and does NOT close
+   Surface #1. No sorry / no axiom. -/
+def transfer_implies_clustering_OPEN : Prop :=
+  ∀ (m L : ℝ), 0 < m → (∀ T P₀ : ℂ →L[ℂ] ℂ, transferGapBound T P₀ m L) →
+    hasExponentialClustering (fun _ => (0 : ℝ)) m
 
 end TheoremaAureum.Towers.YM.OS

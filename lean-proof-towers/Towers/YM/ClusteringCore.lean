@@ -56,13 +56,16 @@ def clusters {α : Type*} [MeasurableSpace α]
   Tendsto (fun _ : ℕ => ∫ x, f x * g x ∂μ) atTop
     (𝓝 ((∫ x, f x ∂μ) * (∫ x, g x ∂μ)))
 
-/-- The zero-zero pair clusters under any measure (trivially: both
-    sides are 0). Honest inhabitedness witness — proves the predicate
-    is consistent, NOT that any YM correlator decays. -/
-lemma clusters_zero {α : Type*} [MeasurableSpace α] (μ : Measure α) :
-    clusters μ (fun _ : α => (0 : ℝ)) (fun _ : α => (0 : ℝ)) := by
-  unfold clusters
-  -- `∫ x, 0 * 0 ∂μ = 0` and `(∫ x, 0 ∂μ) * (∫ x, 0 ∂μ) = 0 * 0 = 0`.
-  simp
+/- CLAY_GRADE: OPEN 2026-06-03
+   Witness-collapse NOT resolvable under Clay rules (mathlib v4.12.0 has no
+   real Wilson/SU(3) correlator). The named proposition below is the
+   as-written stand-in shape; its only witness is the degenerate zero-zero
+   pair, so as written it is trivially satisfiable (vacuous) and the genuine
+   YM surface (a nontrivial correlator that clusters) is unreachable.
+   De-registered from BRICKS. This names the proposition; it does NOT prove
+   it. No sorry / no axiom. -/
+def clusters_zero_OPEN.{u} : Prop :=
+  ∀ {α : Type u} [MeasurableSpace α] (μ : Measure α),
+    clusters μ (fun _ : α => (0 : ℝ)) (fun _ : α => (0 : ℝ))
 
 end TheoremaAureum.Towers.YM.OS

@@ -54,18 +54,16 @@ namespace TheoremaAureum.Towers.YM.OS
 
 open Real
 
-/-- An `integrated_tail`-shaped bound on `‖T - P₀‖` for every
-    `(T, P₀)` implies `transferGapBound T P₀ m L` for every
-    `(T, P₀)`, by the definitional equality `integrated_tail L m =
-    rexp(-m*L)`. Honest stand-in — generalizes 164.1's pass-through
-    over the `(T, P₀)` universe. Does NOT prove any real YM tail. -/
-theorem tail_implies_transfer (m L : ℝ)
-    (h : ∀ T P₀ : ℂ →L[ℂ] ℂ, ‖T - P₀‖ ≤ integrated_tail L m) :
-    ∀ T P₀ : ℂ →L[ℂ] ℂ, transferGapBound T P₀ m L := by
-  intro T P₀
-  have hTP := h T P₀
-  unfold transferGapBound
-  unfold integrated_tail at hTP
-  exact hTP
+/- CLAY_GRADE: OPEN 2026-06-03
+   Witness-collapse NOT resolvable under Clay rules. The named proposition
+   below is the as-written pass-through shape; since `integrated_tail L m :=
+   rexp(-m*L)` by definition and `transferGapBound` unfolds to the same
+   inequality, it is a trivial definitional re-wrap, and the genuine YM
+   surface (a real heat-trace tail bounding a real transfer operator) is
+   unreachable in mathlib v4.12.0. De-registered from BRICKS. This names the
+   proposition; it does NOT prove a real tail. No sorry / no axiom. -/
+def tail_implies_transfer_OPEN : Prop :=
+  ∀ (m L : ℝ), (∀ T P₀ : ℂ →L[ℂ] ℂ, ‖T - P₀‖ ≤ integrated_tail L m) →
+    ∀ T P₀ : ℂ →L[ℂ] ℂ, transferGapBound T P₀ m L
 
 end TheoremaAureum.Towers.YM.OS

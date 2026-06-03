@@ -69,10 +69,14 @@ namespace TheoremaAureum.Towers.YM.OS
 def hasMassGapLowerBound (μ : ℝ) : Prop :=
   ∃ C : ℝ, 0 < C ∧ 0 < μ
 
-/-- Witness at `μ = 1`, `C = 1`. Honest inhabitedness witness — proves
-    the predicate is consistent, NOT that any Yang-Mills theory has a
-    mass gap of any size. -/
-lemma massGap_standin_example : hasMassGapLowerBound 1 :=
-  ⟨1, one_pos, one_pos⟩
+/- CLAY_GRADE: OPEN 2026-06-03
+   Witness-collapse NOT resolvable under Clay rules. `hasMassGapLowerBound`
+   is a deliberately-weak conjunction-of-positivity shape; the as-written
+   proposition below is trivially satisfiable (C = μ = 1) and says nothing
+   about any real mass gap. The genuine YM surface is unreachable in mathlib
+   v4.12.0. De-registered from BRICKS. This names the proposition; it does
+   NOT prove it. No sorry / no axiom. -/
+def massGap_standin_example_OPEN : Prop :=
+  hasMassGapLowerBound 1
 
 end TheoremaAureum.Towers.YM.OS

@@ -74,14 +74,15 @@ open Real
 def transferGapBound (T P₀ : ℂ →L[ℂ] ℂ) (m L : ℝ) : Prop :=
   ‖T - P₀‖ ≤ Real.exp (-m * L)
 
-/-- The trivial transfer operator (zero CLM) and trivial vacuum
-    projection (zero CLM) satisfy the gap-decay predicate at every
-    `(m, L)`: `‖0 - 0‖ = ‖0‖ = 0`, and `Real.exp _` is nonneg.
-    Honest inhabitedness witness — proves the predicate is consistent,
-    NOT that any real YM transfer operator has a gap. -/
-lemma transfer_gap_zero (m L : ℝ) :
-    transferGapBound (0 : ℂ →L[ℂ] ℂ) (0 : ℂ →L[ℂ] ℂ) m L := by
-  unfold transferGapBound
-  simp [Real.exp_nonneg]
+/- CLAY_GRADE: OPEN 2026-06-03
+   Witness-collapse NOT resolvable under Clay rules. The `def transferGapBound`
+   predicate above is PRESERVED. The named proposition below is the as-written
+   inhabitedness shape; its only witness is the zero/zero operator pair
+   (‖0 - 0‖ = 0 ≤ exp), so as written it is trivially satisfiable and the
+   genuine YM surface (a real transfer operator T_β with ‖T_β - P_vac‖ ≤
+   exp(-m·L)) is unreachable in mathlib v4.12.0. De-registered from BRICKS.
+   This names the proposition; it does NOT prove it. No sorry / no axiom. -/
+def transfer_gap_zero_OPEN : Prop :=
+  ∀ (m L : ℝ), transferGapBound (0 : ℂ →L[ℂ] ℂ) (0 : ℂ →L[ℂ] ℂ) m L
 
 end TheoremaAureum.Towers.YM.OS

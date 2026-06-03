@@ -65,14 +65,16 @@ open Real
     any real YM heat-trace integral. -/
 noncomputable def integrated_tail (L m : ℝ) : ℝ := rexp (-m * L)
 
-/-- `integrated_tail L m ≤ rexp (-m * L)` — trivial by definitional
-    equality. The `_hm`, `_hL` hypotheses are kept positionally for
-    downstream-API stability (164.1 expects them in scope) but are
-    unused in the proof. Honest stand-in — proves nothing about any
-    real YM tail integral. -/
-lemma integrated_tail_le_exp (L m : ℝ) (_hm : 0 ≤ m) (_hL : 0 ≤ L) :
-    integrated_tail L m ≤ rexp (-m * L) := by
-  unfold integrated_tail
-  exact le_refl _
+/- CLAY_GRADE: OPEN 2026-06-03
+   Witness-collapse NOT resolvable under Clay rules. The `noncomputable def
+   integrated_tail` symbol above is PRESERVED. The named proposition below is
+   the as-written shape; since `integrated_tail L m := rexp(-m*L)` by
+   definition, it reduces to the reflexive `rexp(-m*L) ≤ rexp(-m*L)`, so as
+   written it is trivially true and the genuine YM surface (a real heat-trace
+   tail bounded by an exponential) is unreachable in mathlib v4.12.0.
+   De-registered from BRICKS. This names the proposition; it does NOT prove a
+   real tail bound. No sorry / no axiom. -/
+def integrated_tail_le_exp_OPEN : Prop :=
+  ∀ (L m : ℝ), 0 ≤ m → 0 ≤ L → integrated_tail L m ≤ rexp (-m * L)
 
 end TheoremaAureum.Towers.YM.OS

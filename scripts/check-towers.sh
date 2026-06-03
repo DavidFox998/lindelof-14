@@ -2311,7 +2311,7 @@ BRICKS=(
   # the original snippet did not introduce). Same inhabitedness pattern
   # as Batch 157.2's `reflectionPos_diracEvalLM`. Does NOT prove
   # cluster decay for any Yang-Mills measure. Surface #1 stays Open.
-  "Towers.YM.ClusteringCore|TheoremaAureum.Towers.YM.OS.clusters_zero"
+  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.ClusteringCore.clusters_zero → clusters_zero_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
   # Batch 160.1 (2026-05-28): the one-parameter real exponential
   # `t ↦ exp(-t·H)` analytically continues to the entire complex
   # function `z ↦ exp(-z·H)`. Discharges differentiability via
@@ -2503,26 +2503,26 @@ BRICKS=(
   # Wall: 482 → 485. YM tower stays `Status: Open`. Surface #1 stays
   # OPEN. NOT a real YM mass gap, NOT a real spectral gap, NOT a real
   # transfer operator.
-  "Towers.YM.MassGapStandin|TheoremaAureum.Towers.YM.OS.massGap_standin_example"
-  "Towers.YM.SpectralGapCore|TheoremaAureum.Towers.YM.OS.hasMassGap_zero"
+  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.MassGapStandin.massGap_standin_example → massGap_standin_example_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
+  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.SpectralGapCore.hasMassGap_zero → hasMassGap_zero_OPEN (witness-collapse; def HasMassGap preserved; see reports/CLAY_REPAIR_2026-06-03.md)
   "Towers.YM.TransferOperator|TheoremaAureum.Towers.YM.OS.boltzmannWeight_pos"
   "Towers.YM.TransferOperator|TheoremaAureum.Towers.YM.OS.boltzmannWeight_const_one"
   "Towers.YM.TransferOperator|TheoremaAureum.Towers.YM.OS.TransferOperator_vacuum_eq_id"
-  "Towers.YM.TransferOperatorBound|TheoremaAureum.Towers.YM.OS.transfer_gap_zero"
-  "Towers.YM.TwoPointDecay|TheoremaAureum.Towers.YM.OS.clustering_zero_from_transfer"
-  "Towers.YM.MassGapFromDecay|TheoremaAureum.Towers.YM.OS.mass_gap_from_clustering_zero"
-  "Towers.YM.IntegratedTailReal|TheoremaAureum.Towers.YM.OS.integrated_tail_le_exp"
-  "Towers.YM.TransferGapReal|TheoremaAureum.Towers.YM.OS.transfer_gap_real"
-  "Towers.YM.MassGapReal|TheoremaAureum.Towers.YM.OS.mass_gap_from_transfer"
-  "Towers.YM.ClusteringImpliesGap|TheoremaAureum.Towers.YM.OS.clustering_implies_gap"
-  "Towers.YM.TransferImpliesClustering|TheoremaAureum.Towers.YM.OS.transfer_implies_clustering"
-  "Towers.YM.TailImpliesTransfer|TheoremaAureum.Towers.YM.OS.tail_implies_transfer"
+  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.TransferOperatorBound.transfer_gap_zero → transfer_gap_zero_OPEN (witness-collapse; def transferGapBound preserved; see reports/CLAY_REPAIR_2026-06-03.md)
+  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.TwoPointDecay.clustering_zero_from_transfer → clustering_zero_from_transfer_OPEN (witness-collapse; def hasExponentialClustering preserved; see reports/CLAY_REPAIR_2026-06-03.md)
+  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.MassGapFromDecay.mass_gap_from_clustering_zero → mass_gap_from_clustering_zero_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
+  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.IntegratedTailReal.integrated_tail_le_exp → integrated_tail_le_exp_OPEN (witness-collapse; def integrated_tail preserved; see reports/CLAY_REPAIR_2026-06-03.md)
+  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.TransferGapReal.transfer_gap_real → transfer_gap_real_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
+  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.MassGapReal.mass_gap_from_transfer → mass_gap_from_transfer_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
+  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.ClusteringImpliesGap.clustering_implies_gap → clustering_implies_gap_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
+  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.TransferImpliesClustering.transfer_implies_clustering → transfer_implies_clustering_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
+  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.TailImpliesTransfer.tail_implies_transfer → tail_implies_transfer_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
   "Towers.YM.ShiftOperator|TheoremaAureum.Towers.YM.OS.norm_shift_apply"
   "Towers.YM.NontrivialGap|TheoremaAureum.Towers.YM.OS.nontrivial_gap"
   # TRI PARALLEL #7 / Batches 167.1 & 167.2 — close the stand-in era.
   # ChainSummary (167.3) registers no BRICK (no new theorems; it is a
   # dep-graph closure module exercised by `lake build`).
-  "Towers.YM.GapToDecay|TheoremaAureum.Towers.YM.OS.gap_to_decay"
+  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.GapToDecay.gap_to_decay → gap_to_decay_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
   "Towers.YM.SpectralBound|TheoremaAureum.Towers.YM.OS.spectral_bound"
   # Task #174 — land the remaining 3 Varadhan-track files for Task #156
   # (files 4–6 of the original 6-file plan). All three are trio-clean

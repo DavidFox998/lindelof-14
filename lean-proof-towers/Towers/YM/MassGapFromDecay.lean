@@ -64,18 +64,15 @@ import Towers.YM.SpectralGapCore
 
 namespace TheoremaAureum.Towers.YM.OS
 
-/-- Given a clustering witness for the constant-zero correlator at
-    rate `1` (from Batch 163.2), the zero CLM on `ℂ` satisfies
-    `HasMassGap ℂ 0 1` (from Batch 162.2). The clustering hypothesis
-    is not really *used* (the conclusion is discharged directly by
-    `hasMassGap_zero`) but is carried positionally to record the
-    163.2 → 163.3 dependency in the dep graph. Honest inhabitedness
-    witness — proves the chain `clustering ⇝ HasMassGap` is
-    *consistent*, NOT that the implication holds for any real YM
-    operator. -/
-lemma mass_gap_from_clustering_zero
-    (_h : hasExponentialClustering (fun _ => (0 : ℝ)) 1) :
-    HasMassGap ℂ (0 : ℂ →L[ℂ] ℂ) 1 :=
-  hasMassGap_zero
+/- CLAY_GRADE: OPEN 2026-06-03
+   Witness-collapse NOT resolvable under Clay rules. The named proposition
+   below is the as-written chain shape; both its antecedent witness (the
+   constant-zero correlator) and consequent witness (the zero CLM on ℂ) are
+   degenerate, so as written it is trivially satisfiable and the genuine YM
+   surface (a real implication clustering ⇒ mass gap for a real operator) is
+   unreachable in mathlib v4.12.0. De-registered from BRICKS. This names the
+   proposition; it does NOT prove it. No sorry / no axiom. -/
+def mass_gap_from_clustering_zero_OPEN : Prop :=
+  hasExponentialClustering (fun _ => (0 : ℝ)) 1 → HasMassGap ℂ (0 : ℂ →L[ℂ] ℂ) 1
 
 end TheoremaAureum.Towers.YM.OS

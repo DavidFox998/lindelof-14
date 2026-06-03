@@ -44,17 +44,19 @@ namespace TheoremaAureum.Towers.YM.OS
 
 open Real ContinuousLinearMap
 
-/-- From a non-trivial spectral-gap witness on `H = L²(ℝ, ℂ)`,
-    exhibit the `hasExponentialClustering` predicate at rate `m`
-    with the obvious function `f t := rexp(-m*t)`. The `T` witness
-    is carried positionally to record the 166.3 → 167.1 dependency.
-    Does NOT prove YM correlators decay. -/
-theorem gap_to_decay (m : ℝ) (_hm : 0 < m) (_hm1 : m < 1) :
+/- CLAY_GRADE: OPEN 2026-06-03
+   Witness-collapse NOT resolvable under Clay rules. The named proposition
+   below is the as-written "gap ⇒ decay" shape; its consequent is discharged
+   by the obvious function f t := exp(-m·t) (|f t| ≤ 1·exp), with the gap
+   hypothesis unused, so as written it is trivially satisfiable and the
+   genuine YM surface (a real correlator decaying from a real spectral gap)
+   is unreachable in mathlib v4.12.0. De-registered from BRICKS. This names
+   the proposition; it does NOT prove it, and does NOT close Surface #1. No
+   sorry / no axiom. -/
+def gap_to_decay_OPEN.{u} : Prop :=
+  ∀ {H : Type u} [NormedAddCommGroup H] [InnerProductSpace ℂ H] (m : ℝ),
+    0 < m → m < 1 →
     (∃ T : H →L[ℂ] H, T ≠ 0 ∧ HasMassGap H T m) →
-      hasExponentialClustering (fun t => Real.exp (-m * t)) m := by
-  intro _hT
-  refine ⟨1, one_pos, ?_⟩
-  intro t
-  simp [abs_of_nonneg (Real.exp_nonneg _)]
+      hasExponentialClustering (fun t => Real.exp (-m * t)) m
 
 end TheoremaAureum.Towers.YM.OS

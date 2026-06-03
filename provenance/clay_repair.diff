@@ -1,0 +1,469 @@
+diff --git a/lean-proof-towers/Towers/YM/ClusteringCore.lean b/lean-proof-towers/Towers/YM/ClusteringCore.lean
+index 97e02cc..14aa0c8 100644
+--- a/lean-proof-towers/Towers/YM/ClusteringCore.lean
++++ b/lean-proof-towers/Towers/YM/ClusteringCore.lean
+@@ -56,13 +56,16 @@ def clusters {α : Type*} [MeasurableSpace α]
+   Tendsto (fun _ : ℕ => ∫ x, f x * g x ∂μ) atTop
+     (𝓝 ((∫ x, f x ∂μ) * (∫ x, g x ∂μ)))
+ 
+-/-- The zero-zero pair clusters under any measure (trivially: both
+-    sides are 0). Honest inhabitedness witness — proves the predicate
+-    is consistent, NOT that any YM correlator decays. -/
+-lemma clusters_zero {α : Type*} [MeasurableSpace α] (μ : Measure α) :
+-    clusters μ (fun _ : α => (0 : ℝ)) (fun _ : α => (0 : ℝ)) := by
+-  unfold clusters
+-  -- `∫ x, 0 * 0 ∂μ = 0` and `(∫ x, 0 ∂μ) * (∫ x, 0 ∂μ) = 0 * 0 = 0`.
+-  simp
++/- CLAY_GRADE: OPEN 2026-06-03
++   Witness-collapse NOT resolvable under Clay rules (mathlib v4.12.0 has no
++   real Wilson/SU(3) correlator). The named proposition below is the
++   as-written stand-in shape; its only witness is the degenerate zero-zero
++   pair, so as written it is trivially satisfiable (vacuous) and the genuine
++   YM surface (a nontrivial correlator that clusters) is unreachable.
++   De-registered from BRICKS. This names the proposition; it does NOT prove
++   it. No sorry / no axiom. -/
++def clusters_zero_OPEN.{u} : Prop :=
++  ∀ {α : Type u} [MeasurableSpace α] (μ : Measure α),
++    clusters μ (fun _ : α => (0 : ℝ)) (fun _ : α => (0 : ℝ))
+ 
+ end TheoremaAureum.Towers.YM.OS
+diff --git a/lean-proof-towers/Towers/YM/ClusteringImpliesGap.lean b/lean-proof-towers/Towers/YM/ClusteringImpliesGap.lean
+index 0a363b7..837c2c5 100644
+--- a/lean-proof-towers/Towers/YM/ClusteringImpliesGap.lean
++++ b/lean-proof-towers/Towers/YM/ClusteringImpliesGap.lean
+@@ -60,22 +60,17 @@ namespace TheoremaAureum.Towers.YM.OS
+ 
+ open scoped InnerProductSpace
+ 
+-/-- Exponential clustering at rate `m` (for the constant-zero witness
+-    from Batch 163.2) implies the existence of a Hilbert space with
+-    a CLM satisfying `HasMassGap _ T m`, for `m ∈ (0, 1]`. Honest
+-    stand-in — the witness operator is `0` and the clustering
+-    hypothesis is consumed only to record the 163.2 → 165.1
+-    dependency. Does NOT prove "clustering ⇒ mass gap" for any real
+-    YM correlator. -/
+-theorem clustering_implies_gap (m : ℝ) (hm : 0 < m) (hm1 : m ≤ 1)
+-    (_h : hasExponentialClustering (fun _ => (0 : ℝ)) m) :
++/- CLAY_GRADE: OPEN 2026-06-03
++   Witness-collapse NOT resolvable under Clay rules. The named proposition
++   below is the as-written shape; its antecedent witness (constant-zero
++   correlator) and consequent witness (zero CLM on ℂ) are degenerate, so as
++   written it is trivially satisfiable and the genuine YM surface (a real
++   "clustering ⇒ spectral gap" implication) is unreachable in mathlib
++   v4.12.0. De-registered from BRICKS. This names the proposition; it does
++   NOT prove it, and does NOT close Surface #1. No sorry / no axiom. -/
++def clustering_implies_gap_OPEN : Prop :=
++  ∀ (m : ℝ), 0 < m → m ≤ 1 → hasExponentialClustering (fun _ => (0 : ℝ)) m →
+     ∃ (H : Type) (_ : NormedAddCommGroup H) (_ : InnerProductSpace ℂ H)
+-      (T : H →L[ℂ] H), HasMassGap H T m := by
+-  refine ⟨ℂ, inferInstance, inferInstance, 0, hm, ?_⟩
+-  intro x
+-  have hlhs : (⟪x, (0 : ℂ →L[ℂ] ℂ) x⟫_ℂ).re = 0 := by
+-    rw [ContinuousLinearMap.zero_apply, inner_zero_right]; rfl
+-  rw [hlhs]
+-  exact mul_nonneg (sub_nonneg.mpr hm1) (sq_nonneg _)
++      (T : H →L[ℂ] H), HasMassGap H T m
+ 
+ end TheoremaAureum.Towers.YM.OS
+diff --git a/lean-proof-towers/Towers/YM/GapToDecay.lean b/lean-proof-towers/Towers/YM/GapToDecay.lean
+index 49b5f8b..9b203f9 100644
+--- a/lean-proof-towers/Towers/YM/GapToDecay.lean
++++ b/lean-proof-towers/Towers/YM/GapToDecay.lean
+@@ -44,17 +44,19 @@ namespace TheoremaAureum.Towers.YM.OS
+ 
+ open Real ContinuousLinearMap
+ 
+-/-- From a non-trivial spectral-gap witness on `H = L²(ℝ, ℂ)`,
+-    exhibit the `hasExponentialClustering` predicate at rate `m`
+-    with the obvious function `f t := rexp(-m*t)`. The `T` witness
+-    is carried positionally to record the 166.3 → 167.1 dependency.
+-    Does NOT prove YM correlators decay. -/
+-theorem gap_to_decay (m : ℝ) (_hm : 0 < m) (_hm1 : m < 1) :
++/- CLAY_GRADE: OPEN 2026-06-03
++   Witness-collapse NOT resolvable under Clay rules. The named proposition
++   below is the as-written "gap ⇒ decay" shape; its consequent is discharged
++   by the obvious function f t := exp(-m·t) (|f t| ≤ 1·exp), with the gap
++   hypothesis unused, so as written it is trivially satisfiable and the
++   genuine YM surface (a real correlator decaying from a real spectral gap)
++   is unreachable in mathlib v4.12.0. De-registered from BRICKS. This names
++   the proposition; it does NOT prove it, and does NOT close Surface #1. No
++   sorry / no axiom. -/
++def gap_to_decay_OPEN.{u} : Prop :=
++  ∀ {H : Type u} [NormedAddCommGroup H] [InnerProductSpace ℂ H] (m : ℝ),
++    0 < m → m < 1 →
+     (∃ T : H →L[ℂ] H, T ≠ 0 ∧ HasMassGap H T m) →
+-      hasExponentialClustering (fun t => Real.exp (-m * t)) m := by
+-  intro _hT
+-  refine ⟨1, one_pos, ?_⟩
+-  intro t
+-  simp [abs_of_nonneg (Real.exp_nonneg _)]
++      hasExponentialClustering (fun t => Real.exp (-m * t)) m
+ 
+ end TheoremaAureum.Towers.YM.OS
+diff --git a/lean-proof-towers/Towers/YM/IntegratedTailReal.lean b/lean-proof-towers/Towers/YM/IntegratedTailReal.lean
+index f8322be..96e5ba9 100644
+--- a/lean-proof-towers/Towers/YM/IntegratedTailReal.lean
++++ b/lean-proof-towers/Towers/YM/IntegratedTailReal.lean
+@@ -65,14 +65,16 @@ open Real
+     any real YM heat-trace integral. -/
+ noncomputable def integrated_tail (L m : ℝ) : ℝ := rexp (-m * L)
+ 
+-/-- `integrated_tail L m ≤ rexp (-m * L)` — trivial by definitional
+-    equality. The `_hm`, `_hL` hypotheses are kept positionally for
+-    downstream-API stability (164.1 expects them in scope) but are
+-    unused in the proof. Honest stand-in — proves nothing about any
+-    real YM tail integral. -/
+-lemma integrated_tail_le_exp (L m : ℝ) (_hm : 0 ≤ m) (_hL : 0 ≤ L) :
+-    integrated_tail L m ≤ rexp (-m * L) := by
+-  unfold integrated_tail
+-  exact le_refl _
++/- CLAY_GRADE: OPEN 2026-06-03
++   Witness-collapse NOT resolvable under Clay rules. The `noncomputable def
++   integrated_tail` symbol above is PRESERVED. The named proposition below is
++   the as-written shape; since `integrated_tail L m := rexp(-m*L)` by
++   definition, it reduces to the reflexive `rexp(-m*L) ≤ rexp(-m*L)`, so as
++   written it is trivially true and the genuine YM surface (a real heat-trace
++   tail bounded by an exponential) is unreachable in mathlib v4.12.0.
++   De-registered from BRICKS. This names the proposition; it does NOT prove a
++   real tail bound. No sorry / no axiom. -/
++def integrated_tail_le_exp_OPEN : Prop :=
++  ∀ (L m : ℝ), 0 ≤ m → 0 ≤ L → integrated_tail L m ≤ rexp (-m * L)
+ 
+ end TheoremaAureum.Towers.YM.OS
+diff --git a/lean-proof-towers/Towers/YM/MassGapFromDecay.lean b/lean-proof-towers/Towers/YM/MassGapFromDecay.lean
+index bfac5c6..9e6971d 100644
+--- a/lean-proof-towers/Towers/YM/MassGapFromDecay.lean
++++ b/lean-proof-towers/Towers/YM/MassGapFromDecay.lean
+@@ -64,18 +64,15 @@ import Towers.YM.SpectralGapCore
+ 
+ namespace TheoremaAureum.Towers.YM.OS
+ 
+-/-- Given a clustering witness for the constant-zero correlator at
+-    rate `1` (from Batch 163.2), the zero CLM on `ℂ` satisfies
+-    `HasMassGap ℂ 0 1` (from Batch 162.2). The clustering hypothesis
+-    is not really *used* (the conclusion is discharged directly by
+-    `hasMassGap_zero`) but is carried positionally to record the
+-    163.2 → 163.3 dependency in the dep graph. Honest inhabitedness
+-    witness — proves the chain `clustering ⇝ HasMassGap` is
+-    *consistent*, NOT that the implication holds for any real YM
+-    operator. -/
+-lemma mass_gap_from_clustering_zero
+-    (_h : hasExponentialClustering (fun _ => (0 : ℝ)) 1) :
+-    HasMassGap ℂ (0 : ℂ →L[ℂ] ℂ) 1 :=
+-  hasMassGap_zero
++/- CLAY_GRADE: OPEN 2026-06-03
++   Witness-collapse NOT resolvable under Clay rules. The named proposition
++   below is the as-written chain shape; both its antecedent witness (the
++   constant-zero correlator) and consequent witness (the zero CLM on ℂ) are
++   degenerate, so as written it is trivially satisfiable and the genuine YM
++   surface (a real implication clustering ⇒ mass gap for a real operator) is
++   unreachable in mathlib v4.12.0. De-registered from BRICKS. This names the
++   proposition; it does NOT prove it. No sorry / no axiom. -/
++def mass_gap_from_clustering_zero_OPEN : Prop :=
++  hasExponentialClustering (fun _ => (0 : ℝ)) 1 → HasMassGap ℂ (0 : ℂ →L[ℂ] ℂ) 1
+ 
+ end TheoremaAureum.Towers.YM.OS
+diff --git a/lean-proof-towers/Towers/YM/MassGapReal.lean b/lean-proof-towers/Towers/YM/MassGapReal.lean
+index baedbed..0c5d93a 100644
+--- a/lean-proof-towers/Towers/YM/MassGapReal.lean
++++ b/lean-proof-towers/Towers/YM/MassGapReal.lean
+@@ -73,16 +73,16 @@ namespace TheoremaAureum.Towers.YM.OS
+ 
+ open Real
+ 
+-/-- For every `m ∈ (0, 1]`, the `HasMassGap` predicate is inhabited:
+-    `(ℂ, 0)` witnesses `HasMassGap ℂ 0 m`. Honest inhabitedness
+-    witness — proves the predicate is consistent at every `m` in the
+-    range, NOT that any real YM operator has a mass gap of size `m`. -/
+-lemma mass_gap_from_transfer {m : ℝ} (hm : 0 < m) (hm1 : m ≤ 1) :
++/- CLAY_GRADE: OPEN 2026-06-03
++   Witness-collapse NOT resolvable under Clay rules. The named proposition
++   below is the as-written existential shape; its witness `(ℂ, 0)` is the
++   maximally degenerate operator (zero CLM), so as written it is trivially
++   satisfiable and the genuine YM surface (a real operator with a mass gap of
++   size m) is unreachable in mathlib v4.12.0. De-registered from BRICKS. This
++   names the proposition; it does NOT prove it. No sorry / no axiom. -/
++def mass_gap_from_transfer_OPEN : Prop :=
++  ∀ {m : ℝ}, 0 < m → m ≤ 1 →
+     ∃ (H : Type) (_ : NormedAddCommGroup H) (_ : InnerProductSpace ℂ H)
+-      (T : H →L[ℂ] H), HasMassGap H T m := by
+-  refine ⟨ℂ, inferInstance, inferInstance, 0, hm, ?_⟩
+-  intro x
+-  simp
+-  exact mul_nonneg (by linarith) (sq_nonneg _)
++      (T : H →L[ℂ] H), HasMassGap H T m
+ 
+ end TheoremaAureum.Towers.YM.OS
+diff --git a/lean-proof-towers/Towers/YM/MassGapStandin.lean b/lean-proof-towers/Towers/YM/MassGapStandin.lean
+index 988d87f..0d60d4a 100644
+--- a/lean-proof-towers/Towers/YM/MassGapStandin.lean
++++ b/lean-proof-towers/Towers/YM/MassGapStandin.lean
+@@ -69,10 +69,14 @@ namespace TheoremaAureum.Towers.YM.OS
+ def hasMassGapLowerBound (μ : ℝ) : Prop :=
+   ∃ C : ℝ, 0 < C ∧ 0 < μ
+ 
+-/-- Witness at `μ = 1`, `C = 1`. Honest inhabitedness witness — proves
+-    the predicate is consistent, NOT that any Yang-Mills theory has a
+-    mass gap of any size. -/
+-lemma massGap_standin_example : hasMassGapLowerBound 1 :=
+-  ⟨1, one_pos, one_pos⟩
++/- CLAY_GRADE: OPEN 2026-06-03
++   Witness-collapse NOT resolvable under Clay rules. `hasMassGapLowerBound`
++   is a deliberately-weak conjunction-of-positivity shape; the as-written
++   proposition below is trivially satisfiable (C = μ = 1) and says nothing
++   about any real mass gap. The genuine YM surface is unreachable in mathlib
++   v4.12.0. De-registered from BRICKS. This names the proposition; it does
++   NOT prove it. No sorry / no axiom. -/
++def massGap_standin_example_OPEN : Prop :=
++  hasMassGapLowerBound 1
+ 
+ end TheoremaAureum.Towers.YM.OS
+diff --git a/lean-proof-towers/Towers/YM/SpectralGapCore.lean b/lean-proof-towers/Towers/YM/SpectralGapCore.lean
+index fc39e29..e4eddd6 100644
+--- a/lean-proof-towers/Towers/YM/SpectralGapCore.lean
++++ b/lean-proof-towers/Towers/YM/SpectralGapCore.lean
+@@ -71,18 +71,16 @@ def HasMassGap (H : Type _) [NormedAddCommGroup H] [InnerProductSpace ℂ H]
+     (T : H →L[ℂ] H) (m : ℝ) : Prop :=
+   0 < m ∧ ∀ x : H, (⟪x, T x⟫_ℂ).re ≤ (1 - m) * ‖x‖ ^ 2
+ 
+-/-- The zero operator on `ℂ` satisfies the predicate at `m = 1`: the
+-    LHS `(⟪x, 0⟫_ℂ).re = 0` and the RHS `(1 - 1) * ‖x‖^2 = 0`, so the
+-    inequality reduces to `0 ≤ 0`. Honest inhabitedness witness —
+-    proves the predicate is consistent, NOT that any Yang-Mills
+-    transfer operator has a gap. -/
+-lemma hasMassGap_zero : HasMassGap ℂ (0 : ℂ →L[ℂ] ℂ) 1 := by
+-  refine ⟨one_pos, ?_⟩
+-  intro x
+-  have hlhs : (⟪x, (0 : ℂ →L[ℂ] ℂ) x⟫_ℂ).re = 0 := by
+-    rw [ContinuousLinearMap.zero_apply, inner_zero_right]
+-    rfl
+-  have hrhs : (1 - (1 : ℝ)) * ‖x‖ ^ 2 = 0 := by ring
+-  rw [hlhs, hrhs]
++/- CLAY_GRADE: OPEN 2026-06-03
++   Witness-collapse NOT resolvable under Clay rules. The `def HasMassGap`
++   predicate above is PRESERVED (consumed by NontrivialGap / Continuum for
++   the predicate shape only). The named proposition below is the as-written
++   inhabitedness shape; its only witness is the zero CLM on ℂ (spectrum {0}),
++   so as written it is trivially satisfiable (0 ≤ 0) and the genuine YM
++   surface (a real transfer operator with a positive spectral gap) is
++   unreachable in mathlib v4.12.0. De-registered from BRICKS. This names the
++   proposition; it does NOT prove it. No sorry / no axiom. -/
++def hasMassGap_zero_OPEN : Prop :=
++  HasMassGap ℂ (0 : ℂ →L[ℂ] ℂ) 1
+ 
+ end TheoremaAureum.Towers.YM.OS
+diff --git a/lean-proof-towers/Towers/YM/TailImpliesTransfer.lean b/lean-proof-towers/Towers/YM/TailImpliesTransfer.lean
+index 256206d..7865ceb 100644
+--- a/lean-proof-towers/Towers/YM/TailImpliesTransfer.lean
++++ b/lean-proof-towers/Towers/YM/TailImpliesTransfer.lean
+@@ -54,18 +54,16 @@ namespace TheoremaAureum.Towers.YM.OS
+ 
+ open Real
+ 
+-/-- An `integrated_tail`-shaped bound on `‖T - P₀‖` for every
+-    `(T, P₀)` implies `transferGapBound T P₀ m L` for every
+-    `(T, P₀)`, by the definitional equality `integrated_tail L m =
+-    rexp(-m*L)`. Honest stand-in — generalizes 164.1's pass-through
+-    over the `(T, P₀)` universe. Does NOT prove any real YM tail. -/
+-theorem tail_implies_transfer (m L : ℝ)
+-    (h : ∀ T P₀ : ℂ →L[ℂ] ℂ, ‖T - P₀‖ ≤ integrated_tail L m) :
+-    ∀ T P₀ : ℂ →L[ℂ] ℂ, transferGapBound T P₀ m L := by
+-  intro T P₀
+-  have hTP := h T P₀
+-  unfold transferGapBound
+-  unfold integrated_tail at hTP
+-  exact hTP
++/- CLAY_GRADE: OPEN 2026-06-03
++   Witness-collapse NOT resolvable under Clay rules. The named proposition
++   below is the as-written pass-through shape; since `integrated_tail L m :=
++   rexp(-m*L)` by definition and `transferGapBound` unfolds to the same
++   inequality, it is a trivial definitional re-wrap, and the genuine YM
++   surface (a real heat-trace tail bounding a real transfer operator) is
++   unreachable in mathlib v4.12.0. De-registered from BRICKS. This names the
++   proposition; it does NOT prove a real tail. No sorry / no axiom. -/
++def tail_implies_transfer_OPEN : Prop :=
++  ∀ (m L : ℝ), (∀ T P₀ : ℂ →L[ℂ] ℂ, ‖T - P₀‖ ≤ integrated_tail L m) →
++    ∀ T P₀ : ℂ →L[ℂ] ℂ, transferGapBound T P₀ m L
+ 
+ end TheoremaAureum.Towers.YM.OS
+diff --git a/lean-proof-towers/Towers/YM/TransferGapReal.lean b/lean-proof-towers/Towers/YM/TransferGapReal.lean
+index dacae52..49b2b83 100644
+--- a/lean-proof-towers/Towers/YM/TransferGapReal.lean
++++ b/lean-proof-towers/Towers/YM/TransferGapReal.lean
+@@ -59,15 +59,17 @@ namespace TheoremaAureum.Towers.YM.OS
+ 
+ open Real
+ 
+-/-- Given a tail-form upper bound `‖T - P₀‖ ≤ integrated_tail L m`,
+-    conclude `‖T - P₀‖ ≤ rexp (-m * L)` by unfolding the definitional
+-    alias from Batch 156.6. Honest composition step — the
+-    YM-relevant content (the hypothesis `h`) is supplied externally;
+-    this file only discharges the trivial last link. -/
+-theorem transfer_gap_real (T P₀ : ℂ →L[ℂ] ℂ) (m L : ℝ)
+-    (h : ‖T - P₀‖ ≤ integrated_tail L m) :
+-    ‖T - P₀‖ ≤ rexp (-m * L) := by
+-  unfold integrated_tail at h
+-  exact h
++/- CLAY_GRADE: OPEN 2026-06-03
++   Witness-collapse NOT resolvable under Clay rules. The named proposition
++   below is the as-written composition shape; since `integrated_tail L m :=
++   rexp(-m*L)` by definition, the conclusion is definitionally the hypothesis,
++   so as written it is a trivial pass-through and the genuine YM surface (a
++   real transfer operator T_β admitting an integrated-tail bound for some
++   m > 0) is unreachable in mathlib v4.12.0. De-registered from BRICKS. This
++   names the proposition; it does NOT prove any real gap. No sorry / no
++   axiom. -/
++def transfer_gap_real_OPEN : Prop :=
++  ∀ (T P₀ : ℂ →L[ℂ] ℂ) (m L : ℝ),
++    ‖T - P₀‖ ≤ integrated_tail L m → ‖T - P₀‖ ≤ rexp (-m * L)
+ 
+ end TheoremaAureum.Towers.YM.OS
+diff --git a/lean-proof-towers/Towers/YM/TransferImpliesClustering.lean b/lean-proof-towers/Towers/YM/TransferImpliesClustering.lean
+index e9763e2..39129e6 100644
+--- a/lean-proof-towers/Towers/YM/TransferImpliesClustering.lean
++++ b/lean-proof-towers/Towers/YM/TransferImpliesClustering.lean
+@@ -53,17 +53,16 @@ namespace TheoremaAureum.Towers.YM.OS
+ 
+ open Real
+ 
+-/-- A universally-quantified `transferGapBound` hypothesis (positional)
+-    implies exponential clustering of the constant-zero function at
+-    rate `m`. Honest stand-in — the witness function is zero and the
+-    hypothesis is unused; only records the 163.1 → 165.2 dep edge.
+-    Does NOT prove any real YM correlator clusters. -/
+-theorem transfer_implies_clustering (m L : ℝ) (_hm : 0 < m)
+-    (_h : ∀ T P₀ : ℂ →L[ℂ] ℂ, transferGapBound T P₀ m L) :
+-    hasExponentialClustering (fun _ => (0 : ℝ)) m := by
+-  refine ⟨1, one_pos, ?_⟩
+-  intro t
+-  simp
+-  positivity
++/- CLAY_GRADE: OPEN 2026-06-03
++   Witness-collapse NOT resolvable under Clay rules. The named proposition
++   below is the as-written shape; its consequent witness is the constant-zero
++   function (|0| ≤ 1·exp, hypothesis unused), so as written it is trivially
++   satisfiable and the genuine YM surface (a real "transfer gap ⇒ clustering"
++   implication) is unreachable in mathlib v4.12.0. De-registered from BRICKS.
++   This names the proposition; it does NOT prove it, and does NOT close
++   Surface #1. No sorry / no axiom. -/
++def transfer_implies_clustering_OPEN : Prop :=
++  ∀ (m L : ℝ), 0 < m → (∀ T P₀ : ℂ →L[ℂ] ℂ, transferGapBound T P₀ m L) →
++    hasExponentialClustering (fun _ => (0 : ℝ)) m
+ 
+ end TheoremaAureum.Towers.YM.OS
+diff --git a/lean-proof-towers/Towers/YM/TransferOperatorBound.lean b/lean-proof-towers/Towers/YM/TransferOperatorBound.lean
+index cc06dc8..e906655 100644
+--- a/lean-proof-towers/Towers/YM/TransferOperatorBound.lean
++++ b/lean-proof-towers/Towers/YM/TransferOperatorBound.lean
+@@ -74,14 +74,15 @@ open Real
+ def transferGapBound (T P₀ : ℂ →L[ℂ] ℂ) (m L : ℝ) : Prop :=
+   ‖T - P₀‖ ≤ Real.exp (-m * L)
+ 
+-/-- The trivial transfer operator (zero CLM) and trivial vacuum
+-    projection (zero CLM) satisfy the gap-decay predicate at every
+-    `(m, L)`: `‖0 - 0‖ = ‖0‖ = 0`, and `Real.exp _` is nonneg.
+-    Honest inhabitedness witness — proves the predicate is consistent,
+-    NOT that any real YM transfer operator has a gap. -/
+-lemma transfer_gap_zero (m L : ℝ) :
+-    transferGapBound (0 : ℂ →L[ℂ] ℂ) (0 : ℂ →L[ℂ] ℂ) m L := by
+-  unfold transferGapBound
+-  simp [Real.exp_nonneg]
++/- CLAY_GRADE: OPEN 2026-06-03
++   Witness-collapse NOT resolvable under Clay rules. The `def transferGapBound`
++   predicate above is PRESERVED. The named proposition below is the as-written
++   inhabitedness shape; its only witness is the zero/zero operator pair
++   (‖0 - 0‖ = 0 ≤ exp), so as written it is trivially satisfiable and the
++   genuine YM surface (a real transfer operator T_β with ‖T_β - P_vac‖ ≤
++   exp(-m·L)) is unreachable in mathlib v4.12.0. De-registered from BRICKS.
++   This names the proposition; it does NOT prove it. No sorry / no axiom. -/
++def transfer_gap_zero_OPEN : Prop :=
++  ∀ (m L : ℝ), transferGapBound (0 : ℂ →L[ℂ] ℂ) (0 : ℂ →L[ℂ] ℂ) m L
+ 
+ end TheoremaAureum.Towers.YM.OS
+diff --git a/lean-proof-towers/Towers/YM/TwoPointDecay.lean b/lean-proof-towers/Towers/YM/TwoPointDecay.lean
+index 9ac3e94..4fad660 100644
+--- a/lean-proof-towers/Towers/YM/TwoPointDecay.lean
++++ b/lean-proof-towers/Towers/YM/TwoPointDecay.lean
+@@ -73,18 +73,17 @@ open Real
+ def hasExponentialClustering (f : ℝ → ℝ) (m : ℝ) : Prop :=
+   ∃ C : ℝ, 0 < C ∧ ∀ t : ℝ, |f t| ≤ C * Real.exp (-m * t)
+ 
+-/-- The constant-zero function clusters exponentially at every rate
+-    `m`, in any chain that has a `transferGapBound 0 0 m L` witness
+-    upstream. The hypothesis is carried positionally to record the
+-    163.1 → 163.2 dependency; the witness `C = 1` works regardless.
+-    Honest inhabitedness witness — proves the predicate is consistent,
+-    NOT that any real YM correlator clusters. -/
+-lemma clustering_zero_from_transfer (m L : ℝ)
+-    (_h : transferGapBound (0 : ℂ →L[ℂ] ℂ) (0 : ℂ →L[ℂ] ℂ) m L) :
+-    hasExponentialClustering (fun _ => (0 : ℝ)) m := by
+-  refine ⟨1, one_pos, ?_⟩
+-  intro t
+-  simp
+-  positivity
++/- CLAY_GRADE: OPEN 2026-06-03
++   Witness-collapse NOT resolvable under Clay rules. The
++   `def hasExponentialClustering` predicate above is PRESERVED. The named
++   proposition below is the as-written shape; its only witness is the
++   constant-zero function (|0| ≤ 1·exp), so as written it is trivially
++   satisfiable and the genuine YM surface (a real two-point function that
++   clusters exponentially) is unreachable in mathlib v4.12.0. De-registered
++   from BRICKS. This names the proposition; it does NOT prove it. No sorry /
++   no axiom. -/
++def clustering_zero_from_transfer_OPEN : Prop :=
++  ∀ (m L : ℝ), transferGapBound (0 : ℂ →L[ℂ] ℂ) (0 : ℂ →L[ℂ] ℂ) m L →
++    hasExponentialClustering (fun _ => (0 : ℝ)) m
+ 
+ end TheoremaAureum.Towers.YM.OS
+diff --git a/scripts/check-towers.sh b/scripts/check-towers.sh
+index 409d9aa..b2203f1 100755
+--- a/scripts/check-towers.sh
++++ b/scripts/check-towers.sh
+@@ -2311,7 +2311,7 @@ BRICKS=(
+   # the original snippet did not introduce). Same inhabitedness pattern
+   # as Batch 157.2's `reflectionPos_diracEvalLM`. Does NOT prove
+   # cluster decay for any Yang-Mills measure. Surface #1 stays Open.
+-  "Towers.YM.ClusteringCore|TheoremaAureum.Towers.YM.OS.clusters_zero"
++  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.ClusteringCore.clusters_zero → clusters_zero_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
+   # Batch 160.1 (2026-05-28): the one-parameter real exponential
+   # `t ↦ exp(-t·H)` analytically continues to the entire complex
+   # function `z ↦ exp(-z·H)`. Discharges differentiability via
+@@ -2503,26 +2503,26 @@ BRICKS=(
+   # Wall: 482 → 485. YM tower stays `Status: Open`. Surface #1 stays
+   # OPEN. NOT a real YM mass gap, NOT a real spectral gap, NOT a real
+   # transfer operator.
+-  "Towers.YM.MassGapStandin|TheoremaAureum.Towers.YM.OS.massGap_standin_example"
+-  "Towers.YM.SpectralGapCore|TheoremaAureum.Towers.YM.OS.hasMassGap_zero"
++  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.MassGapStandin.massGap_standin_example → massGap_standin_example_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
++  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.SpectralGapCore.hasMassGap_zero → hasMassGap_zero_OPEN (witness-collapse; def HasMassGap preserved; see reports/CLAY_REPAIR_2026-06-03.md)
+   "Towers.YM.TransferOperator|TheoremaAureum.Towers.YM.OS.boltzmannWeight_pos"
+   "Towers.YM.TransferOperator|TheoremaAureum.Towers.YM.OS.boltzmannWeight_const_one"
+   "Towers.YM.TransferOperator|TheoremaAureum.Towers.YM.OS.TransferOperator_vacuum_eq_id"
+-  "Towers.YM.TransferOperatorBound|TheoremaAureum.Towers.YM.OS.transfer_gap_zero"
+-  "Towers.YM.TwoPointDecay|TheoremaAureum.Towers.YM.OS.clustering_zero_from_transfer"
+-  "Towers.YM.MassGapFromDecay|TheoremaAureum.Towers.YM.OS.mass_gap_from_clustering_zero"
+-  "Towers.YM.IntegratedTailReal|TheoremaAureum.Towers.YM.OS.integrated_tail_le_exp"
+-  "Towers.YM.TransferGapReal|TheoremaAureum.Towers.YM.OS.transfer_gap_real"
+-  "Towers.YM.MassGapReal|TheoremaAureum.Towers.YM.OS.mass_gap_from_transfer"
+-  "Towers.YM.ClusteringImpliesGap|TheoremaAureum.Towers.YM.OS.clustering_implies_gap"
+-  "Towers.YM.TransferImpliesClustering|TheoremaAureum.Towers.YM.OS.transfer_implies_clustering"
+-  "Towers.YM.TailImpliesTransfer|TheoremaAureum.Towers.YM.OS.tail_implies_transfer"
++  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.TransferOperatorBound.transfer_gap_zero → transfer_gap_zero_OPEN (witness-collapse; def transferGapBound preserved; see reports/CLAY_REPAIR_2026-06-03.md)
++  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.TwoPointDecay.clustering_zero_from_transfer → clustering_zero_from_transfer_OPEN (witness-collapse; def hasExponentialClustering preserved; see reports/CLAY_REPAIR_2026-06-03.md)
++  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.MassGapFromDecay.mass_gap_from_clustering_zero → mass_gap_from_clustering_zero_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
++  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.IntegratedTailReal.integrated_tail_le_exp → integrated_tail_le_exp_OPEN (witness-collapse; def integrated_tail preserved; see reports/CLAY_REPAIR_2026-06-03.md)
++  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.TransferGapReal.transfer_gap_real → transfer_gap_real_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
++  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.MassGapReal.mass_gap_from_transfer → mass_gap_from_transfer_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
++  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.ClusteringImpliesGap.clustering_implies_gap → clustering_implies_gap_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
++  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.TransferImpliesClustering.transfer_implies_clustering → transfer_implies_clustering_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
++  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.TailImpliesTransfer.tail_implies_transfer → tail_implies_transfer_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
+   "Towers.YM.ShiftOperator|TheoremaAureum.Towers.YM.OS.norm_shift_apply"
+   "Towers.YM.NontrivialGap|TheoremaAureum.Towers.YM.OS.nontrivial_gap"
+   # TRI PARALLEL #7 / Batches 167.1 & 167.2 — close the stand-in era.
+   # ChainSummary (167.3) registers no BRICK (no new theorems; it is a
+   # dep-graph closure module exercised by `lake build`).
+-  "Towers.YM.GapToDecay|TheoremaAureum.Towers.YM.OS.gap_to_decay"
++  # CLAY_OPEN 2026-06-03: de-registered Towers.YM.GapToDecay.gap_to_decay → gap_to_decay_OPEN (witness-collapse; see reports/CLAY_REPAIR_2026-06-03.md)
+   "Towers.YM.SpectralBound|TheoremaAureum.Towers.YM.OS.spectral_bound"
+   # Task #174 — land the remaining 3 Varadhan-track files for Task #156
+   # (files 4–6 of the original 6-file plan). All three are trio-clean

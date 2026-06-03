@@ -73,16 +73,16 @@ namespace TheoremaAureum.Towers.YM.OS
 
 open Real
 
-/-- For every `m ∈ (0, 1]`, the `HasMassGap` predicate is inhabited:
-    `(ℂ, 0)` witnesses `HasMassGap ℂ 0 m`. Honest inhabitedness
-    witness — proves the predicate is consistent at every `m` in the
-    range, NOT that any real YM operator has a mass gap of size `m`. -/
-lemma mass_gap_from_transfer {m : ℝ} (hm : 0 < m) (hm1 : m ≤ 1) :
+/- CLAY_GRADE: OPEN 2026-06-03
+   Witness-collapse NOT resolvable under Clay rules. The named proposition
+   below is the as-written existential shape; its witness `(ℂ, 0)` is the
+   maximally degenerate operator (zero CLM), so as written it is trivially
+   satisfiable and the genuine YM surface (a real operator with a mass gap of
+   size m) is unreachable in mathlib v4.12.0. De-registered from BRICKS. This
+   names the proposition; it does NOT prove it. No sorry / no axiom. -/
+def mass_gap_from_transfer_OPEN : Prop :=
+  ∀ {m : ℝ}, 0 < m → m ≤ 1 →
     ∃ (H : Type) (_ : NormedAddCommGroup H) (_ : InnerProductSpace ℂ H)
-      (T : H →L[ℂ] H), HasMassGap H T m := by
-  refine ⟨ℂ, inferInstance, inferInstance, 0, hm, ?_⟩
-  intro x
-  simp
-  exact mul_nonneg (by linarith) (sq_nonneg _)
+      (T : H →L[ℂ] H), HasMassGap H T m
 
 end TheoremaAureum.Towers.YM.OS

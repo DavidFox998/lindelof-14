@@ -59,15 +59,17 @@ namespace TheoremaAureum.Towers.YM.OS
 
 open Real
 
-/-- Given a tail-form upper bound `‖T - P₀‖ ≤ integrated_tail L m`,
-    conclude `‖T - P₀‖ ≤ rexp (-m * L)` by unfolding the definitional
-    alias from Batch 156.6. Honest composition step — the
-    YM-relevant content (the hypothesis `h`) is supplied externally;
-    this file only discharges the trivial last link. -/
-theorem transfer_gap_real (T P₀ : ℂ →L[ℂ] ℂ) (m L : ℝ)
-    (h : ‖T - P₀‖ ≤ integrated_tail L m) :
-    ‖T - P₀‖ ≤ rexp (-m * L) := by
-  unfold integrated_tail at h
-  exact h
+/- CLAY_GRADE: OPEN 2026-06-03
+   Witness-collapse NOT resolvable under Clay rules. The named proposition
+   below is the as-written composition shape; since `integrated_tail L m :=
+   rexp(-m*L)` by definition, the conclusion is definitionally the hypothesis,
+   so as written it is a trivial pass-through and the genuine YM surface (a
+   real transfer operator T_β admitting an integrated-tail bound for some
+   m > 0) is unreachable in mathlib v4.12.0. De-registered from BRICKS. This
+   names the proposition; it does NOT prove any real gap. No sorry / no
+   axiom. -/
+def transfer_gap_real_OPEN : Prop :=
+  ∀ (T P₀ : ℂ →L[ℂ] ℂ) (m L : ℝ),
+    ‖T - P₀‖ ≤ integrated_tail L m → ‖T - P₀‖ ≤ rexp (-m * L)
 
 end TheoremaAureum.Towers.YM.OS

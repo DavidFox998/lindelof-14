@@ -71,18 +71,16 @@ def HasMassGap (H : Type _) [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (T : H →L[ℂ] H) (m : ℝ) : Prop :=
   0 < m ∧ ∀ x : H, (⟪x, T x⟫_ℂ).re ≤ (1 - m) * ‖x‖ ^ 2
 
-/-- The zero operator on `ℂ` satisfies the predicate at `m = 1`: the
-    LHS `(⟪x, 0⟫_ℂ).re = 0` and the RHS `(1 - 1) * ‖x‖^2 = 0`, so the
-    inequality reduces to `0 ≤ 0`. Honest inhabitedness witness —
-    proves the predicate is consistent, NOT that any Yang-Mills
-    transfer operator has a gap. -/
-lemma hasMassGap_zero : HasMassGap ℂ (0 : ℂ →L[ℂ] ℂ) 1 := by
-  refine ⟨one_pos, ?_⟩
-  intro x
-  have hlhs : (⟪x, (0 : ℂ →L[ℂ] ℂ) x⟫_ℂ).re = 0 := by
-    rw [ContinuousLinearMap.zero_apply, inner_zero_right]
-    rfl
-  have hrhs : (1 - (1 : ℝ)) * ‖x‖ ^ 2 = 0 := by ring
-  rw [hlhs, hrhs]
+/- CLAY_GRADE: OPEN 2026-06-03
+   Witness-collapse NOT resolvable under Clay rules. The `def HasMassGap`
+   predicate above is PRESERVED (consumed by NontrivialGap / Continuum for
+   the predicate shape only). The named proposition below is the as-written
+   inhabitedness shape; its only witness is the zero CLM on ℂ (spectrum {0}),
+   so as written it is trivially satisfiable (0 ≤ 0) and the genuine YM
+   surface (a real transfer operator with a positive spectral gap) is
+   unreachable in mathlib v4.12.0. De-registered from BRICKS. This names the
+   proposition; it does NOT prove it. No sorry / no axiom. -/
+def hasMassGap_zero_OPEN : Prop :=
+  HasMassGap ℂ (0 : ℂ →L[ℂ] ℂ) 1
 
 end TheoremaAureum.Towers.YM.OS

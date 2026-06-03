@@ -7,6 +7,27 @@ history. Roadmap → `docs/ROADMAP.md`.
 
 ## Current status — 2026-06-03
 
+- **CLAY repair — 13 witness-collapse bricks de-registered (2026-06-03; full
+  detail → `reports/CLAY_REPAIR_2026-06-03.md`, `CLAY_STATUS.md`,
+  `BUILD_MANIFEST_v2.7.json`, `provenance/clay_repair.diff`).** 13 `Towers/YM/OS`
+  bricks (`ClusteringCore`, `MassGapStandin`, `SpectralGapCore`,
+  `TransferOperatorBound`, `TwoPointDecay`, `MassGapFromDecay`,
+  `IntegratedTailReal`, `TransferGapReal`, `MassGapReal`, `ClusteringImpliesGap`,
+  `TransferImpliesClustering`, `TailImpliesTransfer`, `GapToDecay`) were each
+  discharged ONLY by a degenerate witness (constant-zero correlator / zero CLM on
+  `H:=ℂ` / reflexive definitional re-wrap — a *witness collapse*). A non-vacuous
+  `T_real > 0` proof needs a real Wilson transfer operator / SU(3) character
+  theory ABSENT from mathlib v4.12.0, so **0 of 13 are provable non-vacuously.**
+  Each vacuous `theorem`/`lemma` was converted IN-PLACE to a named open
+  `def <name>_OPEN : Prop := <fully-closed statement>` + CLAY OPEN honesty header
+  (supporting predicate defs + imports preserved); all 13 de-registered from the
+  `BRICKS` array in `scripts/check-towers.sh` (`# CLAY_OPEN 2026-06-03` lines).
+  Verified direct-lean (NOT lake; v4.12.0 tag unresolved): all 13 EXIT 0, axioms
+  = classical trio, `sorry`/`sorryAx`/`admit` = 0. **HONEST CAVEAT: the `_OPEN`
+  props as written are themselves trivially-satisfiable (degenerate witnesses
+  remain) — they NAME the as-written shape, they do NOT assert the genuine
+  surface (`T_real` bound = none, all 13).** Logical hygiene only; proves NOTHING
+  new; YM Surface #1 stays OPEN; NO mass-gap / μ>0 / Surface-#1-closed claim.
 - **RH growth-contradiction skeleton — `Towers/RH/GrowthContradiction.lean`
   (2026-06-03; full detail → `docs/CHANGELOG.md`).** Honest recreation of David
   Fox's flawed RH fragment as a CONDITIONAL REDUCTION: the **genuine** RH

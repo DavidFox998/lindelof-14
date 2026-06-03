@@ -73,18 +73,17 @@ open Real
 def hasExponentialClustering (f : ℝ → ℝ) (m : ℝ) : Prop :=
   ∃ C : ℝ, 0 < C ∧ ∀ t : ℝ, |f t| ≤ C * Real.exp (-m * t)
 
-/-- The constant-zero function clusters exponentially at every rate
-    `m`, in any chain that has a `transferGapBound 0 0 m L` witness
-    upstream. The hypothesis is carried positionally to record the
-    163.1 → 163.2 dependency; the witness `C = 1` works regardless.
-    Honest inhabitedness witness — proves the predicate is consistent,
-    NOT that any real YM correlator clusters. -/
-lemma clustering_zero_from_transfer (m L : ℝ)
-    (_h : transferGapBound (0 : ℂ →L[ℂ] ℂ) (0 : ℂ →L[ℂ] ℂ) m L) :
-    hasExponentialClustering (fun _ => (0 : ℝ)) m := by
-  refine ⟨1, one_pos, ?_⟩
-  intro t
-  simp
-  positivity
+/- CLAY_GRADE: OPEN 2026-06-03
+   Witness-collapse NOT resolvable under Clay rules. The
+   `def hasExponentialClustering` predicate above is PRESERVED. The named
+   proposition below is the as-written shape; its only witness is the
+   constant-zero function (|0| ≤ 1·exp), so as written it is trivially
+   satisfiable and the genuine YM surface (a real two-point function that
+   clusters exponentially) is unreachable in mathlib v4.12.0. De-registered
+   from BRICKS. This names the proposition; it does NOT prove it. No sorry /
+   no axiom. -/
+def clustering_zero_from_transfer_OPEN : Prop :=
+  ∀ (m L : ℝ), transferGapBound (0 : ℂ →L[ℂ] ℂ) (0 : ℂ →L[ℂ] ℂ) m L →
+    hasExponentialClustering (fun _ => (0 : ℝ)) m
 
 end TheoremaAureum.Towers.YM.OS
