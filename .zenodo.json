@@ -1,0 +1,30 @@
+{
+  "title": "Lindelof Hypothesis Computation at Level 14",
+  "upload_type": "software",
+  "creators": [
+    {
+      "name": "Fox, David J.",
+      "affiliation": "Independent Research",
+      "orcid": "0009-0008-1290-6105"
+    }
+  ],
+  "license": {
+    "id": "MIT"
+  },
+  "keywords": [
+    "Lindelof hypothesis",
+    "L-functions",
+    "level 14",
+    "number theory",
+    "Opera Numerorum"
+  ],
+  "description": "Numerical verification of Lindelof-type bounds for L-functions at level 14. Part of the Opera Numerorum suite.",
+  "related_identifiers": [
+    {
+      "relation": "isPartOf",
+      "identifier": "https://github.com/DavidFox998/opera-numerorum",
+      "scheme": "url",
+      "resource_type": "software"
+    }
+  ]
+}
